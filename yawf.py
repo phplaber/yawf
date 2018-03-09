@@ -7,10 +7,25 @@ from core.fuzz.fuzzer import Fuzzer
 from core.utils.utils import *
 from core.utils.shared import Shared
 
+banner = "\
+_____.___.  _____  __      _____________\n\
+\__  |   | /  _  \/  \    /  \_   _____/\n\
+ /   |   |/  /_\  \   \/\/   /|    __)  \n\
+ \____   /    |    \        / |     \   \n\
+ / ______\____|__  /\__/\  /  \___  /   \n\
+ \/              \/      \/       \/    \n\
+                                        \n\
+Automated Web Vulnerability Fuzz Tester \n\
+version 1.0.0                           \n\
+Created by Yns0ng (@phplaber)           \n\
+\
+"
+
 if __name__ == '__main__':
 
-    print "%s #v%s\n by: %s\n" % (NAME, VERSION, AUTHOR)
-    parser = optparse.OptionParser(version=VERSION)
+    print banner
+
+    parser = optparse.OptionParser()
     parser.add_option("-u", "--url", dest="url", help="Target URL (e.g. \"http://www.target.com/page.php?id=1\")")
     parser.add_option("-r", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("-n", dest="threads", help="Number of parallel threads (default: 10)")

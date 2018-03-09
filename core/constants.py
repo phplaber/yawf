@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*- 
 
-NAME = 'Yet Another Web Fuzz'
-VERSION = '1.0'
-AUTHOR = 'Yns0ng'
-
 PAYLOAD = '[fuzz]'
 
 VULS_TYPE = [
