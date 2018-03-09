@@ -25,15 +25,22 @@ $ python yawf/yawf.py -h
 
 ## 使用
 
-```console
+```
 $ python yawf/yawf.py -h
-Yet Another Web Fuzz #v1.0
- by: Yns0ng
+_____.___.  _____  __      _____________
+\__  |   | /  _  \/  \    /  \_   _____/
+ /   |   |/  /_\  \   \/\/   /|    __)  
+ \____   /    |    \        / |     \   
+ / ______\____|__  /\__/\  /  \___  /   
+ \/              \/      \/       \/    
+
+Automated Web Vulnerability Fuzz Tester
+version 1.0.0                           
+Created by Yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
 
 Options:
-  --version          show program's version number and exit
   -h, --help         show this help message and exit
   -u URL, --url=URL  Target URL (e.g. "http://www.target.com/page.php?id=1")
   -r REQUESTFILE     Load HTTP request from a file
@@ -42,7 +49,7 @@ Options:
 
 支持动态 URL 和 Request 文件的模糊测试，当需要测试某个单独的输入点时，仅需在参数值后手动标注上 **[fuzz]**，Yawf 就只会对该位置进行模糊测试。如：
 
-```console
+```
 http://test.sqlilab.local/Less-1/?id=3[fuzz]
 ```
 
