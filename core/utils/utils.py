@@ -130,23 +130,29 @@ def parse_request(content):
 
 
 def send_request(request):
-    opener = urllib2.build_opener()
-    opener.addheaders = []
-    if 'headers' in request and request['headers'] is not None:
-        for header in request['headers']:
-            opener.addheaders.append(header)
-    if 'cookie' in request and request['cookie'] is not None:
-        opener.addheaders.append(('Cookie', request['cookie']))
-    data = None
-    if 'data' in request and 'method' in request and request['method'] != HTTP_METHOD['GET'] and request['data'] is not None:
-        data = request['data']
-    req = opener.open(
-        request['url'],
-        urllib.quote_plus(data) if data is not None else None
-    )
+    try:
+        opener = urllib2.build_opener()
+        opener.addheaders = []
+        if 'headers' in request and request['headers'] is not None:
+            for header in request['headers']:
+                opener.addheaders.append(header)
+        if 'cookie' in request and request['cookie'] is not None:
+            opener.addheaders.append(('Cookie', request['cookie']))
+        data = None
+        if 'data' in request and 'method' in request and request['method'] != HTTP_METHOD['GET'] and request['data'] is not None:
+            data = request['data']
+        req = opener.open(
+            request['url'],
+            urllib.quote_plus(data) if data is not None else None
+        )
 
-    response = req.read()
-    length = len(response)
-    status = req.getcode()
+        response = req.read()
+        length = len(response)
+        status = req.getcode()
+
+    except urllib2.HTTPError, e:
+        response = "Request failed: %d %s" % (e.code, e.msg)
+        length = len(response)
+        status = e.code
 
     return RequestResult(request, response, length, status)

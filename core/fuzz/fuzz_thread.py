@@ -164,7 +164,7 @@ class FuzzThread(Thread):
             for payload in dt.dt_dict:
                 new_request = request.copy()
                 for k, v in new_request.items():
-                    new_request[k] = clear_param(v).replace(PAYLOAD, urllib.quote_plus(payload)) if PAYLOAD in v else v
+                    new_request[k] = clear_param(v).replace(PAYLOAD, payload) if PAYLOAD in v else v
                     break
                 poc_rsp = send_request(new_request)
 
