@@ -29,8 +29,13 @@ if __name__ == '__main__':
     parser.add_option("-u", "--url", dest="url", help="Target URL (e.g. \"http://www.target.com/page.php?id=1\")")
     parser.add_option("-r", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("-n", dest="threads", help="Number of parallel threads (default: 10)")
+    parser.add_option("-p", dest="proxy", help="Specify a proxy in the request http|s://[IP]:[PORT]")
     options, _ = parser.parse_args()
     if options.url or options.requestfile:
+        # 网络代理
+        if options.proxy and 'http' in options.proxy:
+            Shared.proxy = get_proxy(options.proxy)
+
         error = errmsg_dict()
         if options.url:
             request = dict()

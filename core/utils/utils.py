@@ -7,6 +7,7 @@ import urllib
 import urllib2
 from core.constants import *
 from core.utils.request_result import RequestResult
+from core.utils.shared import Shared
 
 
 def errmsg_dict():
@@ -131,7 +132,8 @@ def parse_request(content):
 
 def send_request(request):
     try:
-        opener = urllib2.build_opener()
+        proxy = urllib2.ProxyHandler(Shared.proxy)
+        opener = urllib2.build_opener(proxy)
         opener.addheaders = []
         if 'headers' in request and request['headers'] is not None:
             for header in request['headers']:
@@ -141,6 +143,7 @@ def send_request(request):
         data = None
         if 'data' in request and 'method' in request and request['method'] != HTTP_METHOD['GET'] and request['data'] is not None:
             data = request['data']
+
         req = opener.open(
             request['url'],
             urllib.quote_plus(data) if data is not None else None
@@ -156,3 +159,15 @@ def send_request(request):
         status = e.code
 
     return RequestResult(request, response, length, status)
+
+
+def get_proxy(proxy_str):
+
+    proxy = {}
+
+    if 'http://' in proxy_str:
+        proxy['http'] = proxy_str.split('http://')[1]
+    else:
+        proxy['https'] = proxy_str.split('https://')[1]
+
+    return proxy

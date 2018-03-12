@@ -12,3 +12,5 @@ class Shared:
 
     condition = None
 
+    proxy = {}
+

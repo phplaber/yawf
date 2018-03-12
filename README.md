@@ -8,7 +8,8 @@
 2.  支持自动搜索所有测试锚点并标注，目前搜索范围包括 URL 中查询字符串，Cookie 和表单数据。同时，支持手动标注测试锚点；
 3.  支持多线程对测试目标进行模糊测试，默认 10 个线程；
 4.  基于 OWASP 进行 Web 漏洞挖掘，目前支持：XSS，SQL injection，LFI，RFI 和 Directory traversal；
-5.  容易扩展，漏洞测试器和 Payload 字典分离。
+5.  容易扩展，漏洞测试器和 Payload 字典分离；
+6.  支持配置 HTTP 网络代理。
 
 ## 安装
 
@@ -45,6 +46,7 @@ Options:
   -u URL, --url=URL  Target URL (e.g. "http://www.target.com/page.php?id=1")
   -r REQUESTFILE     Load HTTP request from a file
   -n THREADS         Number of parallel threads (default: 10)
+  -p PROXY           Specify a proxy in the request http|s://[IP]:[PORT]
 ```
 
 支持动态 URL 和 Request 文件的模糊测试，当需要测试某个单独的输入点时，仅需在参数值后手动标注上 **[fuzz]**，Yawf 就只会对该位置进行模糊测试。如：
