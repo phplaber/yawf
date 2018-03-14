@@ -10,7 +10,7 @@
 4.  基于 OWASP 进行 Web 漏洞挖掘，目前支持：XSS，SQL injection，LFI，RFI 和 Directory traversal；
 5.  容易扩展，漏洞测试器和 Payload 字典分离；
 6.  支持配置 HTTP 网络代理；
-7.  通过调用 shodan api，检测目标为蜜罐的概率。
+7.  支持通过调用 shodan api，检测目标为蜜罐的概率。
 
 ## 安装
 
