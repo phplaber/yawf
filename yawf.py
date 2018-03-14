@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import optparse
+import socket
+from urlparse import urlparse
 from core.request.request import Request
 from core.fuzz.fuzzer import Fuzzer
 from core.utils.utils import *
@@ -30,6 +32,7 @@ if __name__ == '__main__':
     parser.add_option("-r", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("-n", dest="threads", help="Number of parallel threads (default: 10)")
     parser.add_option("-p", dest="proxy", help="Specify a proxy in the request http|s://[IP]:[PORT]")
+    parser.add_option("-t", dest="target", help="Check if the target is a honeypot")
     options, _ = parser.parse_args()
     if options.url or options.requestfile:
         # 网络代理
@@ -87,5 +90,24 @@ if __name__ == '__main__':
             threads_num = THREADS_NUM
 
         Fuzzer(threads_num)
+
+    elif options.target:
+        target = options.target.strip()
+        if 'http' in target:
+            parsed_uri = urlparse(target)
+            domain = parsed_uri.netloc
+        else:
+            domain = target
+
+        host = socket.gethostbyname(domain)
+        # 调用 shodan api 检测目标为蜜罐的概率
+        url = 'https://api.shodan.io/labs/honeyscore/%s?key=Hgqwf9dHMIE157PNCeqVJc6TVvlyGKiP' % host
+        rsp = send_request({'url': url})
+
+        if rsp.status == 200:
+            print '[+] Honeypot Probabilty: %s' % rsp.response
+        else:
+            print '[-] ' + rsp.response
+
     else:
         parser.print_help()

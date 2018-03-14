@@ -9,7 +9,8 @@
 3.  支持多线程对测试目标进行模糊测试，默认 10 个线程；
 4.  基于 OWASP 进行 Web 漏洞挖掘，目前支持：XSS，SQL injection，LFI，RFI 和 Directory traversal；
 5.  容易扩展，漏洞测试器和 Payload 字典分离；
-6.  支持配置 HTTP 网络代理。
+6.  支持配置 HTTP 网络代理；
+7.  通过调用 shodan api，检测目标为蜜罐的概率。
 
 ## 安装
 
@@ -47,6 +48,7 @@ Options:
   -r REQUESTFILE     Load HTTP request from a file
   -n THREADS         Number of parallel threads (default: 10)
   -p PROXY           Specify a proxy in the request http|s://[IP]:[PORT]
+  -t TARGET          Check if the target is a honeypot
 ```
 
 支持动态 URL 和 Request 文件的模糊测试，当需要测试某个单独的输入点时，仅需在参数值后手动标注上 **[fuzz]**，Yawf 就只会对该位置进行模糊测试。如：
