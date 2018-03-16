@@ -72,6 +72,12 @@ class FuzzThread(Thread):
                         print "[+] XSS Found! Vulnerable request is: %s" % new_request
 
                     if vulnerable:
+                        Shared.fuzz_results.append({
+                            'request': request,
+                            'payload': payload,
+                            'poc': new_request,
+                            'type': 'XSS'
+                        })
                         break
 
             if not vulnerable:
@@ -104,6 +110,12 @@ class FuzzThread(Thread):
                             break
 
                 if vulnerable:
+                    Shared.fuzz_results.append({
+                        'request': request,
+                        'payload': payload,
+                        'poc': new_request,
+                        'type': 'SQL Injection'
+                    })
                     break
 
             if not vulnerable:
@@ -127,6 +139,12 @@ class FuzzThread(Thread):
                     print "[+] Local File Inclusion Found! Vulnerable request is: %s" % new_request
 
                 if vulnerable:
+                    Shared.fuzz_results.append({
+                        'request': request,
+                        'payload': payload,
+                        'poc': new_request,
+                        'type': 'Local File Inclusion'
+                    })
                     break
 
             if not vulnerable:
@@ -150,6 +168,12 @@ class FuzzThread(Thread):
                     print "[+] Remote File Inclusion Found! Vulnerable request is: %s" % new_request
 
                 if vulnerable:
+                    Shared.fuzz_results.append({
+                        'request': request,
+                        'payload': payload,
+                        'poc': new_request,
+                        'type': 'Remote File Inclusion'
+                    })
                     break
 
             if not vulnerable:
@@ -173,6 +197,12 @@ class FuzzThread(Thread):
                     print "[+] Directory Traversal Found! Vulnerable request is: %s" % new_request
 
                 if vulnerable:
+                    Shared.fuzz_results.append({
+                        'request': request,
+                        'payload': payload,
+                        'poc': new_request,
+                        'type': 'Directory Traversal'
+                    })
                     break
 
             if not vulnerable:

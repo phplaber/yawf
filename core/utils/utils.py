@@ -5,6 +5,7 @@ import re
 import sys
 import urllib
 import urllib2
+from ConfigParser import ConfigParser
 from core.constants import *
 from core.utils.request_result import RequestResult
 from core.utils.shared import Shared
@@ -171,3 +172,20 @@ def get_proxy(proxy_str):
         proxy['https'] = proxy_str.split('https://')[1]
 
     return proxy
+
+
+def get_conf(section, option):
+
+    conf_path = os.path.dirname(os.path.realpath(sys.argv[0])) + os.sep + 'yawf.conf'
+
+    value = None
+    if check_file(conf_path):
+        conf = ConfigParser()
+        conf.read(conf_path)
+
+        try:
+            value = conf.get(section, option)
+        except Exception as e:
+            pass
+
+    return value

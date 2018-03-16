@@ -16,7 +16,8 @@
 
 ### 环境
 
-Python 2.7
+1.  Python 2.7.x
+2.  MySQL-python（可选项）
 
 ### 运行
 
@@ -58,3 +59,17 @@ http://test.sqlilab.local/Less-1/?id=3[fuzz]
 ```
 
 Request 文件可以通过 Live HTTP Headers 或 Burp Suite 获取得到。
+
+```
+GET /Less-1/?id=3 HTTP/1.1
+Host: test.sqlilab.local
+User-Agent: Yawf 1.0.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+```
+
+当使用 Yawf API 进行批量 URL 测试时，你可能想使用 MySQL 存储测试结果而不是直接打印在终端。首先需安装 MySQL 的 Python 客户端，即：MySQL-python。安装方法参考：[How do I connect to a MySQL Database in Python
+](https://stackoverflow.com/questions/372885/how-do-i-connect-to-a-mysql-database-in-python)。安装完成后，在配置文件 **yawf.conf** 中配置 DB 项即可，可参考示例配置文件 yawf.conf.example。如果不需要用到 MySQL，只需将 **host** 留空即可。

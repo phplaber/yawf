@@ -14,3 +14,5 @@ class Shared:
 
     proxy = {}
 
+    fuzz_results = []
+

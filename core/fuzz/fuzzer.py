@@ -4,6 +4,7 @@ import time
 import threading
 from core.fuzz.fuzz_thread import FuzzThread
 from core.utils.shared import Shared
+from core.utils.db import Db
 
 
 class Fuzzer:
@@ -11,6 +12,7 @@ class Fuzzer:
         self.start_time = int(time.time())
         self.end_time = 0
         self.threads_num = threads_num
+        self.db = Db()
         self.main()
 
     def loop(self, threads):
@@ -30,6 +32,12 @@ class Fuzzer:
             fuzz_thread.start()
 
         self.loop(fuzz_threads)
+
+        if len(Shared.fuzz_results) and self.db.conn is not None:
+            self.db.create()
+            for result in Shared.fuzz_results:
+                self.db.save(result)
+
         self.end_time = int(time.time())
 
         print "\n\nFuzz finished, %d request scanned in %d seconds." % (Shared.requests_index, self.end_time - self.start_time)
