@@ -1,0 +1,17 @@
+# DB item
+[DB]
+
+# your host, usually localhost
+host : 127.0.0.1
+
+# db port
+port : 3306
+
+# your username
+user : Yns0ng
+
+# your password
+passwd : yawf@123
+
+# name of the data base
+db : yawf
