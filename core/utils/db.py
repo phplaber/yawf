@@ -13,7 +13,10 @@ class Db:
 
         mysqldb = None
         if get_conf('DB', 'host'):
-            mysqldb = importlib.import_module('MySQLdb')
+            try:
+                mysqldb = importlib.import_module('MySQLdb')
+            except Exception as e:
+                pass
 
         if mysqldb is not None:
             try:
