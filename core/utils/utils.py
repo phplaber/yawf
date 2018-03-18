@@ -51,6 +51,9 @@ def check_file(filename):
 
 
 def parse_request(content):
+    """
+    解析 Request 文本文件中包含的各种输入
+    """
 
     request = re.sub(r"\A[^\w]+", "", content)
     lines = request.split('\n')
@@ -132,6 +135,10 @@ def parse_request(content):
 
 
 def send_request(request):
+    """
+    发送 HTTP 请求
+    """
+
     try:
         proxy = urllib2.ProxyHandler(Shared.proxy)
         opener = urllib2.build_opener(proxy)
@@ -163,6 +170,9 @@ def send_request(request):
 
 
 def get_proxy(proxy_str):
+    """
+    获取代理
+    """
 
     proxy = {}
 
@@ -175,6 +185,9 @@ def get_proxy(proxy_str):
 
 
 def get_conf(section, option):
+    """
+    获取配置文件中的配置项
+    """
 
     conf_path = os.path.dirname(os.path.realpath(sys.argv[0])) + os.sep + 'yawf.conf'
 

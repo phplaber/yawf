@@ -7,10 +7,17 @@ from core.constants import PAYLOAD, HTTP_METHOD
 
 
 class Request:
+    """
+    模糊测试对象生成器
+    """
+
     def __init__(self):
         pass
 
     def gene_url_list(self, url):
+        """
+        通过 URL 获取全部模糊测试 request 对象
+        """
 
         requests = []
         parsed = urlparse.urlparse(url)
@@ -24,6 +31,9 @@ class Request:
         return requests
 
     def gene_requestfile_list(self, request):
+        """
+        通过 request 获取全部模糊测试 request 对象
+        """
 
         requests = []
         # 标注查询字符串 Fuzz 点
@@ -72,6 +82,9 @@ class Request:
         return requests
 
     def fuzz_finder(self, params, origin_base, symbol):
+        """
+        查找可能的测试输入点并做标记
+        """
 
         base = origin_base[:]
         params_list = []

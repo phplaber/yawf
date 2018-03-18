@@ -7,13 +7,24 @@ from core.utils.shared import Shared
 
 
 class FuzzThread(Thread):
+    """
+    模糊测试器
+    """
+
     def __init__(self):
         Thread.__init__(self)
 
     def run(self):
+        """
+        启动线程时执行方法
+        """
+
         self.fuzz()
 
     def get_request(self):
+        """
+        获取队列中请求对象用于消费
+        """
 
         request = None
         Shared.condition.acquire()
@@ -55,6 +66,9 @@ class FuzzThread(Thread):
                 pass
 
     def xss(self, request):
+        """
+        XSS 漏洞探测器
+        """
 
         vulnerable = False
         try:
@@ -86,6 +100,9 @@ class FuzzThread(Thread):
             pass
 
     def sqli(self, request):
+        """
+        SQLI 漏洞探测器
+        """
 
         vulnerable = False
         try:
@@ -124,6 +141,9 @@ class FuzzThread(Thread):
             pass
 
     def lfi(self, request):
+        """
+        LFI 漏洞探测器
+        """
 
         vulnerable = False
         try:
@@ -153,6 +173,9 @@ class FuzzThread(Thread):
             pass
 
     def rfi(self, request):
+        """
+        RFI 漏洞探测器
+        """
 
         vulnerable = False
         try:
@@ -182,6 +205,9 @@ class FuzzThread(Thread):
             pass
 
     def dt(self, request):
+        """
+        DT 漏洞探测器
+        """
 
         vulnerable = False
         try:

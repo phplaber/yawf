@@ -5,11 +5,18 @@ from core.utils.utils import get_conf
 
 
 class Db:
+    """
+    MySQL 处理器
+    """
+
     def __init__(self):
         self.conn = None
         self.connect()
 
     def connect(self):
+        """
+        试图连接 MySQL，获取句柄
+        """
 
         mysqldb = None
         if get_conf('DB', 'host'):
@@ -31,6 +38,9 @@ class Db:
                 print str(e)
 
     def create(self):
+        """
+        创建漏洞表
+        """
 
         sql = """
             CREATE TABLE `vulnerability` (
@@ -63,6 +73,9 @@ class Db:
         self.conn.close()
 
     def save(self, item):
+        """
+        向漏洞表插入漏洞详情
+        """
 
         sql = """
             INSERT INTO vulnerability
