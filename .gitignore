@@ -103,5 +103,4 @@ ENV/
 # ide
 .idea/
 
-# config file
-yawf.conf
+
