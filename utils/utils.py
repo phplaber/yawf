@@ -177,3 +177,16 @@ def get_conf(section, option):
             pass
 
     return value
+
+def parse_dict(file):
+    """
+    解析 payload 字典文件
+    """
+
+    payloads = []
+    with open(file) as f:
+        for payload in f:
+            if not payload.startswith('#') and payload != '\n':
+                payloads.append(payload.strip())
+    
+    return payloads

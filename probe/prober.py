@@ -1,14 +1,37 @@
 # -*- coding: utf-8 -*-
 
+import os
+import copy
 from utils.shared import Shared
 from utils.constants import *
-from urllib.parse import quote
 from utils.utils import *
 
 class Prober:
     def __init__(self, request):
         self.request = request
-    
+        self.dictpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dict')
+
+    def gen_payload_request(self, payload):
+        payload_request = copy.deepcopy(self.request)
+        for k, v in payload_request.items():
+            if k in ['url', 'data', 'cookies']:
+                if k == 'url':
+                    if MARK_POINT in v:
+                        payload_request[k] = v.replace(MARK_POINT, payload)
+                        break
+                else:
+                    if v:
+                        flag = False
+                        for kk, vv in v.items():
+                            if MARK_POINT in vv:
+                                payload_request[k][kk] = vv.replace(MARK_POINT, payload)
+                                flag = True
+                                break
+                        if flag:
+                            break
+        
+        return payload_request
+
     def xss(self):
         """
         XSS 漏洞探测器
@@ -17,23 +40,20 @@ class Prober:
         vulnerable = False
         try:
             rsp = send_request(self.request)
-
-            if PAYLOAD in rsp.response:
-                for payload in xss.xss_dict:
-                    new_request = self.request.copy()
-                    for k, v in new_request.items():
-                        new_request[k] = v.replace(PAYLOAD, quote(payload)) if PAYLOAD in v else v
-                        break
-                    poc_rsp = send_request(new_request)
+            if MARK_POINT not in rsp.response:
+                xss_payloads = parse_dict(os.path.join(self.dictpath, 'xss.txt'))
+                for payload in xss_payloads:
+                    payload_request = self.gen_payload_request(payload)
+                    poc_rsp = send_request(payload_request)
                     if payload in poc_rsp.response:
                         vulnerable = True
-                        print("[+] Found XSS! Vulnerable request is: {}".format(new_request))
+                        print("[+] Found XSS! Vulnerable request is: {}".format(payload_request))
 
                     if vulnerable:
                         Shared.fuzz_results.append({
                             'request': self.request,
                             'payload': payload,
-                            'poc': new_request,
+                            'poc': payload_request,
                             'type': 'XSS'
                         })
                         break
@@ -50,31 +70,25 @@ class Prober:
 
         vulnerable = False
         try:
-            base_http_response = Shared.base_request.response
-            # base_http_length = Shared.base_request.length
+            base_http_response = Shared.base_response.response
 
-            for payload in sqli.sqli_dict:
-                new_request = self.request.copy()
-                for k, v in new_request.items():
-                    new_request[k] = v.replace(PAYLOAD, quote(payload)) if PAYLOAD in v else v
-                    break
-                poc_rsp = send_request(new_request)
+            sqli_payloads = parse_dict(os.path.join(self.dictpath, 'sqli.txt'))
+            for payload in sqli_payloads:
+                payload_request = self.gen_payload_request(payload)
+                poc_rsp = send_request(payload_request)
 
-                if poc_rsp.status == 500 or poc_rsp.status == 503:
-                    vulnerable = True
-                    print("[+] Found SQL Injection! Vulnerable request is: {}".format(new_request))
-                else:
-                    for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-                        if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, base_http_response, re.I):
-                            vulnerable = True
-                            print("[+] Found SQL Injection! Vulnerable request is: {}".format(new_request))
-                            break
+                # 基于报错判断漏洞是否存在
+                for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
+                    if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, base_http_response, re.I):
+                        vulnerable = True
+                        print("[+] Found SQL Injection! Vulnerable request is: {}".format(payload_request))
+                        break
 
                 if vulnerable:
                     Shared.fuzz_results.append({
                         'request': self.request,
                         'payload': payload,
-                        'poc': new_request,
+                        'poc': payload_request,
                         'type': 'SQL Injection'
                     })
                     break
@@ -91,22 +105,20 @@ class Prober:
 
         vulnerable = False
         try:
-            for payload in dt.dt_dict:
-                new_request = self.request.copy()
-                for k, v in new_request.items():
-                    new_request[k] = clear_param(v).replace(PAYLOAD, payload) if PAYLOAD in v else v
-                    break
-                poc_rsp = send_request(new_request)
+            dt_payloads = parse_dict(os.path.join(self.dictpath, 'dt.txt'))
+            for payload in dt_payloads:
+                payload_request = self.gen_payload_request(payload)
+                poc_rsp = send_request(payload_request)
 
                 if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
                     vulnerable = True
-                    print("[+] Found Directory Traversal! Vulnerable request is: {}".format(new_request))
+                    print("[+] Found Directory Traversal! Vulnerable request is: {}".format(payload_request))
 
                 if vulnerable:
                     Shared.fuzz_results.append({
                         'request': self.request,
                         'payload': payload,
-                        'poc': new_request,
+                        'poc': payload_request,
                         'type': 'Directory Traversal'
                     })
                     break

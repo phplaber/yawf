@@ -38,10 +38,11 @@ class Fuzzer:
 
         self.loop(fuzz_threads)
 
+        # 处理发现漏洞
         if len(Shared.fuzz_results):
             for result in Shared.fuzz_results:
                 print(result)
 
         self.end_time = int(time.time())
 
-        print("\n\nFuzz finished, {} request scanned in {} seconds.".format(Shared.requests_index, self.end_time - self.start_time))
+        print("\n\nFuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, self.end_time - self.start_time))
