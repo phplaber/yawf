@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import re
+import copy
 import optparse
 from core.request import Request
 from core.fuzzer import Fuzzer
@@ -16,7 +18,7 @@ _____.___.  _____  __      _____________\n\
  / ______\____|__  /\__/\  /  \___  /   \n\
  \/              \/      \/       \/    \n\
                                         \n\
-Automated Web Vulnerability Fuzz Tester \n\
+Automated Web Vulnerability Fuzzer      \n\
 {version}                               \n\
 Created by yns0ng (@phplaber)           \n\
 \
@@ -43,29 +45,118 @@ if __name__ == '__main__':
         exit(1)
 
     # 网络代理
+    proxies = {}
     if options.proxy:
-        if 'https://' in options.proxy:
-            Shared.proxy['https'] = options.proxy
-        elif 'http://' in options.proxy:
-            Shared.proxy['http'] = options.proxy
+        if 'http://' in options.proxy or 'https://' in options.proxy:
+            proxies['https'] = options.proxy
+            proxies['http'] = options.proxy
 
     requests = []
-    base_request = RequestResult()
+    base_response = RequestResult()
     if options.url:
-        request = dict()
-        request['url'] = options.url if PAYLOAD not in options.url else options.url.replace(PAYLOAD, '')
+        request = {
+            'url': None,
+            'method': None,
+            'proxies': {},
+            'cookies': {},
+            'headers': {},
+            'data': {}
+        }
 
-        # 手动标记 fuzz 变量
-        if PAYLOAD in options.url:
-            base_request = send_request(request)
-            requests = [{"url": options.url}]
-        # 自动标记 fuzz 变量
-        elif '=' in options.url:
-            base_request = send_request(request)
-            requests = Request().gene_url_list(options.url)
+        # 手动标记状态位
+        # url、data 和 cookie 处支持手动标记和自动标记
+        is_mark = False
+
+        # url
+        request['url'] = options.url
+        if MARK_POINT in request['url']:
+            is_mark = True
+
+        # data, method
+        if (options.method and options.method.upper() == 'POST') or options.data:
+            if not options.data:
+                print(errmsg('data_is_empty'))
+                exit(1)
+            
+            request['method'] = 'POST'
+            for item in options.data.split('&'):
+                kv = item.split('=', 1)
+                request['data'][kv[0]] = kv[1]
+                if MARK_POINT in kv[1]:
+                    is_mark = True
         else:
+            request['method'] = 'GET'
+
+        # proxy
+        request['proxies'] = proxies
+        
+        # cookie
+        if options.cookies:
+            for item in options.cookies.split(";"):
+                kv = item.split("=", 1)
+                request['cookies'][kv[0].strip()] = kv[1]
+                if MARK_POINT in kv[1]:
+                    is_mark = True
+
+        # header
+        if options.headers:
+            for item in options.headers.split("\\n"):
+                kv = item.split(":", 1)
+                request['headers'][kv[0].strip().lower()] = kv[1].strip()
+        # 使用特定 ua
+        request['headers']['user-agent'] = UA
+
+        # 未手动标记且不具备自动标记的条件
+        if not is_mark and not '=' in request['url'] and not request['data'] and not request['cookies']:
             print(errmsg('url_is_invalid'))
             exit(1)
+
+        if is_mark:
+            # 手动标记
+            # 获取原始请求对象（不包含标记点）
+            base_request = {}
+            base_request['url'] = request['url'] if MARK_POINT not in request['url'] else request['url'].replace(MARK_POINT, '')
+            base_request['method'] = request['method']
+            base_request['proxies'] = request['proxies']
+            base_request['headers'] = request['headers']
+            base_request['data'] = {}
+            if request['data']:
+                for k, v in request['data'].items():
+                    base_request['data'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
+            base_request['cookies'] = {}
+            if request['cookies']:
+                for k, v in request['cookies'].items():
+                    base_request['cookies'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
+
+            # 构造全部 request 对象（每个标记点对应一个对象）
+            pure_request = copy.deepcopy(base_request)
+            if MARK_POINT in request['url']:
+                point_position = [m.start() for m in re.finditer(MARK_POINT.replace('[', '\['), request['url'])]
+                for idx in point_position:
+                    pure_request['url'] = base_request['url'][:idx] + MARK_POINT + base_request['url'][idx:]
+                    requests.append(copy.deepcopy(pure_request))
+                pure_request['url'] = base_request['url']
+            
+            if request['data']:
+                for k, v in request['data'].items():
+                    if MARK_POINT in v:
+                        pure_request['data'][k] = v
+                        requests.append(copy.deepcopy(pure_request))
+                        pure_request['data'][k] = base_request['data'][k]
+            
+            if request['cookies']:
+                for k, v in request['cookies'].items():
+                    if MARK_POINT in v:
+                        pure_request['cookies'][k] = v
+                        requests.append(copy.deepcopy(pure_request))
+                        pure_request['cookies'][k] = base_request['cookies'][k]
+        else:
+            # 自动标记
+            base_request = request
+
+        base_response = send_request(base_request)
+
+
     else:
         if not check_file(options.requestfile):
             print(errmsg('file_is_invalid'))
@@ -88,7 +179,7 @@ if __name__ == '__main__':
             requests = Request().gene_requestfile_list(base_request_elements)
 
     Shared.requests = requests
-    Shared.base_request = base_request
+    Shared.base_response = base_response
 
     # 线程数
     threads_num = THREADS_NUM

@@ -48,9 +48,9 @@ class FuzzThread(Thread):
         Shared.condition.acquire()
 
         try:
-            if Shared.requests_index < len(Shared.requests):
-                request = Shared.requests[Shared.requests_index]
-                Shared.requests_index += 1
+            if Shared.request_index < len(Shared.requests):
+                request = Shared.requests[Shared.request_index]
+                Shared.request_index += 1
         finally:
             Shared.condition.notify_all()
             Shared.condition.release()

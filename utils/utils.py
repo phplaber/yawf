@@ -15,12 +15,13 @@ def errmsg(token):
     错误消息
     """
     msg = {
-        'url_is_invalid': 'URL does not appear to be dynamic',
-        'file_is_invalid': 'the specified HTTP request file does not exist or unable to read',
-        'read_file_occur_wrong': 'something went wrong while trying to read the content of file \'{}\' (\'{}\')'
+        'url_is_invalid': '[*] URL does not appear to be dynamic',
+        'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
+        'read_file_occur_wrong': '[*] something went wrong while trying to read the content of file \'{}\' (\'{}\')',
+        'data_is_empty': '[*] HTTP post data is empty'
     }
 
-    return msg.get(token, "")
+    return msg.get(token, "[*] oops")
 
 
 def clear_param(param):
@@ -103,9 +104,9 @@ def parse_request(content):
             v = v.strip()
 
             if k.upper() == HTTP_HEADER['COOKIE'].upper():
-                for cookie in v.split(";"):
-                    for item in cookie.split("=", 1):
-                        cookies[item[0]] = item[1]
+                for item in v.split(";"):
+                    kv = cookie.split("=", 1)
+                    cookies[kv[0].strip()] = kv[1]
 
             if k not in (HTTP_HEADER['COOKIE'], HTTP_HEADER['PROXY_CONNECTION'], HTTP_HEADER['CONNECTION']):
                 headers[k] = v
@@ -144,9 +145,9 @@ def send_request(request):
 
     try:
         if request['method'] == 'GET':
-            rsp = requests.get(request['url'], headers=request['headers'], cookies=request['cookies'], proxies=Shared.proxy)
+            rsp = requests.get(request['url'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'])
         if request['method'] == 'POST':
-            rsp = requests.post(request['url'], data=request['data'], headers=request['headers'], cookies=request['cookies'], proxies=Shared.proxy)
+            rsp = requests.post(request['url'], data=request['data'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'])
 
         response = rsp.text
         length = len(response)

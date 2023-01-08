@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*- 
 
-VERSION = 'Ver 2.0'
+VERSION = 'v2.0'
 
-PAYLOAD = '[fuzz]'
+UA = 'Yawf ' + VERSION
+
+MARK_POINT = '[fuzz]'
 
 VULS_TYPE = [
     'XSS',

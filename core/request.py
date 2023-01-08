@@ -2,7 +2,7 @@
 
 
 from urllib.parse import *
-from utils.constants import PAYLOAD, HTTP_METHOD
+from utils.constants import MARK_POINT, HTTP_METHOD
 
 
 class Request:
@@ -34,7 +34,7 @@ class Request:
         """
 
         requests = []
-        # 标注查询字符串 Fuzz 点
+        # 标记查询字符串 Fuzz 点
         if "=" in request["url"]:
             url = request["url"]
             params = parse_qsl(urlparse(url).query)
@@ -46,7 +46,7 @@ class Request:
                 new_request["url"] = fuzz_url
                 requests.append(new_request)
 
-        # 标注 Cookie Fuzz 点
+        # 标记 Cookie Fuzz 点
         if request['cookie'] is not None:
             cookie_list = request['cookie'].split(";")
             params = []
@@ -61,7 +61,7 @@ class Request:
                 new_request["cookie"] = fuzz_cookie
                 requests.append(new_request)
 
-        # 标注 FORM DATA Fuzz 点
+        # 标记 FORM DATA Fuzz 点
         if request['method'] != HTTP_METHOD['GET'] and request['data'] is not None:
             formdata_list = request['data'].split("&")
             params = []
@@ -97,11 +97,11 @@ class Request:
         while i <= param_length and active_fuzz <= param_length:
 
             if i < param_length and i == active_fuzz:
-                base += params_list[i-1] + PAYLOAD + symbol
+                base += params_list[i-1] + MARK_POINT + symbol
                 i += 1
 
             elif i == param_length and i == active_fuzz:
-                base += params_list[i-1] + PAYLOAD
+                base += params_list[i-1] + MARK_POINT
                 active_fuzz += 1
                 i += 1
                 fuzz_params.extend([base])

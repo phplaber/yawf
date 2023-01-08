@@ -6,13 +6,11 @@ class Shared:
     多线程共享数据
     """
 
-    base_request = None
+    base_response = None
     requests = []
-    requests_index = 0
+    request_index = 0
 
     condition = None
-
-    proxy = {}
 
     fuzz_results = []
 
