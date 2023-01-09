@@ -6,6 +6,7 @@ import copy
 from utils.shared import Shared
 from utils.constants import *
 from utils.utils import *
+from urllib.parse import quote
 
 class Prober:
     def __init__(self, request):
@@ -21,14 +22,14 @@ class Prober:
             if k in ['url', 'data', 'cookies']:
                 if k == 'url':
                     if MARK_POINT in v:
-                        payload_request[k] = v.replace(MARK_POINT, payload)
+                        payload_request[k] = v.replace(MARK_POINT, quote(payload))
                         break
                 else:
                     if v:
                         flag = False
                         for kk, vv in v.items():
                             if MARK_POINT in vv:
-                                payload_request[k][kk] = vv.replace(MARK_POINT, payload)
+                                payload_request[k][kk] = vv.replace(MARK_POINT, quote(payload))
                                 flag = True
                                 break
                         if flag:
@@ -51,9 +52,9 @@ class Prober:
                     poc_rsp = send_request(payload_request)
                     if payload in poc_rsp.response:
                         vulnerable = True
-                        print("[+] Found XSS! Vulnerable request is: {}".format(payload_request))
 
                     if vulnerable:
+                        print("[+] Found XSS!")
                         Shared.fuzz_results.append({
                             'request': self.request,
                             'payload': payload,
@@ -85,10 +86,14 @@ class Prober:
                 for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
                     if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, base_http_response, re.I):
                         vulnerable = True
-                        print("[+] Found SQL Injection! Vulnerable request is: {}".format(payload_request))
                         break
+                
+                # 基于内容相似度判断漏洞是否存在
+                if similar(base_http_response, poc_rsp.response) > 0.8:
+                    vulnerable = True
 
                 if vulnerable:
+                    print("[+] Found SQL Injection!")
                     Shared.fuzz_results.append({
                         'request': self.request,
                         'payload': payload,

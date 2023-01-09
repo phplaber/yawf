@@ -51,6 +51,7 @@ class Fuzzer:
             with open(outputfile, 'w') as f:
                 for result in Shared.fuzz_results:
                     f.write(json.dumps(result))
+                    f.write('\n')
 
         self.end_time = int(time.time())
 

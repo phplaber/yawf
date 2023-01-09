@@ -6,6 +6,7 @@ import requests
 from configparser import ConfigParser
 from utils.constants import *
 from utils.request_result import RequestResult
+from difflib import SequenceMatcher
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 disable_warnings(InsecureRequestWarning)
@@ -87,3 +88,10 @@ def parse_dict(file):
                 payloads.append(payload.strip())
     
     return payloads
+
+def similar(str1, str2):
+    """
+    比较字符串 str1 和 str2 的相似度
+    """
+
+    return SequenceMatcher(None, str1, str2).ratio()
