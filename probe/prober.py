@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import copy
 from utils.shared import Shared
 from utils.constants import *
@@ -12,6 +13,9 @@ class Prober:
         self.dictpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dict')
 
     def gen_payload_request(self, payload):
+        """
+        生成带 payload 的 request 对象
+        """
         payload_request = copy.deepcopy(self.request)
         for k, v in payload_request.items():
             if k in ['url', 'data', 'cookies']:
@@ -36,11 +40,11 @@ class Prober:
         """
         XSS 漏洞探测器
         """
-
+        
         vulnerable = False
         try:
             rsp = send_request(self.request)
-            if MARK_POINT not in rsp.response:
+            if MARK_POINT in rsp.response:
                 xss_payloads = parse_dict(os.path.join(self.dictpath, 'xss.txt'))
                 for payload in xss_payloads:
                     payload_request = self.gen_payload_request(payload)
@@ -57,7 +61,7 @@ class Prober:
                             'type': 'XSS'
                         })
                         break
-
+            
             if not vulnerable:
                 print("[-] Not Found XSS.")
         except Exception as e:

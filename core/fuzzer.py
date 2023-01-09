@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import os
+import sys
 import time
+import json
 from threading import Condition
 from core.fuzz_thread import FuzzThread
 from utils.shared import Shared
@@ -29,19 +32,25 @@ class Fuzzer:
         """
         启动多个线程去检测漏洞
         """
+        
         Shared.condition = Condition()
         fuzz_threads = []
-        for n in range(self.threads_num):
+        for _ in range(self.threads_num):
             fuzz_thread = FuzzThread()
             fuzz_threads.append(fuzz_thread)
             fuzz_thread.start()
 
         self.loop(fuzz_threads)
 
-        # 处理发现漏洞
+        # 本地文件存储发现漏洞
         if len(Shared.fuzz_results):
-            for result in Shared.fuzz_results:
-                print(result)
+            outputdir = os.path.join(os.path.dirname(sys.argv[0]), 'output')
+            if not os.path.exists(outputdir):
+                os.makedirs(outputdir)
+            outputfile = os.path.join(outputdir, 'output_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
+            with open(outputfile, 'w') as f:
+                for result in Shared.fuzz_results:
+                    f.write(json.dumps(result))
 
         self.end_time = int(time.time())
 

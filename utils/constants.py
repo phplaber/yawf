@@ -6,13 +6,6 @@ UA = 'Yawf ' + VERSION
 
 MARK_POINT = '[fuzz]'
 
-VULS_TYPE = [
-    'XSS',
-    'SQLI',
-    'RFI',
-    'DT'
-]
-
 THREADS_NUM = 3
 
 DBMS_ERRORS = {
@@ -29,13 +22,6 @@ DBMS_ERRORS = {
     "Sybase": (r"(?i)Warning.*sybase.*", r"Sybase message", r"Sybase.*Server message.*"),
 }
 
-HTTP_METHOD = {
-    "GET": "GET",
-    "POST": "POST"
-}
+REQ_TIMEOUT = 3.0
 
-HTTP_HEADER = {
-    "COOKIE": "Cookie",
-    "PROXY_CONNECTION": "Proxy-Connection",
-    "CONNECTION": "Connection"
-}
+REQ_SCHEME = 'https'
