@@ -43,7 +43,7 @@ class Fuzzer:
         self.loop(fuzz_threads)
 
         # 本地文件存储发现漏洞
-        if len(Shared.fuzz_results):
+        if Shared.fuzz_results:
             outputdir = os.path.join(os.path.dirname(sys.argv[0]), 'output')
             if not os.path.exists(outputdir):
                 os.makedirs(outputdir)

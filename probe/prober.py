@@ -121,9 +121,9 @@ class Prober:
 
                 if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
                     vulnerable = True
-                    print("[+] Found Directory Traversal! Vulnerable request is: {}".format(payload_request))
 
                 if vulnerable:
+                    print("[+] Found Directory Traversal!")
                     Shared.fuzz_results.append({
                         'request': self.request,
                         'payload': payload,
