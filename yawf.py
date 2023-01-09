@@ -5,7 +5,6 @@ import re
 import copy
 import optparse
 from urllib.parse import urlparse, parse_qsl
-from core.request import Request
 from core.fuzzer import Fuzzer
 from utils.utils import *
 from utils.constants import *
@@ -130,48 +129,62 @@ if __name__ == '__main__':
                     base_request['cookies'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
 
             # 构造全部 request 对象（每个标记点对应一个对象）
-            pure_request = copy.deepcopy(base_request)
+            mark_request = copy.deepcopy(base_request)
             if MARK_POINT in request['url']:
                 point_position = [m.start() for m in re.finditer(MARK_POINT.replace('[', '\['), request['url'])]
                 for idx in point_position:
-                    pure_request['url'] = base_request['url'][:idx] + MARK_POINT + base_request['url'][idx:]
-                    requests.append(copy.deepcopy(pure_request))
-                pure_request['url'] = base_request['url']
+                    mark_request['url'] = base_request['url'][:idx] + MARK_POINT + base_request['url'][idx:]
+                    requests.append(copy.deepcopy(mark_request))
+                mark_request['url'] = base_request['url']
             
             if request['data']:
                 for k, v in request['data'].items():
                     if MARK_POINT in v:
-                        pure_request['data'][k] = v
-                        requests.append(copy.deepcopy(pure_request))
-                        pure_request['data'][k] = base_request['data'][k]
+                        mark_request['data'][k] = v
+                        requests.append(copy.deepcopy(mark_request))
+                        mark_request['data'][k] = base_request['data'][k]
             
             if request['cookies']:
                 for k, v in request['cookies'].items():
                     if MARK_POINT in v:
-                        pure_request['cookies'][k] = v
-                        requests.append(copy.deepcopy(pure_request))
-                        pure_request['cookies'][k] = base_request['cookies'][k]
+                        mark_request['cookies'][k] = v
+                        requests.append(copy.deepcopy(mark_request))
+                        mark_request['cookies'][k] = base_request['cookies'][k]
         else:
             # 自动标记
             base_request = request
 
             # 在 url query string、form data 和 cookie 处自动标记
             # 构造全部 request 对象（每个标记点对应一个对象）
-            pure_request = copy.deepcopy(base_request)
+            mark_request = copy.deepcopy(base_request)
 
             # url query string
-            if '=' in request['url']:
-                o = urlparse(request['url'])
+            if '=' in base_request['url']:
+                o = urlparse(base_request['url'])
                 qs = parse_qsl(o.query)
-                for par, val in qs:
-                    pass
                 # 提取无参数 url
-                # url = o._replace(query=None).geturl()
+                #url = o._replace(query=None).geturl()
+                for par, val in qs:
+                    mark_request['url'] = base_request['url'].replace(par + '=' + val.replace(' ', '+'), par + '=' + val.replace(' ', '+') + MARK_POINT)
+                    requests.append(copy.deepcopy(mark_request))
+                mark_request['url'] = base_request['url']
 
-
+            # form data
+            if base_request['data']:
+                for k, v in base_request['data'].items():
+                    mark_request['data'][k] = v + MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request['data'][k] = v
+            
+            # cookie
+            if base_request['cookies']:
+                for k, v in base_request['cookies'].items():
+                    mark_request['cookies'][k] = v + MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request['cookies'][k] = v
+        
+        # 基准请求
         base_response = send_request(base_request)
-
-
     else:
         if not check_file(options.requestfile):
             print(errmsg('file_is_invalid'))
@@ -183,7 +196,7 @@ if __name__ == '__main__':
         except (IOError, OSError, MemoryError) as ex:
             print(errmsg('read_file_occur_wrong').format(options.requestfile, str(ex)))
             exit(1)
-
+        """
         base_request_elements = parse_request(content if PAYLOAD not in content else content.replace(PAYLOAD, ''))
         base_request = send_request(base_request_elements)
         if PAYLOAD in content:
@@ -192,6 +205,7 @@ if __name__ == '__main__':
         else:
             # 自动标记
             requests = Request().gene_requestfile_list(base_request_elements)
+        """
 
     Shared.requests = requests
     Shared.base_response = base_response
