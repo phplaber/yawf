@@ -4,6 +4,7 @@
 import re
 import copy
 import optparse
+from urllib.parse import urlparse, parse_qsl
 from core.request import Request
 from core.fuzzer import Fuzzer
 from utils.utils import *
@@ -111,10 +112,10 @@ if __name__ == '__main__':
             print(errmsg('url_is_invalid'))
             exit(1)
 
+        base_request = {}
         if is_mark:
             # 手动标记
             # 获取原始请求对象（不包含标记点）
-            base_request = {}
             base_request['url'] = request['url'] if MARK_POINT not in request['url'] else request['url'].replace(MARK_POINT, '')
             base_request['method'] = request['method']
             base_request['proxies'] = request['proxies']
@@ -153,6 +154,20 @@ if __name__ == '__main__':
         else:
             # 自动标记
             base_request = request
+
+            # 在 url query string、form data 和 cookie 处自动标记
+            # 构造全部 request 对象（每个标记点对应一个对象）
+            pure_request = copy.deepcopy(base_request)
+
+            # url query string
+            if '=' in request['url']:
+                o = urlparse(request['url'])
+                qs = parse_qsl(o.query)
+                for par, val in qs:
+                    pass
+                # 提取无参数 url
+                # url = o._replace(query=None).geturl()
+
 
         base_response = send_request(base_request)
 
