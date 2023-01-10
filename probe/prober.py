@@ -61,7 +61,7 @@ class Prober:
 
     def xss(self):
         """
-        XSS 漏洞探测器
+        XSS 探针
         """
         
         vulnerable = False
@@ -92,7 +92,7 @@ class Prober:
 
     def sqli(self):
         """
-        SQLI 漏洞探测器
+        SQLI 探针
         """
 
         vulnerable = False
@@ -129,7 +129,7 @@ class Prober:
 
     def dt(self):
         """
-        DT 漏洞探测器
+        DT 探针
         """
 
         vulnerable = False
@@ -159,7 +159,7 @@ class Prober:
 
     def rce_fastjson(self):
         """
-        Fastjson RCE 漏洞探测器
+        Fastjson RCE 探针
         """
         
         vulnerable = False
