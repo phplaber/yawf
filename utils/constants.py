@@ -25,3 +25,5 @@ DBMS_ERRORS = {
 REQ_TIMEOUT = 3.0
 
 REQ_SCHEME = 'https'
+
+PROBE = 'xss'

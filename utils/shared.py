@@ -14,3 +14,5 @@ class Shared:
 
     fuzz_results = []
 
+    probes = []
+

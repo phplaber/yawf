@@ -49,8 +49,7 @@ if __name__ == '__main__':
     proxy_conf = parse_conf('request', 'proxy')
     if proxy_conf:
         if 'http://' in proxy_conf or 'https://' in proxy_conf:
-            proxies['https'] = proxy_conf
-            proxies['http'] = proxy_conf
+            proxies = {'http': proxy_conf, 'https': proxy_conf}
     
     # 请求超时时间（秒）
     timeout = REQ_TIMEOUT
@@ -70,11 +69,14 @@ if __name__ == '__main__':
     }
     # 手动标记状态位
     is_mark = False
+    # 动态 url 状态位
+    is_dynamic_url = False
     if options.url:
-        # url、data 和 cookie 处支持手动标记和自动标记
+        # 动态 url query string、data 和 cookie 处支持手动标记和自动标记
         # url
         request['url'] = options.url
-        if MARK_POINT in request['url']:
+        is_dynamic_url = bool(re.search(r"\?[^#]*=[^#]*", request['url']))
+        if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
 
         # data, method
@@ -127,7 +129,8 @@ if __name__ == '__main__':
             headers[k.lower()] = v
         
         request['url'] = scheme + '://' + headers['host'] + misc_list[1]
-        if MARK_POINT in request['url']:
+        is_dynamic_url = bool(re.search(r"\?[^#]*=[^#]*", request['url']))
+        if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
         del headers['host']
         request['method'] = misc_list[0].upper()
@@ -157,7 +160,7 @@ if __name__ == '__main__':
         request['headers']['user-agent'] = UA
 
     # 未手动标记且不具备自动标记的条件
-    if not is_mark and not '=' in request['url'] and not request['data'] and not request['cookies']:
+    if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
         print(errmsg('url_is_invalid'))
         exit(1)
 
@@ -169,6 +172,7 @@ if __name__ == '__main__':
         base_request['method'] = request['method']
         base_request['proxies'] = request['proxies']
         base_request['headers'] = request['headers']
+        base_request['timeout'] = request['timeout']
         base_request['data'] = {}
         if request['data']:
             for k, v in request['data'].items():
@@ -180,24 +184,27 @@ if __name__ == '__main__':
 
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
-        if MARK_POINT in request['url']:
-            point_position = [m.start() for m in re.finditer(MARK_POINT.replace('[', '\['), request['url'])]
-            for idx in point_position:
-                mark_request['url'] = base_request['url'][:idx] + MARK_POINT + base_request['url'][idx:]
-                requests.append(copy.deepcopy(mark_request))
+        if is_dynamic_url and MARK_POINT in request['url']:
+            o = urlparse(request['url'])
+            qs = parse_qsl(o.query)
+            for par, val in qs:
+                if MARK_POINT in val:
+                    # xxx.php?foo=bar[fuzz] ---> xxx.php?foo=[fuzz]
+                    mark_request['url'] = base_request['url'].replace(par + '=' + val.replace(MARK_POINT, ''), par + '=' + MARK_POINT)
+                    requests.append(copy.deepcopy(mark_request))
             mark_request['url'] = base_request['url']
             
         if request['data']:
             for k, v in request['data'].items():
                 if MARK_POINT in v:
-                    mark_request['data'][k] = v
+                    mark_request['data'][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
                     mark_request['data'][k] = base_request['data'][k]
             
         if request['cookies']:
             for k, v in request['cookies'].items():
                 if MARK_POINT in v:
-                    mark_request['cookies'][k] = v
+                    mark_request['cookies'][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
                     mark_request['cookies'][k] = base_request['cookies'][k]
     else:
@@ -209,34 +216,42 @@ if __name__ == '__main__':
         mark_request = copy.deepcopy(base_request)
 
         # url query string
-        if '=' in base_request['url']:
+        if is_dynamic_url:
             o = urlparse(base_request['url'])
             qs = parse_qsl(o.query)
-            # 提取无参数 url
-            #url = o._replace(query=None).geturl()
             for par, val in qs:
-                mark_request['url'] = base_request['url'].replace(par + '=' + val.replace(' ', '+'), par + '=' + val.replace(' ', '+') + MARK_POINT)
+                mark_request['url'] = base_request['url'].replace(par + '=' + val, par + '=' + MARK_POINT)
                 requests.append(copy.deepcopy(mark_request))
             mark_request['url'] = base_request['url']
 
         # form data
         if base_request['data']:
             for k, v in base_request['data'].items():
-                mark_request['data'][k] = v + MARK_POINT
+                mark_request['data'][k] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
                 mark_request['data'][k] = v
             
         # cookie
         if base_request['cookies']:
             for k, v in base_request['cookies'].items():
-                mark_request['cookies'][k] = v + MARK_POINT
+                mark_request['cookies'][k] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
                 mark_request['cookies'][k] = v
-        
+    
     # request 对象列表
     Shared.requests = requests
     # 基准请求
     Shared.base_response = send_request(base_request)
+    
+    # 获取探针配置
+    default_probes = parse_conf('probe', 'default')
+    customize_probes = parse_conf('probe', 'customize')
+    if customize_probes:
+        Shared.probes = [probe.strip() for probe in customize_probes.split(',')]
+    elif default_probes:
+        Shared.probes = [probe.strip() for probe in default_probes.split(',')]
+    else:
+        Shared.probes.append(PROBE)
 
     # 线程数
     threads_num = THREADS_NUM

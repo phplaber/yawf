@@ -26,18 +26,17 @@ class FuzzThread(Thread):
                 if request is None:
                     break
 
-                prober = Prober(request)
-                prober.xss()
-                prober.sqli()
-                prober.dt()
+                prober = Prober(request, True) if 'rce_fastjson' in Shared.probes else Prober(request)
+                for probe in Shared.probes:
+                    if hasattr(Prober, probe) and callable(getattr(Prober, probe)):
+                        getattr(Prober, probe)(prober)
 
         except KeyboardInterrupt:
             print("\nTerminated by user")
-            try:
-                Shared.condition.release()
-                exit(1)
-            except Exception as e:
-                pass
+            Shared.condition.release()
+            exit(1)
+        except Exception as e:
+            print('[*] {}'.format(e))
 
     def get_request(self):
         """

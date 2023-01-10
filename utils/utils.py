@@ -7,9 +7,13 @@ from configparser import ConfigParser
 from utils.constants import *
 from utils.request_result import RequestResult
 from difflib import SequenceMatcher
-from urllib3 import disable_warnings
-from urllib3.exceptions import InsecureRequestWarning
-disable_warnings(InsecureRequestWarning)
+
+# 忽略 SSL 告警信息
+try:
+    from requests.packages import urllib3
+    urllib3.disable_warnings()
+except Exception:
+    pass
 
 
 def errmsg(token):
