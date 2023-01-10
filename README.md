@@ -1,33 +1,37 @@
 ## Yawf - Yet Another Web Fuzzer
 
-**Yawf** 是一个开源的 Web 漏洞模糊测试工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、Fastjson RCE 和 Log4j RCE 等。
+**Yawf** 是一个开源的 Web 漏洞检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection 和 Fastjson RCE 等。
 
-## 特性
+### 特性
 
-1.  支持动态 URL 和 Request 文件的模糊测试；
-2.  支持自动搜索所有测试锚点并标注，目前搜索范围包括 URL 中查询字符串，Cookie 和表单数据。同时，支持手动标注测试锚点；
-3.  支持多线程对测试目标进行模糊测试，默认 10 个线程；
-4.  目前支持检测漏洞类型包括：XSS、SQL injection、Fastjson RCE 和 Log4j RCE 等；
-5.  容易扩展，漏洞测试器和 Payload 字典分离；
-6.  支持配置 HTTP 网络代理。
+1.  支持检测动态 URL 和 HTTP Request 文件；
+2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和表单数据；
+3.  支持多线程对测试目标进行检测，默认 3 个线程；
+4.  容易扩展，探针和 Payload 字典分离；
+5.  支持设置 HTTP 网络代理；
+6.  高度可配置化，简单配置实现定制需求。
 
-## 安装
+### 探针
 
-### 环境
+1.  **xss** - 跨站脚本探针
+2.  **sqli** - SQL 注入探针
+3.  **dt** - 目录遍历探针
+4.  **rce_fastjson** - Fastjson RCE 探针
+
+### 安装
+
+#### 依赖
 
 1.  Python 3+
+2.  requests
 
-### 运行
+#### 运行
 
 ```console
-$ git clone https://github.com/phplaber/yawf.git yawf
-$ python yawf/yawf.py -h
-```
+$ git clone https://github.com/phplaber/yawf.git
+$ cd yawf
+$ python yawf.py -h
 
-## 使用
-
-```
-$ python yawf/yawf.py -h
 _____.___.  _____  __      _____________
 \__  |   | /  _  \/  \    /  \_   _____/
  /   |   |/  /_\  \   \/\/   /|    __)  
@@ -35,8 +39,8 @@ _____.___.  _____  __      _____________
  / ______\____|__  /\__/\  /  \___  /   
  \/              \/      \/       \/    
 
-Automated Web Vulnerability Fuzz Tester
-version 2.0.0                           
+Automated Web Vulnerability Fuzzer      
+v2.0                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
@@ -44,21 +48,33 @@ Usage: yawf.py [options]
 Options:
   -h, --help         show this help message and exit
   -u URL, --url=URL  Target URL (e.g. "http://www.target.com/page.php?id=1")
+  -m METHOD          HTTP method (e.g. PUT)
+  -d DATA            Data string to be sent through POST (e.g. "id=1")
+  -c COOKIES         HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
+  --headers=HEADERS  Extra headers (e.g. "Accept-Language: fr\nETag: 123")
   -r REQUESTFILE     Load HTTP request from a file
-  -n THREADS         Number of parallel threads (default: 10)
-  -p PROXY           Specify a proxy in the request http|s://[IP]:[PORT]
 ```
 
-支持动态 URL 和 Request 文件的模糊测试，当需要测试某个单独的输入点时，仅需在参数值后手动标注上 **[fuzz]**，Yawf 就只会对该位置进行模糊测试。如：
+### 使用
+
+#### 配置
+
+根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme和探针等。需注意的是 scheme 需和 -r 选项配合使用，默认是 https。在 customize 中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。
+
+#### 标记
+
+Yawf 支持手动和自动标记测试点，覆盖查询字符串、Cookie 和表单数据等范围。
+
+当需要测试某个单独的输入点时，仅需在参数值手动标记上 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数。
 
 ```
 http://test.sqlilab.local/Less-1/?id=3[fuzz]
 ```
 
-Request 文件可以通过 Live HTTP Headers 或 Burp Suite 获取得到。
+也可以手动标记 HTTP Request 文件中的输入点，该文件可以通过 Live HTTP Headers 或 Burp Suite 获取到。
 
 ```
-GET /Less-1/?id=3 HTTP/1.1
+GET /Less-1/?id=3[fuzz] HTTP/1.1
 Host: test.sqlilab.local
 User-Agent: Yawf 2.0.0
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
@@ -67,3 +83,13 @@ Accept-Encoding: gzip, deflate
 Connection: keep-alive
 Upgrade-Insecure-Requests: 1
 ```
+如果想要尽可能全面的检测输入点，则不要手动标记，Yawf 会智能的在所有满足条件的地方自动标记。
+
+#### 运行脚本
+
+设置必要的参数，运行 **yawf.py** 脚本，等待脚本运行结束。如果 Yawf 发现疑似漏洞，会将详情写入 output 目录下按时间戳命名的文件中，如果 output 目录不存在，Yawf 会安全的创建，所以无需担心。
+
+详情包括标记过的 request 对象、payload、触发漏洞的 request 对象以及漏洞类型。
+
+至此，Yawf 的使用就结束了。后续就是人工介入，确认漏洞是否存在、等级，然后进入漏洞处置流程。
+
