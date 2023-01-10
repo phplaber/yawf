@@ -2,7 +2,7 @@
 
 **Yawf** 是一个开源的 Web 漏洞检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection 和 Fastjson RCE 等。
 
-### 特性
+### 功能
 
 1.  支持检测动态 URL 和 HTTP Request 文件；
 2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和表单数据；
@@ -11,7 +11,7 @@
 5.  支持设置 HTTP 网络代理；
 6.  高度可配置化，简单配置实现定制需求。
 
-### 探针
+#### 探针
 
 1.  **xss** - 跨站脚本探针
 2.  **sqli** - SQL 注入探针
@@ -59,19 +59,19 @@ Options:
 
 #### 配置
 
-根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme和探针等。需注意的是 scheme 需和 -r 选项配合使用，默认是 https。在 customize 中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。
+根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme 和探针等。scheme 需和 **-r** 选项配合使用，默认是 https。在 customize 中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。
 
 #### 标记
 
-Yawf 支持手动和自动标记测试点，覆盖查询字符串、Cookie 和表单数据等范围。
+Yawf 支持手动和自动标记测试点，支持查询字符串、Cookie 和表单数据等处。
 
-当需要测试某个单独的输入点时，仅需在参数值手动标记上 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数。
+当需要测试某个单独的输入点时，仅需在参数值后手动标记 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数。
 
 ```
 http://test.sqlilab.local/Less-1/?id=3[fuzz]
 ```
 
-也可以手动标记 HTTP Request 文件中的输入点，该文件可以通过 Live HTTP Headers 或 Burp Suite 获取到。
+也可以手动标记 HTTP Request 文件中的输入点，该文件内容可以通过 Live HTTP Headers 或 Burp Suite 获取到。
 
 ```
 GET /Less-1/?id=3[fuzz] HTTP/1.1
