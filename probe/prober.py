@@ -45,23 +45,29 @@ class Prober:
                     payload_request['url'] = self.base_request['url'][:tail_index] + payload + self.base_request['url'][tail_index:] if tail_index else self.base_request['url'] + payload
                 break
             elif k in ['data', 'cookies'] and v:
-                flag = False
-                for kk, vv in v.items():
-                    if vv == MARK_POINT:
-                        if k == 'data' and need_dnslog:
-                            payload_request['data'] = payload
-                        else:
-                            payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
-                        flag = True
+                if type(v) is str:
+                    if MARK_POINT in v:
+                        payload_request['data'] = v.replace(MARK_POINT, payload)
                         break
-                if flag:
-                    break
+                else:
+                    flag = False
+                    for kk, vv in v.items():
+                        if vv == MARK_POINT:
+                            if k == 'data' and need_dnslog:
+                                payload_request['data'] = payload
+                            else:
+                                payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
+                            flag = True
+                            break
+                    if flag:
+                        break
         
         return payload_request
 
     def xss(self):
         """
         XSS 探针
+        漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
         
         vulnerable = False
@@ -88,11 +94,12 @@ class Prober:
             if not vulnerable:
                 print("[-] Not Found XSS.")
         except Exception as e:
-            print("[*] {}".format(e))
+            print("[*] (probe:xss) {}".format(e))
 
     def sqli(self):
         """
         SQLI 探针
+        漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
         vulnerable = False
@@ -125,11 +132,12 @@ class Prober:
             if not vulnerable:
                 print("[-] Not Found SQL Injection.")
         except Exception as e:
-            print("[*] {}".format(e))
+            print("[*] (probe:sqli) {}".format(e))
 
     def dt(self):
         """
         DT 探针
+        漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
         vulnerable = False
@@ -155,11 +163,12 @@ class Prober:
             if not vulnerable:
                 print("[-] Not Found Directory Traversal.")
         except Exception as e:
-            pass
+            print("[*] (probe:dt) {}".format(e))
 
     def rce_fastjson(self):
         """
         Fastjson RCE 探针
+        漏洞知识: https://github.com/JnuSimba/MiscSecNotes/blob/master/%E6%BC%8F%E6%B4%9E%E7%A7%91%E6%99%AE/fastjson%E8%BF%9C%E7%A8%8B%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86.md
         """
         
         vulnerable = False
@@ -188,4 +197,36 @@ class Prober:
             if not vulnerable:
                 print("[-] Not Found Fastjson RCE.")
         except Exception as e:
-            print("[*] {}".format(e))
+            print("[*] (probe:rce_fastjson) {}".format(e))
+
+    def xxe(self):
+        """
+        XXE 探针
+        漏洞知识: https://portswigger.net/web-security/xxe
+        """
+
+        vulnerable = False
+        try:
+            xxe_payloads = parse_dict(os.path.join(self.dictpath, 'xxe.txt'))
+            for payload in xxe_payloads:
+                payload_request = self.gen_payload_request('&xxe;')
+                payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
+                poc_rsp = send_request(payload_request)
+
+                if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
+                    vulnerable = True
+
+                if vulnerable:
+                    print("[+] Found XXE!")
+                    Shared.fuzz_results.append({
+                        'request': self.request,
+                        'payload': payload,
+                        'poc': payload_request,
+                        'type': 'XXE'
+                    })
+                    break
+
+            if not vulnerable:
+                print("[-] Not Found XXE.")
+        except Exception as e:
+            print("[*] (probe:xxe) {}".format(e))

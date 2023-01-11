@@ -7,6 +7,7 @@ import optparse
 import email
 from io import StringIO
 from urllib.parse import urlparse, parse_qsl
+from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
 from utils.utils import *
 from utils.constants import *
@@ -64,7 +65,7 @@ if __name__ == '__main__':
         'proxies': proxies,
         'cookies': {},
         'headers': {},
-        'data': {},
+        'data': None,
         'timeout': timeout,
     }
     # 手动标记状态位
@@ -86,11 +87,19 @@ if __name__ == '__main__':
                 exit(1)
             
             request['method'] = 'POST'
-            for item in options.data.split('&'):
-                kv = item.split('=', 1)
-                request['data'][kv[0]] = kv[1]
-                if MARK_POINT in kv[1]:
+            if options.data.startswith('<?xml '):
+                # xml data
+                request['data'] = options.data
+                if MARK_POINT in options.data:
                     is_mark = True
+            else:
+                # form data
+                request['data'] = {}
+                for item in options.data.split('&'):
+                    kv = item.split('=', 1)
+                    request['data'][kv[0]] = kv[1]
+                    if MARK_POINT in kv[1]:
+                        is_mark = True
         else:
             request['method'] = 'GET'
         
@@ -138,11 +147,19 @@ if __name__ == '__main__':
         # data
         if request['method'] == 'POST':
             data_raw = contents.split('\n\n')[1]
-            for item in data_raw.split('&'):
-                kv = item.split('=', 1)
-                request['data'][kv[0]] = kv[1]
-                if MARK_POINT in kv[1]:
+            if data_raw.startswith('<?xml '):
+                # xml data
+                request['data'] = data_raw
+                if MARK_POINT in data_raw:
                     is_mark = True
+            else:
+                # form data
+                request['data'] = {}
+                for item in data_raw.split('&'):
+                    kv = item.split('=', 1)
+                    request['data'][kv[0]] = kv[1]
+                    if MARK_POINT in kv[1]:
+                        is_mark = True
 
         # cookie
         if headers.get('cookie', False):
@@ -173,10 +190,13 @@ if __name__ == '__main__':
         base_request['proxies'] = request['proxies']
         base_request['headers'] = request['headers']
         base_request['timeout'] = request['timeout']
-        base_request['data'] = {}
+        base_request['data'] = None
         if request['data']:
-            for k, v in request['data'].items():
-                base_request['data'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
+            if type(request['data']) is str:
+                base_request['data'] = request['data'] if MARK_POINT not in request['data'] else request['data'].replace(MARK_POINT, '')
+            else:
+                for k, v in request['data'].items():
+                    base_request['data'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
         base_request['cookies'] = {}
         if request['cookies']:
             for k, v in request['cookies'].items():
@@ -195,11 +215,25 @@ if __name__ == '__main__':
             mark_request['url'] = base_request['url']
             
         if request['data']:
-            for k, v in request['data'].items():
-                if MARK_POINT in v:
-                    mark_request['data'][k] = MARK_POINT
-                    requests.append(copy.deepcopy(mark_request))
-                    mark_request['data'][k] = base_request['data'][k]
+            if type(request['data']) is str:
+                if MARK_POINT in request['data']:
+                    temp_data = request['data']
+                    while True:
+                        if MARK_POINT not in temp_data:
+                            break
+                        m = re.search(r'>[0-9a-zA-Z_\-]*{}<'.format(MARK_POINT.replace('[', '\[')), temp_data)
+                        first_match = m.group()
+                        first_index = m.start()
+                        mark_request['data'] = base_request['data'][:first_index+1] + MARK_POINT + base_request['data'][first_index+len(first_match)-len(MARK_POINT)-1:]
+                        requests.append(copy.deepcopy(mark_request))
+                        temp_data = temp_data[:first_index+len(first_match)-len(MARK_POINT)-1] + temp_data[first_index+len(first_match)-1:]
+                    mark_request['data'] = base_request['data']
+            else:
+                for k, v in request['data'].items():
+                    if MARK_POINT in v:
+                        mark_request['data'][k] = MARK_POINT
+                        requests.append(copy.deepcopy(mark_request))
+                        mark_request['data'][k] = base_request['data'][k]
             
         if request['cookies']:
             for k, v in request['cookies'].items():
@@ -211,7 +245,7 @@ if __name__ == '__main__':
         # 自动标记
         base_request = request
 
-        # 在 url query string、form data 和 cookie 处自动标记
+        # 在 url query string、data 和 cookie 处自动标记
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
 
@@ -224,12 +258,36 @@ if __name__ == '__main__':
                 requests.append(copy.deepcopy(mark_request))
             mark_request['url'] = base_request['url']
 
-        # form data
+        # data
         if base_request['data']:
-            for k, v in base_request['data'].items():
-                mark_request['data'][k] = MARK_POINT
-                requests.append(copy.deepcopy(mark_request))
-                mark_request['data'][k] = v
+            if type(base_request['data']) is str:
+                # xml data
+                tagList = []
+                xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
+
+                for elem in xmlTree.iter():
+                    tag = elem.tag
+                    if re.search(r'<{}>[0-9a-zA-Z_\-]*</{}>'.format(tag, tag), base_request['data']):
+                        tagList.append(tag)
+
+                # 移除重复元素 tag
+                # 【优化点】也会移除不同父节点下具有相同 tag 名称的子节点，可能漏掉一些检测点
+                tagList = list(set(tagList))
+
+                for tag in tagList:
+                    m = re.search(r'<{}>[0-9a-zA-Z_\-]*</{}>'.format(tag, tag), base_request['data'])
+                    first_match = m.group()
+                    first_index = m.start()
+                    mark_request['data'] = base_request['data'][:first_index] + '<{}>{}</{}>'.format(tag, MARK_POINT, tag) + base_request['data'][first_index+len(first_match):]
+                    requests.append(copy.deepcopy(mark_request))
+
+                mark_request['data'] = base_request['data']
+            else:
+                # form data
+                for k, v in base_request['data'].items():
+                    mark_request['data'][k] = MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request['data'][k] = v
             
         # cookie
         if base_request['cookies']:

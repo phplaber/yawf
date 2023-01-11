@@ -1,11 +1,11 @@
 ## Yawf - Yet Another Web Fuzzer
 
-**Yawf** 是一个开源的 Web 漏洞检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection 和 Fastjson RCE 等。
+**Yawf** 是一个开源的 Web 漏洞检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、 Fastjson RCE 和 XXE 等。
 
 ### 功能
 
 1.  支持检测动态 URL 和 HTTP Request 文件；
-2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和表单数据；
+2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST 数据；
 3.  支持多线程对测试目标进行检测，默认 3 个线程；
 4.  容易扩展，探针和 Payload 字典分离；
 5.  支持设置 HTTP 网络代理；
@@ -17,6 +17,7 @@
 2.  **sqli** - SQL 注入探针
 3.  **dt** - 目录遍历探针
 4.  **rce_fastjson** - Fastjson RCE 探针
+5.  **xxe** - XXE 探针
 
 ### 安装
 
@@ -63,7 +64,7 @@ Options:
 
 #### 标记
 
-Yawf 支持手动和自动标记测试点，支持查询字符串、Cookie 和表单数据等处。
+Yawf 支持手动和自动标记测试点，支持查询字符串、Cookie 和 POST 数据等处。
 
 当需要测试某个单独的输入点时，仅需在参数值后手动标记 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数。
 
