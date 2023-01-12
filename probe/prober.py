@@ -197,6 +197,41 @@ class Prober:
                 print("[-] Not Found Fastjson RCE.")
         except Exception as e:
             print("[*] (probe:rce_fastjson) {}".format(e))
+    
+    def rce_log4j(self):
+        """
+        Log4j RCE 探针
+        漏洞知识: https://www.anquanke.com/post/id/263325
+        """
+        
+        vulnerable = False
+        try:
+            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog.domain)
+            log4jrce_payloads = parse_dict(os.path.join(self.dictpath, 'rce_log4j.txt'))
+            for payload in log4jrce_payloads:
+                payload = payload.replace('dnslog', dnslog_domain)
+                payload_request = self.gen_payload_request(payload)
+                _ = send_request(payload_request)
+                time.sleep(1)
+
+                dnslog_records = self.dnslog.pull_logs()
+                if dnslog_records and dnslog_domain in str(dnslog_records):
+                    vulnerable = True
+
+                if vulnerable:
+                    print("[+] Found Log4j RCE!")
+                    Shared.fuzz_results.append({
+                        'request': self.request,
+                        'payload': payload,
+                        'poc': payload_request,
+                        'type': 'Log4j RCE'
+                    })
+                    break
+
+            if not vulnerable:
+                print("[-] Not Found Log4j RCE.")
+        except Exception as e:
+            print("[*] (probe:rce_log4j) {}".format(e))
 
     def xxe(self):
         """
