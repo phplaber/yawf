@@ -6,7 +6,7 @@ import time
 import requests
 from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS
-from utils.utils import get_random_str
+from utils.utils import get_random_str, send_request, similar
 
 class Dnslog:
     def __init__(self, proxies=None):
@@ -42,9 +42,10 @@ class Prober:
                     payload_request['url'] = self.base_request['url'][:tail_index] + payload + self.base_request['url'][tail_index:] if tail_index else self.base_request['url'] + payload
                 break
             elif k in ['data', 'cookies'] and v:
-                if type(v) is str:
-                    if MARK_POINT in v:
-                        payload_request['data'] = v.replace(MARK_POINT, payload)
+                if k == 'data' and type(v) is str:
+                    # post body 为 xml 的场景，仅检测 xxe 和 fastjson rce
+                    if MARK_POINT in v :
+                        payload_request['data'] = v.replace(MARK_POINT, payload) if not direct_use_payload else payload
                         break
                 else:
                     flag = False
@@ -66,6 +67,10 @@ class Prober:
         XSS 探针
         漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
+
+        if type(self.base_request['data']) is str:
+            print("[*] XSS detection skipped")
+            return 
         
         vulnerable = False
         try:
@@ -73,8 +78,9 @@ class Prober:
             if MARK_POINT in rsp.response:
                 for payload in Shared.probes_dict['xss']:
                     payload_request = self.gen_payload_request(payload)
+
                     poc_rsp = send_request(payload_request)
-                    if payload in poc_rsp.response:
+                    if poc_rsp.response and payload in poc_rsp.response:
                         vulnerable = True
 
                     if vulnerable:
@@ -98,11 +104,18 @@ class Prober:
         漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
+        if type(self.base_request['data']) is str:
+            print("[*] SQLI detection skipped")
+            return 
+
         vulnerable = False
         try:
             for payload in Shared.probes_dict['sqli']:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
+
+                if not poc_rsp.response:
+                    continue
 
                 # 基于报错判断
                 for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
@@ -135,13 +148,17 @@ class Prober:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
+        if type(self.base_request['data']) is str:
+            print("[*] DT detection skipped")
+            return 
+
         vulnerable = False
         try:
             for payload in Shared.probes_dict['dt']:
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
 
-                if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
+                if poc_rsp.response and ('root:' in poc_rsp.response or 'boot loader' in poc_rsp.response):
                     vulnerable = True
 
                 if vulnerable:
@@ -163,7 +180,7 @@ class Prober:
         """
         Fastjson RCE 探针
         漏洞知识: https://xz.aliyun.com/t/8979
-        """
+        """ 
         
         vulnerable = False
         try:
@@ -198,6 +215,10 @@ class Prober:
         Log4j RCE 探针
         漏洞知识: https://www.anquanke.com/post/id/263325
         """
+
+        if type(self.base_request['data']) is str:
+            print("[*] Log4j RCE detection skipped")
+            return 
         
         vulnerable = False
         try:
@@ -247,7 +268,7 @@ class Prober:
                     payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
                     poc_rsp = send_request(payload_request)
 
-                    if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
+                    if poc_rsp.response and ('root:' in poc_rsp.response or 'boot loader' in poc_rsp.response):
                         vulnerable = True
                 else:
                     # 无回显
