@@ -45,16 +45,22 @@ if __name__ == '__main__':
         parser.print_help()
         exit(1)
 
+    # 解析配置文件
+    status = parse_conf(os.path.join(os.path.dirname(sys.argv[0]), 'yawf.conf'))
+    if status is not None:
+        print(errmsg('config_is_invalid').format(status))
+        exit(1)
+    
     # 网络代理
     proxies = None
-    proxy_conf = parse_conf('request', 'proxy')
+    proxy_conf = Shared.conf['request_proxy']
     if proxy_conf:
         if 'http://' in proxy_conf or 'https://' in proxy_conf:
             proxies = {'http': proxy_conf, 'https': proxy_conf}
     
     # 请求超时时间（秒）
     timeout = REQ_TIMEOUT
-    timeout_conf = parse_conf('request', 'timeout')
+    timeout_conf = Shared.conf['request_timeout']
     if timeout_conf:
         timeout = float(timeout_conf)
 
@@ -124,7 +130,7 @@ if __name__ == '__main__':
             exit(1)
         
         scheme = REQ_SCHEME
-        scheme_conf = parse_conf('request', 'scheme')
+        scheme_conf = Shared.conf['request_scheme']
         if scheme_conf:
             scheme = scheme_conf
         
@@ -302,22 +308,19 @@ if __name__ == '__main__':
     Shared.base_response = send_request(base_request)
     
     # 获取探针配置
-    default_probes = parse_conf('probe', 'default')
-    customize_probes = parse_conf('probe', 'customize')
-    if customize_probes:
-        Shared.probes = [probe.strip() for probe in customize_probes.split(',')]
-    elif default_probes:
-        Shared.probes = [probe.strip() for probe in default_probes.split(',')]
+    if Shared.conf['probe_customize']:
+        Shared.probes = [probe.strip() for probe in Shared.conf['probe_customize'].split(',')]
+    elif Shared.conf['probe_default']:
+        Shared.probes = [probe.strip() for probe in Shared.conf['probe_default'].split(',')]
     else:
         Shared.probes.append(PROBE)
 
     # 线程数
     threads_num = THREADS_NUM
-    threads_num_conf = parse_conf('misc', 'threads_num')
     if len(Shared.requests) == 1:
         threads_num = 1
-    elif threads_num_conf:
-        threads_num = int(threads_num_conf)
+    elif Shared.conf['misc_threads_num']:
+        threads_num = int(Shared.conf['misc_threads_num'])
 
     Fuzzer(threads_num, proxies)
 
