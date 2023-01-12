@@ -8,6 +8,7 @@ from threading import Condition
 from core.fuzz_thread import FuzzThread
 from utils.shared import Shared
 from probe.prober import Dnslog
+from utils.utils import parse_dict
 
 
 class Fuzzer:
@@ -37,6 +38,11 @@ class Fuzzer:
         """
         启动多个线程去检测漏洞
         """
+
+        # 读取探针字典
+        dictpath = os.path.join(os.path.dirname(sys.argv[0]), 'probe', 'dict')
+        for probe in Shared.probes:
+            Shared.probes_dict[probe] = parse_dict(os.path.join(dictpath, '{}.txt'.format(probe)))
         
         Shared.condition = Condition()
         fuzz_threads = []

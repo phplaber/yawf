@@ -18,3 +18,5 @@ class Shared:
 
     conf = {}
 
+    probes_dict = {}
+

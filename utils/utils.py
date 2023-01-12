@@ -91,10 +91,12 @@ def parse_dict(file):
     """
 
     payloads = []
-    with open(file) as f:
-        for payload in f:
-            if not payload.startswith('#') and payload != '\n':
-                payloads.append(payload.strip())
+
+    if check_file(file):
+        with open(file) as f:
+            for payload in f:
+                if not payload.startswith('#') and payload != '\n':
+                    payloads.append(payload.strip())
     
     return payloads
 

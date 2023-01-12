@@ -4,9 +4,10 @@ import os
 import re
 import copy
 import time
+import requests
 from utils.shared import Shared
-from utils.constants import *
-from utils.utils import *
+from utils.constants import MARK_POINT, DBMS_ERRORS
+from utils.utils import get_random_str
 
 class Dnslog:
     def __init__(self, proxies=None):
@@ -26,7 +27,6 @@ class Prober:
         self.base_request = Shared.base_response.request
         self.base_response = Shared.base_response.response
         self.dnslog = dnslog
-        self.dictpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dict')
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
@@ -72,8 +72,7 @@ class Prober:
         try:
             rsp = send_request(self.request)
             if MARK_POINT in rsp.response:
-                xss_payloads = parse_dict(os.path.join(self.dictpath, 'xss.txt'))
-                for payload in xss_payloads:
+                for payload in Shared.probes_dict['xss']:
                     payload_request = self.gen_payload_request(payload)
                     poc_rsp = send_request(payload_request)
                     if payload in poc_rsp.response:
@@ -102,8 +101,7 @@ class Prober:
 
         vulnerable = False
         try:
-            sqli_payloads = parse_dict(os.path.join(self.dictpath, 'sqli.txt'))
-            for payload in sqli_payloads:
+            for payload in Shared.probes_dict['sqli']:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
 
@@ -140,8 +138,7 @@ class Prober:
 
         vulnerable = False
         try:
-            dt_payloads = parse_dict(os.path.join(self.dictpath, 'dt.txt'))
-            for payload in dt_payloads:
+            for payload in Shared.probes_dict['dt']:
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
 
@@ -172,8 +169,7 @@ class Prober:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            fastjsonrce_payloads = parse_dict(os.path.join(self.dictpath, 'rce_fastjson.txt'))
-            for payload in fastjsonrce_payloads:
+            for payload in Shared.probes_dict['rce_fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
@@ -207,8 +203,7 @@ class Prober:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            log4jrce_payloads = parse_dict(os.path.join(self.dictpath, 'rce_log4j.txt'))
-            for payload in log4jrce_payloads:
+            for payload in Shared.probes_dict['rce_log4j']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
@@ -246,8 +241,7 @@ class Prober:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            xxe_payloads = parse_dict(os.path.join(self.dictpath, 'xxe.txt'))
-            for payload in xxe_payloads:
+            for payload in Shared.probes_dict['xxe']:
                 payload_request = self.gen_payload_request('&xxe;')
                 if 'dnslog' not in payload:
                     # 有回显
