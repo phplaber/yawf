@@ -10,9 +10,8 @@ class FuzzThread(Thread):
     模糊测试器
     """
 
-    def __init__(self, dnslog=None):
+    def __init__(self):
         Thread.__init__(self)
-        self.dnslog = dnslog
 
     def run(self):
         """
@@ -27,7 +26,7 @@ class FuzzThread(Thread):
                 if request is None:
                     break
 
-                prober = Prober(request, self.dnslog)
+                prober = Prober(request)
                 for probe in Shared.probes:
                     if hasattr(Prober, probe) and callable(getattr(Prober, probe)):
                         getattr(Prober, probe)(prober)

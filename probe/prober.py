@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import re
 import copy
 import time
@@ -22,11 +21,11 @@ class Dnslog:
         return req.json()
 
 class Prober:
-    def __init__(self, request, dnslog=None):
+    def __init__(self, request):
         self.request = request
         self.base_request = Shared.base_response.request
         self.base_response = Shared.base_response.response
-        self.dnslog = dnslog
+        self.dnslog = Shared.dnslog
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """

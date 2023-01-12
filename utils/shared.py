@@ -20,3 +20,5 @@ class Shared:
 
     probes_dict = {}
 
+    dnslog = None
+

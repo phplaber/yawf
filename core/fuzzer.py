@@ -16,14 +16,10 @@ class Fuzzer:
     模糊测试调度器
     """
 
-    def __init__(self, threads_num, proxies):
+    def __init__(self, threads_num):
         self.start_time = int(time.time())
         self.end_time = 0
         self.threads_num = threads_num
-        # 某些探针需要 dnslog 辅助
-        self.dnslog = None
-        if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
-            self.dnslog = Dnslog(proxies)
         self.main()
 
     def loop(self, threads):
@@ -39,6 +35,10 @@ class Fuzzer:
         启动多个线程去检测漏洞
         """
 
+        # 初始化 dnslog 实例
+        if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
+            Shared.dnslog = Dnslog(Shared.base_response.request['proxies'])
+
         # 读取探针字典
         dictpath = os.path.join(os.path.dirname(sys.argv[0]), 'probe', 'dict')
         for probe in Shared.probes:
@@ -47,7 +47,7 @@ class Fuzzer:
         Shared.condition = Condition()
         fuzz_threads = []
         for _ in range(self.threads_num):
-            fuzz_thread = FuzzThread(self.dnslog)
+            fuzz_thread = FuzzThread()
             fuzz_threads.append(fuzz_thread)
             fuzz_thread.start()
 

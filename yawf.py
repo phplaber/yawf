@@ -322,5 +322,5 @@ if __name__ == '__main__':
     elif Shared.conf['misc_threads_num']:
         threads_num = int(Shared.conf['misc_threads_num'])
 
-    Fuzzer(threads_num, proxies)
+    Fuzzer(threads_num)
 
