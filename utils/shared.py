@@ -3,7 +3,7 @@
 
 class Shared:
     """
-    多线程共享数据
+    全局共享数据
     """
 
     base_response = None
@@ -15,4 +15,6 @@ class Shared:
     fuzz_results = []
 
     probes = []
+
+    conf = {}
 
