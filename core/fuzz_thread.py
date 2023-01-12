@@ -10,8 +10,9 @@ class FuzzThread(Thread):
     模糊测试器
     """
 
-    def __init__(self):
+    def __init__(self, dnslog=None):
         Thread.__init__(self)
+        self.dnslog = dnslog
 
     def run(self):
         """
@@ -26,7 +27,7 @@ class FuzzThread(Thread):
                 if request is None:
                     break
 
-                prober = Prober(request, True) if 'rce_fastjson' in Shared.probes else Prober(request)
+                prober = Prober(request, self.dnslog)
                 for probe in Shared.probes:
                     if hasattr(Prober, probe) and callable(getattr(Prober, probe)):
                         getattr(Prober, probe)(prober)

@@ -8,29 +8,28 @@ import time
 from utils.shared import Shared
 from utils.constants import *
 from utils.utils import *
-from urllib.parse import quote
 
-class Prober:
-    def __init__(self, request, need_dnslog=False):
-        self.request = request
-        self.base_request = Shared.base_response.request
-        self.base_response = Shared.base_response.response
-        if need_dnslog:
-            self.req_session = requests.session()
-            req = self.req_session.get("http://www.dnslog.cn/getdomain.php", proxies=self.request['proxies'], timeout=30)
-            self.dnslog_domain = req.text
-        self.dictpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dict')
+class Dnslog:
+    def __init__(self, proxies=None):
+        self.proxies = proxies
+        self.req_session = requests.session()
+        req = self.req_session.get("http://www.dnslog.cn/getdomain.php", proxies=self.proxies, timeout=30)
+        self.domain = req.text
 
-    def pull_dnslog_records(self):
-        """
-        拉取 dnslog.cn 记录
-        """
-
-        req = self.req_session.get("http://www.dnslog.cn/getrecords.php", proxies=self.request['proxies'], timeout=30)
+    def pull_logs(self):
+        req = self.req_session.get("http://www.dnslog.cn/getrecords.php", proxies=self.proxies, timeout=30)
 
         return req.json()
 
-    def gen_payload_request(self, payload, reserve_original_params=False, need_dnslog=False):
+class Prober:
+    def __init__(self, request, dnslog=None):
+        self.request = request
+        self.base_request = Shared.base_response.request
+        self.base_response = Shared.base_response.response
+        self.dnslog = dnslog
+        self.dictpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dict')
+
+    def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
         生成带 payload 的 request 对象
         """
@@ -53,7 +52,7 @@ class Prober:
                     flag = False
                     for kk, vv in v.items():
                         if vv == MARK_POINT:
-                            if k == 'data' and need_dnslog:
+                            if k == 'data' and direct_use_payload:
                                 payload_request['data'] = payload
                             else:
                                 payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
@@ -173,14 +172,14 @@ class Prober:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog_domain)
+            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog.domain)
             fastjsonrce_payloads = parse_dict(os.path.join(self.dictpath, 'rce_fastjson.txt'))
             for payload in fastjsonrce_payloads:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
                 time.sleep(1)
-                dnslog_records = self.pull_dnslog_records()
+                dnslog_records = self.dnslog.pull_logs()
                 if dnslog_records:
                     vulnerable = True
 

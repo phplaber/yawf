@@ -46,7 +46,7 @@ if __name__ == '__main__':
         exit(1)
 
     # 网络代理
-    proxies = {}
+    proxies = None
     proxy_conf = parse_conf('request', 'proxy')
     if proxy_conf:
         if 'http://' in proxy_conf or 'https://' in proxy_conf:
@@ -319,5 +319,5 @@ if __name__ == '__main__':
     elif threads_num_conf:
         threads_num = int(threads_num_conf)
 
-    Fuzzer(threads_num)
+    Fuzzer(threads_num, proxies)
 
