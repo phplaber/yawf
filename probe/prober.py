@@ -3,7 +3,6 @@
 import os
 import re
 import copy
-import random
 import time
 from utils.shared import Shared
 from utils.constants import *
@@ -108,13 +107,13 @@ class Prober:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
 
-                # 基于报错判断漏洞是否存在
+                # 基于报错判断
                 for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
                     if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, self.base_response, re.I):
                         vulnerable = True
                         break
                 
-                # 基于内容相似度判断漏洞是否存在
+                # 基于内容相似度判断
                 if similar(self.base_response, poc_rsp.response) > 0.8:
                     vulnerable = True
 
@@ -167,20 +166,21 @@ class Prober:
     def rce_fastjson(self):
         """
         Fastjson RCE 探针
-        漏洞知识: https://github.com/JnuSimba/MiscSecNotes/blob/master/%E6%BC%8F%E6%B4%9E%E7%A7%91%E6%99%AE/fastjson%E8%BF%9C%E7%A8%8B%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86.md
+        漏洞知识: https://xz.aliyun.com/t/8979
         """
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
             fastjsonrce_payloads = parse_dict(os.path.join(self.dictpath, 'rce_fastjson.txt'))
             for payload in fastjsonrce_payloads:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
                 time.sleep(1)
+
                 dnslog_records = self.dnslog.pull_logs()
-                if dnslog_records:
+                if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
                 if vulnerable:
@@ -206,7 +206,7 @@ class Prober:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
             log4jrce_payloads = parse_dict(os.path.join(self.dictpath, 'rce_log4j.txt'))
             for payload in log4jrce_payloads:
                 payload = payload.replace('dnslog', dnslog_domain)
@@ -245,7 +245,7 @@ class Prober:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(5)), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
             xxe_payloads = parse_dict(os.path.join(self.dictpath, 'xxe.txt'))
             for payload in xxe_payloads:
                 payload_request = self.gen_payload_request('&xxe;')
@@ -264,7 +264,7 @@ class Prober:
                     time.sleep(1)
 
                     dnslog_records = self.dnslog.pull_logs()
-                    if dnslog_records:
+                    if dnslog_records and dnslog_domain in str(dnslog_records):
                         vulnerable = True
 
                 if vulnerable:

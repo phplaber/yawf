@@ -2,6 +2,7 @@
 
 import os
 import sys
+import random
 import requests
 from configparser import ConfigParser
 from utils.constants import *
@@ -23,8 +24,8 @@ def errmsg(token):
     msg = {
         'url_is_invalid': '[*] URL does not appear to be dynamic',
         'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
-        'read_file_occur_wrong': '[*] something went wrong while trying to read the content of file \'{}\' (\'{}\')',
-        'data_is_empty': '[*] HTTP post data is empty'
+        'data_is_empty': '[*] HTTP post data is empty',
+        'config_is_invalid': '[*] parse config file error: {}'
     }
 
     return msg.get(token, "[*] oops")
@@ -99,3 +100,10 @@ def similar(str1, str2):
     """
 
     return SequenceMatcher(None, str1, str2).ratio()
+
+def get_random_str(length):
+    """
+    生成指定长度的随机字符串
+    """
+
+    return ''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(length))
