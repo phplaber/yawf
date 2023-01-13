@@ -50,6 +50,9 @@ if __name__ == '__main__':
     if status is not None:
         print(errmsg('config_is_invalid').format(status))
         exit(1)
+
+    # 自动标记忽略的参数列表
+    ignore_params = [ip.strip() for ip in Shared.conf['misc_ignore_params'].split(',')]
     
     # 网络代理
     proxies = None
@@ -71,7 +74,7 @@ if __name__ == '__main__':
         'proxies': proxies,
         'cookies': {},
         'headers': {},
-        'data': None,
+        'data': {},
         'timeout': timeout,
     }
     # 手动标记状态位
@@ -196,7 +199,7 @@ if __name__ == '__main__':
         base_request['proxies'] = request['proxies']
         base_request['headers'] = request['headers']
         base_request['timeout'] = request['timeout']
-        base_request['data'] = None
+        base_request['data'] = {}
         if request['data']:
             if type(request['data']) is str:
                 base_request['data'] = request['data'] if MARK_POINT not in request['data'] else request['data'].replace(MARK_POINT, '')
@@ -260,6 +263,8 @@ if __name__ == '__main__':
             o = urlparse(base_request['url'])
             qs = parse_qsl(o.query)
             for par, val in qs:
+                if par in ignore_params:
+                    continue
                 mark_request['url'] = base_request['url'].replace(par + '=' + val, par + '=' + MARK_POINT)
                 requests.append(copy.deepcopy(mark_request))
             mark_request['url'] = base_request['url']
@@ -291,6 +296,8 @@ if __name__ == '__main__':
             else:
                 # form data
                 for k, v in base_request['data'].items():
+                    if k in ignore_params:
+                        continue
                     mark_request['data'][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
                     mark_request['data'][k] = v
@@ -298,6 +305,8 @@ if __name__ == '__main__':
         # cookie
         if base_request['cookies']:
             for k, v in base_request['cookies'].items():
+                if k in ignore_params:
+                    continue
                 mark_request['cookies'][k] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
                 mark_request['cookies'][k] = v
