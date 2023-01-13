@@ -45,7 +45,12 @@ class Prober:
                 if k == 'data' and type(v) is str:
                     # post body 为 xml 的场景，仅检测 xxe 和 fastjson rce
                     if MARK_POINT in v :
-                        payload_request['data'] = v.replace(MARK_POINT, payload) if not direct_use_payload else payload
+                        if direct_use_payload:
+                            # 直接使用 payload 的 POST 请求，只需测试一次
+                            payload_request['data'] = payload
+                            Shared.direct_use_payload_flag = True
+                        else:
+                            payload_request['data'] = v.replace(MARK_POINT, payload)
                         break
                 else:
                     flag = False
@@ -53,6 +58,7 @@ class Prober:
                         if vv == MARK_POINT:
                             if k == 'data' and direct_use_payload:
                                 payload_request['data'] = payload
+                                Shared.direct_use_payload_flag = True
                             else:
                                 payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
                             flag = True
@@ -68,7 +74,7 @@ class Prober:
         漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
 
-        if type(self.base_request['data']) is str:
+        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
             print("[*] XSS detection skipped")
             return 
         
@@ -104,7 +110,7 @@ class Prober:
         漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
-        if type(self.base_request['data']) is str:
+        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
             print("[*] SQLI detection skipped")
             return 
 
@@ -117,15 +123,16 @@ class Prober:
                 if not poc_rsp.response:
                     continue
 
-                # 基于报错判断
-                for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-                    if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, self.base_response, re.I):
+                if 'and' not in payload:
+                    # 基于报错判断
+                    for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
+                        if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, self.base_response, re.I):
+                            vulnerable = True
+                            break
+                else:
+                    # 基于内容相似度判断
+                    if similar(self.base_response, poc_rsp.response) > 0.95:
                         vulnerable = True
-                        break
-                
-                # 基于内容相似度判断
-                if similar(self.base_response, poc_rsp.response) > 0.8:
-                    vulnerable = True
 
                 if vulnerable:
                     print("[+] Found SQL Injection!")
@@ -148,7 +155,7 @@ class Prober:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if type(self.base_request['data']) is str:
+        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
             print("[*] DT detection skipped")
             return 
 
@@ -180,7 +187,11 @@ class Prober:
         """
         Fastjson RCE 探针
         漏洞知识: https://xz.aliyun.com/t/8979
-        """ 
+        """
+
+        if Shared.direct_use_payload_flag and MARK_POINT in str(self.base_request['data']):
+            print("[*] Fastjson RCE detection skipped")
+            return 
         
         vulnerable = False
         try:
@@ -216,7 +227,7 @@ class Prober:
         漏洞知识: https://www.anquanke.com/post/id/263325
         """
 
-        if type(self.base_request['data']) is str:
+        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
             print("[*] Log4j RCE detection skipped")
             return 
         

@@ -22,3 +22,4 @@ class Shared:
 
     dnslog = None
 
+    direct_use_payload_flag = False
