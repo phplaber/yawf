@@ -162,9 +162,16 @@ class Prober:
         vulnerable = False
         try:
             for payload in Shared.probes_dict['dt']:
+                if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows':
+                    # Windows 平台
+                    if 'passwd' in payload:
+                        continue
+                else:
+                    # Linux 平台
+                    if 'passwd' not in payload:
+                        continue
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
-
                 if poc_rsp.response and ('root:' in poc_rsp.response or 'boot loader' in poc_rsp.response):
                     vulnerable = True
 
@@ -276,6 +283,14 @@ class Prober:
                 payload_request = self.gen_payload_request('&xxe;')
                 if 'dnslog' not in payload:
                     # 有回显
+                    if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows':
+                        # Windows 平台
+                        if 'passwd' in payload:
+                            continue
+                    else:
+                        # Linux 平台
+                        if 'passwd' not in payload:
+                            continue
                     payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
                     poc_rsp = send_request(payload_request)
 
