@@ -7,7 +7,7 @@ import json
 from threading import Condition
 from core.fuzz_thread import FuzzThread
 from utils.shared import Shared
-from probe.prober import Dnslog
+from probe.prober import Dnslog, Webdriver
 from utils.utils import parse_dict
 
 
@@ -39,6 +39,10 @@ class Fuzzer:
         if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
             Shared.dnslog = Dnslog(Shared.base_response.request['proxies'])
 
+        # 初始化 webdriver（headless Chrome）实例
+        if any(p in 'xss' for p in Shared.probes):
+            Shared.web_driver = Webdriver().driver
+
         # 读取探针字典
         dictpath = os.path.join(os.path.dirname(sys.argv[0]), 'probe', 'dict')
         for probe in Shared.probes:
@@ -52,6 +56,10 @@ class Fuzzer:
             fuzz_thread.start()
 
         self.loop(fuzz_threads)
+
+        # 关闭 webdriver
+        if Shared.web_driver:
+            Shared.web_driver.close()
 
         # 本地文件存储发现漏洞
         if Shared.fuzz_results:

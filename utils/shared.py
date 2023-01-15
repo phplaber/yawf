@@ -22,4 +22,6 @@ class Shared:
 
     dnslog = None
 
+    web_driver = None
+
     direct_use_payload_flag = False

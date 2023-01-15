@@ -4,9 +4,19 @@ import re
 import copy
 import time
 import requests
+from selenium import webdriver
 from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS
 from utils.utils import get_random_str, send_request, similar
+
+class Webdriver:
+    def __init__(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        self.driver = webdriver.Chrome(options=options)
 
 class Dnslog:
     def __init__(self, proxies=None):
@@ -26,6 +36,7 @@ class Prober:
         self.base_request = Shared.base_response.request
         self.base_response = Shared.base_response.response
         self.dnslog = Shared.dnslog
+        self.web_driver = Shared.web_driver
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
@@ -81,13 +92,22 @@ class Prober:
         vulnerable = False
         try:
             rsp = send_request(self.request)
-            if MARK_POINT in rsp.response:
+            if rsp.response and MARK_POINT in rsp.response:
                 for payload in Shared.probes_dict['xss']:
                     payload_request = self.gen_payload_request(payload)
-
                     poc_rsp = send_request(payload_request)
-                    if poc_rsp.response and payload in poc_rsp.response:
+
+                    if not poc_rsp.response:
+                        continue
+                    
+                    self.web_driver.get(url=payload_request['url'])
+                    # 检查页面上是否有弹出的 XSS 警告框
+                    try:
+                        alert = self.web_driver.switch_to.alert
                         vulnerable = True
+                        alert.accept()
+                    except:
+                        pass
 
                     if vulnerable:
                         print("[+] Found XSS!")

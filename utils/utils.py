@@ -48,6 +48,7 @@ def send_request(request):
     发送 HTTP 请求
     """
 
+    response = length = status = None
     try:
         if request['method'] == 'GET':
             rsp = requests.get(request['url'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'], timeout=request['timeout'], verify=False)
@@ -59,7 +60,7 @@ def send_request(request):
         status = rsp.status_code
 
     except requests.exceptions.RequestException as e:
-        response = length = status = None
+        print('[*] WARN : request error : {}'.format(str(e)))
 
     return RequestResult(request, response, length, status)
 

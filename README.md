@@ -33,16 +33,12 @@
 
 ### 安装
 
-#### 依赖
-
-1.  Python 3+
-2.  requests
-
-#### 下载
+需使用 Python 3.X 运行 Yawf
 
 ```console
 $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
+$ pip install -r ./requirements.txt
 $ python yawf.py -h
 
 _____.___.  _____  __      _____________
