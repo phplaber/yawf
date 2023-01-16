@@ -30,6 +30,8 @@ class FuzzThread(Thread):
                 for probe in Shared.probes:
                     if hasattr(Prober, probe) and callable(getattr(Prober, probe)):
                         getattr(Prober, probe)(prober)
+                    else:
+                        print('[*] invalid probe: {}'.format(probe))
 
         except KeyboardInterrupt:
             print("\nTerminated by user")
