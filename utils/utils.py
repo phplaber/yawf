@@ -86,9 +86,9 @@ def parse_conf(file):
 
     return status
 
-def parse_dict(file):
+def parse_payload(file):
     """
-    解析 payload 字典文件
+    解析 payload 文件
     """
 
     payloads = []

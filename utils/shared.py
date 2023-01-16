@@ -18,7 +18,7 @@ class Shared:
 
     conf = {}
 
-    probes_dict = {}
+    probes_payload = {}
 
     dnslog = None
 

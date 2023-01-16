@@ -1,4 +1,4 @@
-# Directory Traversal dict
+# Directory Traversal payload
 
 /etc/passwd
 ../etc/passwd

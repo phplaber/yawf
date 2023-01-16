@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from threading import Thread
-from probe.prober import Prober
+from probe.probe import Probe
 from utils.shared import Shared
 
 
@@ -26,10 +26,10 @@ class FuzzThread(Thread):
                 if request is None:
                     break
 
-                prober = Prober(request)
+                probe_ins = Probe(request)
                 for probe in Shared.probes:
-                    if hasattr(Prober, probe) and callable(getattr(Prober, probe)):
-                        getattr(Prober, probe)(prober)
+                    if hasattr(Probe, probe) and callable(getattr(Probe, probe)):
+                        getattr(Probe, probe)(probe_ins)
                     else:
                         print('[*] invalid probe: {}'.format(probe))
 

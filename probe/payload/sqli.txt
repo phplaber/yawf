@@ -1,4 +1,4 @@
-# SQLI dict
+# SQLI payload
 
 '1
 /**/and 1

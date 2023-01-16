@@ -7,8 +7,8 @@ import json
 from threading import Condition
 from core.fuzz_thread import FuzzThread
 from utils.shared import Shared
-from probe.prober import Dnslog, Webdriver
-from utils.utils import parse_dict
+from probe.probe import Dnslog, Webdriver
+from utils.utils import parse_payload
 
 
 class Fuzzer:
@@ -43,10 +43,10 @@ class Fuzzer:
         if any(p in 'xss' for p in Shared.probes):
             Shared.web_driver = Webdriver().driver
 
-        # 读取探针字典
-        dictpath = os.path.join(os.path.dirname(sys.argv[0]), 'probe', 'dict')
+        # 读取探针 payload
+        payload_path = os.path.join(os.path.dirname(sys.argv[0]), 'probe', 'payload')
         for probe in Shared.probes:
-            Shared.probes_dict[probe] = parse_dict(os.path.join(dictpath, '{}.txt'.format(probe)))
+            Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
         
         Shared.condition = Condition()
         fuzz_threads = []

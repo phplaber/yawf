@@ -30,7 +30,7 @@ class Dnslog:
 
         return req.json()
 
-class Prober:
+class Probe:
     def __init__(self, request):
         self.request = request
         self.base_request = Shared.base_response.request
@@ -93,7 +93,7 @@ class Prober:
         try:
             rsp = send_request(self.request)
             if rsp.response and MARK_POINT in rsp.response:
-                for payload in Shared.probes_dict['xss']:
+                for payload in Shared.probes_payload['xss']:
                     payload_request = self.gen_payload_request(payload)
                     poc_rsp = send_request(payload_request)
 
@@ -136,7 +136,7 @@ class Prober:
 
         vulnerable = False
         try:
-            for payload in Shared.probes_dict['sqli']:
+            for payload in Shared.probes_payload['sqli']:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
 
@@ -181,7 +181,7 @@ class Prober:
 
         vulnerable = False
         try:
-            for payload in Shared.probes_dict['dt']:
+            for payload in Shared.probes_payload['dt']:
                 if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows':
                     # Windows 平台
                     if 'passwd' in payload:
@@ -223,7 +223,7 @@ class Prober:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            for payload in Shared.probes_dict['rce_fastjson']:
+            for payload in Shared.probes_payload['rce_fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
@@ -261,7 +261,7 @@ class Prober:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            for payload in Shared.probes_dict['rce_log4j']:
+            for payload in Shared.probes_payload['rce_log4j']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
@@ -299,7 +299,7 @@ class Prober:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            for payload in Shared.probes_dict['xxe']:
+            for payload in Shared.probes_payload['xxe']:
                 payload_request = self.gen_payload_request('&xxe;')
                 if 'dnslog' not in payload:
                     # 有回显

