@@ -8,8 +8,9 @@
 2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST Body；
 3.  支持多线程对测试目标进行检测，默认 3 个线程；
 4.  容易扩展，探针和 Payload 文件分离；
-5.  支持设置 HTTP 网络代理；
-6.  高度可配置化，简单配置实现定制需求。
+5.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
+6.  支持设置 HTTP 网络代理；
+7.  高度可配置化，简单配置实现定制需求。
 
 #### 探针
 
@@ -26,7 +27,7 @@
 
 1.  多线程同时检测测试点，一个测试点对应一个请求对象，每个请求对象间互不依赖，充分利用多核 CPU 提高检测效率；
 2.  在多线程执行探针前，提前获取已选择探针载荷内容，后续检测每个测试点时直接获取，文件 IO 从 **60** 次减少到 **6** 次；
-3.  读取一次配置文件后，将配置数据写入内存，后续使用直接从内存中读取，文件 IO 从 **8** 次减少到 **1** 次；
+3.  读取一次配置文件后，将配置数据写入内存，后续使用直接从内存中读取，文件 IO 从 **9** 次减少到 **1** 次；
 4.  一次测试活动只获取一次 dnslog domain，通过随机字符串子域名加以区分每个探针使用的 payload，网络请求从 **10** 次减少到 **1** 次；
 5.  针对直接使用 payload 替换 post body 的场景（如：检测 fastjson rce等）只测试一次，避免不必要的重复测试，减少网络请求；
 6.  根据测试目标运行平台操作系统，选择性的使用特定该操作系统的 payload，减少无效网络请求。
@@ -57,7 +58,7 @@ Usage: yawf.py [options]
 Options:
   -h, --help         show this help message and exit
   -u URL, --url=URL  Target URL (e.g. "http://www.target.com/page.php?id=1")
-  -m METHOD          HTTP method (e.g. PUT)
+  -m METHOD          HTTP method, default: GET (e.g. POST)
   -d DATA            Data string to be sent through POST (e.g. "id=1")
   -c COOKIES         HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
   --headers=HEADERS  Extra headers (e.g. "Accept-Language: fr\nETag: 123")
@@ -77,6 +78,8 @@ scheme 需和 **-r** 选项配合使用，默认是 https。
 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除。
 
 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求。
+
+在 **enable_waf_detecter** 项中配置执行漏洞检测前是否开启 WAF 检测，默认是 on，表示开启。Yawf 支持检测的 WAF 有：阿里云盾、云加速、安全狗、加速乐和 CloudFlare，检测代码主要从 [WhatWaf](https://github.com/Ekultek/WhatWaf) 项目移植而来，做了略微修改。需要检测其它 WAF，可以参考使用 [WhatWaf](https://github.com/Ekultek/WhatWaf)。一旦 Yawf 检测到 WAF，将中断执行。
 
 #### 标记
 
