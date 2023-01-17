@@ -330,6 +330,27 @@ if __name__ == '__main__':
     else:
         Shared.probes.append(PROBE)
 
+    """
+    如果配置开启 Waf 检测，在真正开始检测漏洞前，先判断测试目标前面是否部署了 Waf。如果部署了 Waf，则中断检测。
+    检测原理：在 url 中传递 xss 和 sqli payload，检测 response 对象是否包含 Waf 特征。
+    参考：https://github.com/Ekultek/WhatWaf
+    """
+    if Shared.conf['misc_enable_waf_detecter'].strip() == 'on':
+        dw = DetectWaf()
+        detect_request = base_request.copy()
+        detect_payloads = [
+            '<img/src=1 onerror=alert(1)>',
+            '\' and \'a\'=\'a'
+        ]
+
+        for payload in detect_payloads:
+            detect_request['url'] += '&ispayload={}'.format(payload) if is_dynamic_url else '?ispayload={}'.format(payload)
+                
+            what_waf = dw.detect(send_request(detect_request))
+            if what_waf:
+                print("[+] Found Waf: {}, Exit.".format(what_waf))
+                exit(0)
+
     # 初始化 dnslog 实例
     if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
         Shared.dnslog = Dnslog(base_request['proxies'])

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import random
 import requests
 from configparser import ConfigParser
@@ -48,7 +47,7 @@ def send_request(request):
     发送 HTTP 请求
     """
 
-    response = length = status = None
+    response = headers = status = None
     try:
         if request['method'] == 'GET':
             rsp = requests.get(request['url'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'], timeout=request['timeout'], verify=False)
@@ -56,13 +55,13 @@ def send_request(request):
             rsp = requests.post(request['url'], data=request['data'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'], timeout=request['timeout'], verify=False)
 
         response = rsp.text
-        length = len(response)
+        headers = rsp.headers
         status = rsp.status_code
 
     except requests.exceptions.RequestException as e:
         print('[*] WARN : request error : {}'.format(str(e)))
 
-    return RequestResult(request, response, length, status)
+    return RequestResult(request, response, headers, status)
 
 def parse_conf(file):
     """
