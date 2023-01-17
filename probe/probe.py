@@ -24,6 +24,7 @@ class DetectWaf:
 
         # 阿里云盾
         if status == 405:
+            # 阻断
             detection_schema = (
                 re.compile(r"error(s)?.aliyun(dun)?.(com|net)", re.I),
                 re.compile(r"http(s)?://(www.)?aliyun.(com|net)", re.I)
@@ -31,6 +32,12 @@ class DetectWaf:
             for detection in detection_schema:
                 if detection.search(rsp):
                     return 'AliYunDun'
+        
+        elif status == 200:
+            # 非阻断，如滑块验证
+            detection = re.compile(r"TraceID: [0-9a-z]{30}", re.I)
+            if detection.search(rsp):
+                return 'AliYunDun'
 
         # 云加速
         detection_schema = (
