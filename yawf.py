@@ -1,7 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import os
+import sys
 import re
+import time
+import json
 import copy
 import optparse
 import email
@@ -9,9 +13,10 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import *
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload
 from utils.constants import *
 from utils.shared import Shared
+from probe.probe import Dnslog, Webdriver, DetectWaf
 
 banner = "\
 _____.___.  _____  __      _____________\n\
@@ -33,7 +38,7 @@ if __name__ == '__main__':
 
     parser = optparse.OptionParser()
     parser.add_option("-u", "--url", dest="url", help="Target URL (e.g. \"http://www.target.com/page.php?id=1\")")
-    parser.add_option("-m", dest="method", help="HTTP method (e.g. PUT)")
+    parser.add_option("-m", dest="method", help="HTTP method, default: GET (e.g. POST)")
     parser.add_option("-d", dest="data", help="Data string to be sent through POST (e.g. \"id=1\")")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
     parser.add_option("--headers", dest="headers", help="Extra headers (e.g. \"Accept-Language: fr\\nETag: 123\")")
@@ -45,8 +50,11 @@ if __name__ == '__main__':
         parser.print_help()
         exit(1)
 
+    # 脚本相对目录
+    script_rel_dir = os.path.dirname(sys.argv[0])
+
     # 解析配置文件
-    status = parse_conf(os.path.join(os.path.dirname(sys.argv[0]), 'yawf.conf'))
+    status = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if status is not None:
         print(errmsg('config_is_invalid').format(status))
         exit(1)
@@ -313,8 +321,6 @@ if __name__ == '__main__':
     
     # request 对象列表
     Shared.requests = requests
-    # 基准请求
-    Shared.base_response = send_request(base_request)
     
     # 获取探针配置
     if Shared.conf['probe_customize']:
@@ -324,6 +330,22 @@ if __name__ == '__main__':
     else:
         Shared.probes.append(PROBE)
 
+    # 初始化 dnslog 实例
+    if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
+        Shared.dnslog = Dnslog(base_request['proxies'])
+
+    # 初始化 webdriver（headless Chrome）实例
+    if any(p in 'xss' for p in Shared.probes):
+        Shared.web_driver = Webdriver().driver
+
+    # 读取探针 payload
+    payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
+    for probe in Shared.probes:
+        Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
+
+    # 基准请求
+    Shared.base_response = send_request(base_request)
+
     # 线程数
     threads_num = THREADS_NUM
     if len(Shared.requests) == 1:
@@ -331,5 +353,22 @@ if __name__ == '__main__':
     elif Shared.conf['misc_threads_num']:
         threads_num = int(Shared.conf['misc_threads_num'])
 
+    # 开始检测
     Fuzzer(threads_num)
 
+    # 关闭 webdriver
+    if Shared.web_driver:
+        Shared.web_driver.close()
+
+    # 记录漏洞
+    if Shared.fuzz_results:
+        outputdir = os.path.join(script_rel_dir, 'output')
+        if not os.path.exists(outputdir):
+            os.makedirs(outputdir)
+        outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
+        with open(outputfile, 'w') as f:
+            for result in Shared.fuzz_results:
+                f.write(json.dumps(result))
+                f.write('\n')
+
+        print('[+] Fuzz results saved in: {}'.format(outputfile))
