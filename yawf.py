@@ -48,6 +48,7 @@ if __name__ == '__main__':
     # -u 和 -r 选项二选一
     if not options.url and not options.requestfile:
         parser.print_help()
+        print('\n\n[*] option -u or -r must be set')
         exit(1)
 
     # 脚本相对目录
