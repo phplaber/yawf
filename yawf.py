@@ -322,14 +322,6 @@ if __name__ == '__main__':
     
     # request 对象列表
     Shared.requests = requests
-    
-    # 获取探针配置
-    if Shared.conf['probe_customize']:
-        Shared.probes = [probe.strip() for probe in Shared.conf['probe_customize'].split(',')]
-    elif Shared.conf['probe_default']:
-        Shared.probes = [probe.strip() for probe in Shared.conf['probe_default'].split(',')]
-    else:
-        Shared.probes.append(PROBE)
 
     """
     如果配置开启 Waf 检测，在真正开始检测漏洞前，先判断测试目标前面是否部署了 Waf。如果部署了 Waf，则中断检测。
@@ -352,6 +344,33 @@ if __name__ == '__main__':
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)
 
+    # 基准请求
+    Shared.base_response = send_request(base_request)
+    if Shared.base_response.status != 200:
+        print(errmsg('base_request_failed').format(Shared.base_response.status))
+        exit(1)
+
+    # 获取探针配置
+    if Shared.conf['probe_customize']:
+        Shared.probes = [probe.strip() for probe in Shared.conf['probe_customize'].split(',')]
+    elif Shared.conf['probe_default']:
+        Shared.probes = [probe.strip() for probe in Shared.conf['probe_default'].split(',')]
+    else:
+        Shared.probes.append(PROBE)
+
+    # 获取探针 payload
+    payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
+    for probe in Shared.probes:
+        Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
+
+    # 获取线程数
+    if len(Shared.requests) == 1:
+        threads_num = 1
+    elif int(Shared.conf['misc_threads_num']) > 0:
+        threads_num = int(Shared.conf['misc_threads_num'])
+    else:
+        threads_num = THREADS_NUM
+
     # 初始化 dnslog 实例
     if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
         Shared.dnslog = Dnslog(base_request['proxies'])
@@ -359,21 +378,6 @@ if __name__ == '__main__':
     # 初始化 webdriver（headless Chrome）实例
     if any(p in 'xss' for p in Shared.probes):
         Shared.web_driver = Webdriver().driver
-
-    # 读取探针 payload
-    payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
-    for probe in Shared.probes:
-        Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
-
-    # 基准请求
-    Shared.base_response = send_request(base_request)
-
-    # 线程数
-    threads_num = THREADS_NUM
-    if len(Shared.requests) == 1:
-        threads_num = 1
-    elif Shared.conf['misc_threads_num']:
-        threads_num = int(Shared.conf['misc_threads_num'])
 
     # 开始检测
     Fuzzer(threads_num)

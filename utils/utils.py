@@ -25,10 +25,11 @@ def errmsg(token):
         'url_is_invalid': '[*] URL does not appear to be dynamic',
         'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
         'data_is_empty': '[*] HTTP post data is empty',
-        'config_is_invalid': '[*] parse config file error: {}'
+        'config_is_invalid': '[*] parse config file error: {}',
+        'base_request_failed': '[*] base request failed, status code is: {}'
     }
 
-    return msg.get(token, "[*] oops")
+    return msg.get(token, '')
 
 def check_file(filename):
     """
@@ -94,9 +95,7 @@ def parse_payload(file):
 
     if check_file(file):
         with open(file) as f:
-            for payload in f:
-                if not payload.startswith('#') and payload != '\n':
-                    payloads.append(payload.strip())
+            payloads = [payload.strip() for payload in f if not payload.startswith('#') and payload != '\n']
     
     return payloads
 

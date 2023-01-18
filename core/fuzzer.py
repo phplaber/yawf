@@ -12,29 +12,22 @@ class Fuzzer:
 
     def __init__(self, threads_num):
         self.start_time = int(time.time())
-        self.threads_num = threads_num
-        self.main()
+        self.main(threads_num)
 
-    def loop(self, threads):
-        """
-        同步线程，等待全部线程结束
-        """
-
-        for thread in threads:
-            thread.join()
-
-    def main(self):
+    def main(self, threads_num):
         """
         启动多线程检测漏洞
         """
         
         Shared.condition = Condition()
         fuzz_threads = []
-        for _ in range(self.threads_num):
+        for _ in range(threads_num):
             fuzz_thread = FuzzThread()
             fuzz_threads.append(fuzz_thread)
             fuzz_thread.start()
 
-        self.loop(fuzz_threads)
+        # 等待全部线程结束
+        for thread in fuzz_threads:
+            thread.join()
 
         print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, int(time.time()) - self.start_time))
