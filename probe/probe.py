@@ -5,6 +5,10 @@ import copy
 import time
 import requests
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS
 from utils.utils import get_random_str, send_request, similar
@@ -100,10 +104,16 @@ class DetectWaf:
 class Webdriver:
     def __init__(self):
         options = webdriver.ChromeOptions()
+        # 以 headless 模式运行 Chrome
         options.add_argument('--headless')
+        # 仅 Windows 上运行有效
         options.add_argument('--disable-gpu')
+        # 仅 Docker 上运行有效
         options.add_argument('--no-sandbox')
+        # 在内存资源有限的环境中运行需要
         options.add_argument('--disable-dev-shm-usage')
+        # 忽略 DevTools 监听 ws 信息
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
         self.driver = webdriver.Chrome(options=options)
 
 class Dnslog:
@@ -179,33 +189,41 @@ class Probe:
         
         vulnerable = False
         try:
-            rsp = send_request(self.request)
-            if rsp.response and MARK_POINT in rsp.response:
-                for payload in Shared.probes_payload['xss']:
-                    payload_request = self.gen_payload_request(payload)
-                    poc_rsp = send_request(payload_request)
+            for payload in Shared.probes_payload['xss']:
+                payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
+                poc_rsp = send_request(payload_request)
 
-                    if not poc_rsp.response:
-                        continue
+                if not poc_rsp.response:
+                    continue
                     
-                    self.web_driver.get(url=payload_request['url'])
-                    # 检查页面上是否有弹出的 XSS 警告框
+                self.web_driver.get(url=payload_request['url'])
+                if '[UI]' not in payload:
+                    # 不需要用户交互就能弹框
                     try:
+                        # 在切换执行 alert 前，等待 3 秒
+                        WebDriverWait(self.web_driver, 3).until (EC.alert_is_present())
                         alert = self.web_driver.switch_to.alert
-                        vulnerable = True
                         alert.accept()
-                    except:
+                        vulnerable = True
+                    except TimeoutException:
                         pass
+                else:
+                    # 需要用户交互才能弹框
+                    links = self.web_driver.find_elements(By.TAG_NAME, "a")
+                    for link in links:
+                        if link.get_attribute("href") == payload.replace('[UI]', ''):
+                            vulnerable = True
+                            break
 
-                    if vulnerable:
-                        print("[+] Found XSS!")
-                        Shared.fuzz_results.append({
-                            'request': self.request,
-                            'payload': payload,
-                            'poc': payload_request,
-                            'type': 'XSS'
-                        })
-                        break
+                if vulnerable:
+                    print("[+] Found XSS!")
+                    Shared.fuzz_results.append({
+                        'request': self.request,
+                        'payload': payload.replace('[UI]', ''),
+                        'poc': payload_request,
+                        'type': 'XSS'
+                    })
+                    break
             
             if not vulnerable:
                 print("[-] Not Found XSS.")
