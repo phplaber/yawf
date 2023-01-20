@@ -39,7 +39,7 @@
 ```console
 $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
-$ pip install -r ./requirements.txt
+$ pip install -r requirements.txt
 $ python yawf.py -h
 
 _____.___.  _____  __      _____________
@@ -62,7 +62,7 @@ Options:
   -d DATA            Data string to be sent through POST (e.g. "id=1")
   -c COOKIES         HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
   --headers=HEADERS  Extra headers (e.g. "Accept-Language: fr\nETag: 123")
-  -r REQUESTFILE     Load HTTP request from a file
+  -f REQUESTFILE     Load HTTP request from a file
 ```
 
 ### 使用
@@ -71,7 +71,7 @@ Options:
 
 根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme 和探针等。
 
-scheme 需和 **-r** 选项配合使用，默认是 https。
+scheme 需和 **-f** 选项配合使用，默认是 https。
 
 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针。
 

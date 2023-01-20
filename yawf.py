@@ -42,13 +42,13 @@ if __name__ == '__main__':
     parser.add_option("-d", dest="data", help="Data string to be sent through POST (e.g. \"id=1\")")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
     parser.add_option("--headers", dest="headers", help="Extra headers (e.g. \"Accept-Language: fr\\nETag: 123\")")
-    parser.add_option("-r", dest="requestfile", help="Load HTTP request from a file")
+    parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     options, _ = parser.parse_args()
 
     # -u 和 -r 选项二选一
     if not options.url and not options.requestfile:
         parser.print_help()
-        print('\n\n[*] option -u or -r must be set')
+        print('\n\n[*] option -u or -f must be set')
         exit(1)
 
     # 脚本相对目录
