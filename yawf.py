@@ -323,6 +323,12 @@ if __name__ == '__main__':
     # request 对象列表
     Shared.requests = requests
 
+    # 基准请求
+    Shared.base_response = send_request(base_request)
+    if Shared.base_response.get('status') != 200:
+        print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
+        exit(1)
+
     """
     如果配置开启 Waf 检测，在真正开始检测漏洞前，先判断测试目标前面是否部署了 Waf。如果部署了 Waf，则中断检测。
     检测原理：在 url 中传递 xss 和 sqli payload，检测 response 对象是否包含 Waf 特征。
@@ -343,12 +349,6 @@ if __name__ == '__main__':
             if what_waf:
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)
-
-    # 基准请求
-    Shared.base_response = send_request(base_request)
-    if Shared.base_response.status != 200:
-        print(errmsg('base_request_failed').format(Shared.base_response.status))
-        exit(1)
 
     # 获取探针配置
     if Shared.conf['probe_customize']:

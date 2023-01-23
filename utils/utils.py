@@ -5,7 +5,6 @@ import random
 import requests
 from configparser import ConfigParser
 from utils.constants import *
-from utils.request_result import RequestResult
 from utils.shared import Shared
 from difflib import SequenceMatcher
 
@@ -62,7 +61,12 @@ def send_request(request):
     except requests.exceptions.RequestException as e:
         print('[*] WARN : request error : {}'.format(str(e)))
 
-    return RequestResult(request, response, headers, status)
+    return {
+        'request': request,
+        'response': response,
+        'headers': headers,
+        'status': status
+    }
 
 def parse_conf(file):
     """

@@ -17,10 +17,10 @@ class DetectWaf:
     def __init__(self):
         pass
 
-    def detect(self, response):
-        rsp = response.response
-        headers = response.headers
-        status = response.status
+    def detect(self, req_rsp):
+        response = req_rsp.get('response')
+        headers = req_rsp.get('headers')
+        status = req_rsp.get('status')
 
         # 请求失败，直接返回
         if status is None:
@@ -34,13 +34,13 @@ class DetectWaf:
                 re.compile(r"http(s)?://(www.)?aliyun.(com|net)", re.I)
             )
             for detection in detection_schema:
-                if detection.search(rsp):
+                if detection.search(response):
                     return 'AliYunDun'
         
         elif status == 200:
             # 非阻断，如滑块验证
             detection = re.compile(r"TraceID: [0-9a-z]{30}", re.I)
-            if detection.search(rsp):
+            if detection.search(response):
                 return 'AliYunDun'
 
         # 云加速
@@ -58,7 +58,7 @@ class DetectWaf:
             re.compile(r"waf(.?\d+.?\d+)", re.I),
         )
         for detection in detection_schema:
-            if detection.search(rsp) or detection.search(headers.get('x-powered-by', '')):
+            if detection.search(response) or detection.search(headers.get('x-powered-by', '')):
                 return 'SafeDog'
 
         # 加速乐
@@ -71,7 +71,7 @@ class DetectWaf:
         for detection in detection_schema:
             set_cookie = headers.get('set-cookie', '')
             server = headers.get('server', '')
-            if any(detection.search(item) for item in [set_cookie, server]) or detection.search(rsp):
+            if any(detection.search(item) for item in [set_cookie, server]) or detection.search(response):
                 return 'Jiasule'
             
         # CloudFlare
@@ -92,7 +92,7 @@ class DetectWaf:
         if cf_ray or "__cfduid" in set_cookie or "cloudflare" in expect_ct:
             return 'CloudFlare'
         for detection in detection_schemas:
-            if detection.search(rsp) \
+            if detection.search(response) \
                     or detection.search(server) \
                     or detection.search(cookie) \
                     or detection.search(set_cookie) \
@@ -118,8 +118,8 @@ class Webdriver:
 
 class Dnslog:
     def __init__(self):
-        self.proxies = Shared.base_response.request.get('proxies')
-        self.timeout = Shared.base_response.request.get('timeout')
+        self.proxies = Shared.base_response.get('request').get('proxies')
+        self.timeout = Shared.base_response.get('request').get('timeout')
         self.req_session = requests.session()
         req = self.req_session.get("http://www.dnslog.cn/getdomain.php", 
             proxies=self.proxies, 
@@ -138,8 +138,8 @@ class Dnslog:
 class Probe:
     def __init__(self, request):
         self.request = request
-        self.base_request = Shared.base_response.request
-        self.base_response = Shared.base_response.response
+        self.base_request = Shared.base_response.get('request')
+        self.base_response = Shared.base_response.get('response')
         self.dnslog = Shared.dnslog
         self.web_driver = Shared.web_driver
 
@@ -203,7 +203,7 @@ class Probe:
                 payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
                 poc_rsp = send_request(payload_request)
 
-                if not poc_rsp.response:
+                if not poc_rsp.get('response'):
                     continue
                     
                 self.web_driver.get(url=payload_request['url'])
@@ -256,18 +256,18 @@ class Probe:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
 
-                if not poc_rsp.response:
+                if not poc_rsp.get('response'):
                     continue
 
                 if 'and' not in payload:
                     # 基于报错判断
                     for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-                        if re.search(regex, poc_rsp.response, re.I) and not re.search(regex, self.base_response, re.I):
+                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, self.base_response, re.I):
                             vulnerable = True
                             break
                 else:
                     # 基于内容相似度判断
-                    if similar(self.base_response, poc_rsp.response) > 0.95:
+                    if similar(self.base_response, poc_rsp.get('response')) > 0.95:
                         vulnerable = True
 
                 if vulnerable:
@@ -308,7 +308,7 @@ class Probe:
                         continue
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
-                if poc_rsp.response and ('root:' in poc_rsp.response or 'boot loader' in poc_rsp.response):
+                if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                     vulnerable = True
 
                 if vulnerable:
@@ -430,7 +430,7 @@ class Probe:
                     payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
                     poc_rsp = send_request(payload_request)
 
-                    if poc_rsp.response and ('root:' in poc_rsp.response or 'boot loader' in poc_rsp.response):
+                    if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                         vulnerable = True
                 else:
                     # 无回显
