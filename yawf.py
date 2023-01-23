@@ -373,7 +373,7 @@ if __name__ == '__main__':
 
     # 初始化 dnslog 实例
     if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
-        Shared.dnslog = Dnslog(base_request['proxies'])
+        Shared.dnslog = Dnslog()
 
     # 初始化 webdriver（headless Chrome）实例
     if any(p in 'xss' for p in Shared.probes):

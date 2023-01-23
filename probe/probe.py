@@ -117,14 +117,21 @@ class Webdriver:
         self.driver = webdriver.Chrome(options=options)
 
 class Dnslog:
-    def __init__(self, proxies=None):
-        self.proxies = proxies
+    def __init__(self):
+        self.proxies = Shared.base_response.request.get('proxies')
+        self.timeout = Shared.base_response.request.get('timeout')
         self.req_session = requests.session()
-        req = self.req_session.get("http://www.dnslog.cn/getdomain.php", proxies=self.proxies, timeout=30)
+        req = self.req_session.get("http://www.dnslog.cn/getdomain.php", 
+            proxies=self.proxies, 
+            timeout=self.timeout
+        )
         self.domain = req.text
 
     def pull_logs(self):
-        req = self.req_session.get("http://www.dnslog.cn/getrecords.php", proxies=self.proxies, timeout=30)
+        req = self.req_session.get("http://www.dnslog.cn/getrecords.php", 
+            proxies=self.proxies, 
+            timeout=self.timeout
+        )
 
         return req.json()
 
