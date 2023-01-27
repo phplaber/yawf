@@ -65,12 +65,10 @@ if __name__ == '__main__':
     
     # 网络代理
     proxy_conf = Shared.conf['request_proxy']
-    proxies = {'http': proxy_conf, 'https': proxy_conf} \
-        if proxy_conf and ('http://' in proxy_conf or 'https://' in proxy_conf) \
-        else None
+    proxies = {'http': proxy_conf, 'https': proxy_conf} if proxy_conf else {}
     
     # 请求超时时间（秒）
-    timeout_conf = ['request_timeout']
+    timeout_conf = Shared.conf['request_timeout']
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
     requests = []
