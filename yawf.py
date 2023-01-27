@@ -64,17 +64,14 @@ if __name__ == '__main__':
     ignore_params = [ip.strip() for ip in Shared.conf['misc_ignore_params'].split(',')]
     
     # 网络代理
-    proxies = None
     proxy_conf = Shared.conf['request_proxy']
-    if proxy_conf:
-        if 'http://' in proxy_conf or 'https://' in proxy_conf:
-            proxies = {'http': proxy_conf, 'https': proxy_conf}
+    proxies = {'http': proxy_conf, 'https': proxy_conf} \
+        if proxy_conf and ('http://' in proxy_conf or 'https://' in proxy_conf) \
+        else None
     
     # 请求超时时间（秒）
-    timeout = REQ_TIMEOUT
-    timeout_conf = Shared.conf['request_timeout']
-    if timeout_conf:
-        timeout = float(timeout_conf)
+    timeout_conf = ['request_timeout']
+    timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
     requests = []
     request = {
@@ -141,10 +138,8 @@ if __name__ == '__main__':
             print(errmsg('file_is_invalid'))
             exit(1)
         
-        scheme = REQ_SCHEME
         scheme_conf = Shared.conf['request_scheme']
-        if scheme_conf:
-            scheme = scheme_conf
+        scheme = scheme_conf if scheme_conf else REQ_SCHEME
         
         with open(options.requestfile, "r") as f:
             contents = f.read()
