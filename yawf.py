@@ -342,6 +342,9 @@ if __name__ == '__main__':
             if what_waf:
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)
+            
+            # 重置 detect_request['url']，避免不断追加 ispayload 参数
+            detect_request['url'] = base_request['url']
 
     # 获取探针配置
     if Shared.conf['probe_customize']:
