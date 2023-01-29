@@ -6,11 +6,12 @@
 
 1.  支持检测动态 URL 和 HTTP Request 文件目标对象；
 2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST Body；
-3.  支持多线程对测试目标进行检测，默认 3 个线程；
-4.  容易扩展，探针和 Payload 文件分离；
-5.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
-6.  支持设置 HTTP 网络代理；
-7.  高度可配置化，简单配置实现定制需求。
+3.  支持 GET 和 POST 请求，以及 form、json 和 xml 数据类型；
+4.  支持多线程对测试目标进行检测，默认 3 个线程；
+5.  容易扩展，探针和 Payload 文件分离；
+6.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
+7.  支持设置 HTTP 网络代理；
+8.  高度可配置化，简单配置实现定制需求。
 
 #### 探针
 
@@ -34,7 +35,9 @@
 
 ### 安装
 
-需使用 Python 3 运行
+需使用 Python 3 运行。
+
+由于 Yawf 在检测 XSS 漏洞时，使用了 headless Chrome，所以需预先安装 Chrome 环境。在 Windows 和 Mac 平台上运行，如果已安装 Chrome 应用，则可以直接运行 Yawf；在 Linux 平台上运行，则需安装 [ChromeDriver](https://sites.google.com/chromium.org/driver/) 和 [google-chrome](https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm) ，并将可执行文件放置在 PATH 目录下。
 
 ```console
 $ git clone https://github.com/phplaber/yawf.git
@@ -71,15 +74,19 @@ Options:
 
 根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme 和探针等。
 
-scheme 需和 **-f** 选项配合使用，默认是 https。
+- 在 **proxy** 项中配置网络代理服务器，如：127.0.0.1:8080，在调试 payload 的时候很有用；
 
-在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针。
+- **scheme** 需和 **-f** 选项配合使用，默认是 https；
 
-在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除。
+- 在 **timeout** 项中配置请求超时时间，支持小数，单位为秒，默认是 30 秒；
 
-在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求。
+- 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
-在 **enable_waf_detecter** 项中配置执行漏洞检测前是否开启 WAF 检测，默认是 on，表示开启。Yawf 支持检测的 WAF 有：阿里云盾、云加速、安全狗、加速乐和 CloudFlare，检测代码主要从 [WhatWaf](https://github.com/Ekultek/WhatWaf) 项目移植而来，做了略微修改。需要检测其它 WAF，可以参考使用 [WhatWaf](https://github.com/Ekultek/WhatWaf)。一旦 Yawf 检测到 WAF，将中断执行。
+- 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除；
+
+- 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
+
+- 在 **enable_waf_detecter** 项中配置执行漏洞检测前是否开启 WAF 检测，默认是 on，表示开启。Yawf 支持检测的 WAF 有：阿里云盾、云加速、安全狗、加速乐和 CloudFlare，检测代码主要从 [WhatWaf](https://github.com/Ekultek/WhatWaf) 项目移植而来，做了略微修改。需要检测其它 WAF，可以参考使用 [WhatWaf](https://github.com/Ekultek/WhatWaf)。一旦 Yawf 检测到 WAF，将中断执行。
 
 #### 标记
 

@@ -13,7 +13,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type
 from utils.constants import *
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver, DetectWaf
@@ -80,6 +80,7 @@ if __name__ == '__main__':
         'headers': {},
         'data': {},
         'timeout': timeout,
+        'content_type': None
     }
     # 手动标记状态位
     is_mark = False
@@ -100,12 +101,15 @@ if __name__ == '__main__':
                 exit(1)
             
             request['method'] = 'POST'
-            if options.data.startswith('<?xml '):
-                # xml data
+            request['content_type'] = get_content_type(options.data)
+
+            if request['content_type'] in ['json', 'xml']:
+                # json or xml data
                 request['data'] = options.data
                 if MARK_POINT in options.data:
                     is_mark = True
-            else:
+            
+            if request['content_type'] == 'form':
                 # form data
                 request['data'] = {}
                 for item in options.data.split('&'):
@@ -129,8 +133,6 @@ if __name__ == '__main__':
             for item in options.headers.split("\\n"):
                 kv = item.split(":", 1)
                 request['headers'][kv[0].strip().lower()] = kv[1].strip()
-        # 使用特定 ua
-        request['headers']['user-agent'] = UA
     else:
         if not check_file(options.requestfile):
             print(errmsg('file_is_invalid'))
@@ -158,12 +160,14 @@ if __name__ == '__main__':
         # data
         if request['method'] == 'POST':
             data_raw = contents.split('\n\n')[1]
-            if data_raw.startswith('<?xml '):
-                # xml data
+            request['content_type'] = get_content_type(data_raw)
+            if request['content_type'] in ['json', 'xml']:
+                # json or xml data
                 request['data'] = data_raw
                 if MARK_POINT in data_raw:
                     is_mark = True
-            else:
+            
+            if request['content_type'] == 'form':
                 # form data
                 request['data'] = {}
                 for item in data_raw.split('&'):
@@ -184,8 +188,17 @@ if __name__ == '__main__':
         
         # header
         request['headers'] = headers
-        # 使用特定 ua
-        request['headers']['user-agent'] = UA
+
+    # 使用特定 ua
+    request['headers']['user-agent'] = UA
+    # 指定 Content-Type
+    if request['content_type'] is not None:
+        if request['content_type'] == 'json':
+            request['headers']['content-type'] = 'application/json; charset=utf-8'
+        elif request['content_type'] == 'xml':
+            request['headers']['content-type'] = 'application/xml; charset=utf-8'
+        elif request['content_type'] == 'form':
+            request['headers']['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8'
 
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
@@ -208,6 +221,7 @@ if __name__ == '__main__':
             else:
                 for k, v in request['data'].items():
                     base_request['data'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
+        base_request['content_type'] = request['content_type']
         base_request['cookies'] = {}
         if request['cookies']:
             for k, v in request['cookies'].items():
@@ -226,7 +240,18 @@ if __name__ == '__main__':
             mark_request['url'] = base_request['url']
             
         if request['data']:
-            if type(request['data']) is str:
+            if request['content_type'] == 'json':
+                if MARK_POINT in request['data']:
+                    temp_data = json.loads(request['data'])
+                    base_data = json.loads(base_request['data'])
+                    for k, v in temp_data.items():
+                        if MARK_POINT in v:
+                            base_data[k] = MARK_POINT
+                            mark_request['data'] = json.dumps(base_data)
+                            requests.append(copy.deepcopy(mark_request))
+                            base_data[k] = v.replace(MARK_POINT, '')
+                    mark_request['data'] = base_request['data']
+            elif request['content_type'] == 'xml':
                 if MARK_POINT in request['data']:
                     temp_data = request['data']
                     while True:
@@ -239,7 +264,7 @@ if __name__ == '__main__':
                         requests.append(copy.deepcopy(mark_request))
                         temp_data = temp_data[:first_index+len(first_match)-len(MARK_POINT)-1] + temp_data[first_index+len(first_match)-1:]
                     mark_request['data'] = base_request['data']
-            else:
+            elif request['content_type'] == 'form':
                 for k, v in request['data'].items():
                     if MARK_POINT in v:
                         mark_request['data'][k] = MARK_POINT
@@ -273,7 +298,17 @@ if __name__ == '__main__':
 
         # data
         if base_request['data']:
-            if type(base_request['data']) is str:
+            if base_request['content_type'] == 'json':
+                base_data = temp_data = json.loads(base_request['data'])
+                for k, v in temp_data.items():
+                    if k in ignore_params:
+                        continue
+                    base_data[k] = MARK_POINT
+                    mark_request['data'] = json.dumps(base_data)
+                    requests.append(copy.deepcopy(mark_request))
+                    base_data[k] = v
+                mark_request['data'] = base_request['data']
+            elif base_request['content_type'] == 'xml':
                 # xml data
                 tagList = []
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
@@ -295,7 +330,7 @@ if __name__ == '__main__':
                     requests.append(copy.deepcopy(mark_request))
 
                 mark_request['data'] = base_request['data']
-            else:
+            elif base_request['content_type'] == 'form':
                 # form data
                 for k, v in base_request['data'].items():
                     if k in ignore_params:

@@ -159,10 +159,10 @@ class Probe:
                 break
             elif k in ['data', 'cookies'] and v:
                 if k == 'data' and type(v) is str:
-                    # post body 为 xml 的场景，仅检测 xxe 和 fastjson rce
+                    # post body 为 xml 和 json 类型的场景
                     if MARK_POINT in v :
                         if direct_use_payload:
-                            # 直接使用 payload 的 POST 请求，只需测试一次
+                            # 直接使用 payload 的 POST 请求（如：检测 fastjson rce），只需测试一次
                             payload_request['data'] = payload
                             Shared.direct_use_payload_flag = True
                         else:
@@ -172,11 +172,7 @@ class Probe:
                     flag = False
                     for kk, vv in v.items():
                         if vv == MARK_POINT:
-                            if k == 'data' and direct_use_payload:
-                                payload_request['data'] = payload
-                                Shared.direct_use_payload_flag = True
-                            else:
-                                payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
+                            payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
                             flag = True
                             break
                     if flag:
@@ -190,7 +186,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
 
-        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
+        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
             print("[*] XSS detection skipped")
             return 
         
@@ -246,7 +242,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
-        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
+        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
             print("[*] SQLI detection skipped")
             return 
 
@@ -291,7 +287,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
+        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
             print("[*] DT detection skipped")
             return 
 
@@ -332,7 +328,7 @@ class Probe:
         漏洞知识: https://xz.aliyun.com/t/8979
         """
 
-        if Shared.direct_use_payload_flag and MARK_POINT in str(self.base_request['data']):
+        if Shared.direct_use_payload_flag or self.base_request['content_type'] != 'json':
             print("[*] Fastjson RCE detection skipped")
             return 
         
@@ -370,7 +366,7 @@ class Probe:
         漏洞知识: https://www.anquanke.com/post/id/263325
         """
 
-        if type(self.base_request['data']) is str and MARK_POINT in self.base_request['data']:
+        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
             print("[*] Log4j RCE detection skipped")
             return 
         
@@ -408,7 +404,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
-        if type(self.base_request['data']) is not str:
+        if self.base_request['content_type'] != 'xml' \
+            or (self.base_request['content_type'] == 'xml' and MARK_POINT not in self.request['data']):
             print("[*] XXE detection skipped")
             return 
         
@@ -417,7 +414,12 @@ class Probe:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
             for payload in Shared.probes_payload['xxe']:
                 payload_request = self.gen_payload_request('&xxe;')
-                if 'dnslog' not in payload:
+                payload = payload.replace('dnslog', dnslog_domain)
+                if '?>' in payload_request['data']:
+                    payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
+                else:
+                    payload_request['data'] = payload + payload_request['data']
+                if 'http' not in payload:
                     # 有回显
                     if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows':
                         # Windows 平台
@@ -427,15 +429,12 @@ class Probe:
                         # Linux 平台
                         if 'passwd' not in payload:
                             continue
-                    payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
                     poc_rsp = send_request(payload_request)
 
                     if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                         vulnerable = True
                 else:
                     # 无回显
-                    payload = payload.replace('dnslog', dnslog_domain)
-                    payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
                     _ = send_request(payload_request)
                     time.sleep(1)
 

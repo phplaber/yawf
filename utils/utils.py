@@ -3,10 +3,12 @@
 import os
 import random
 import requests
+import json
 from configparser import ConfigParser
 from utils.constants import *
 from utils.shared import Shared
 from difflib import SequenceMatcher
+from xml.etree import ElementTree as ET
 
 # 忽略 SSL 告警信息
 try:
@@ -116,3 +118,22 @@ def get_random_str(length):
     """
 
     return ''.join(random.choice('0123456789abcdefghijklmnopqrstuvwxyz') for _ in range(length))
+
+def get_content_type(content):
+    """
+    获取字符串内容类型，支持 x-www-form-urlencoded、json 和 xml 三种类型
+    """
+
+    type = None
+        
+    try:
+        json.loads(content)
+        type = 'json'
+    except ValueError:
+        try:
+            ET.fromstring(content)
+            type = 'xml'
+        except ET.ParseError:
+            type = 'form'
+
+    return type
