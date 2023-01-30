@@ -339,7 +339,9 @@ class Probe:
         漏洞知识: https://xz.aliyun.com/t/8979
         """
 
-        if Shared.direct_use_payload_flag or self.base_request['content_type'] != 'json':
+        if Shared.direct_use_payload_flag \
+                or self.base_request['content_type'] != 'json' \
+                or (self.base_request['content_type'] == 'json' and MARK_POINT in str(self.request['cookies'])):
             print("[*] Fastjson RCE detection skipped")
             return 
         

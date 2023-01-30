@@ -94,11 +94,10 @@ if __name__ == '__main__':
         qs = parse_qsl(o.query)
         if qs:
             is_dynamic_url = True
-            for par, val in qs:
-                # /xxx.php?foo={"a":"b"}
-                if get_content_type(val) == 'json':
-                    request['content_type'] = 'json'
-                    break
+            # /xxx.php?foo={"a":"b"}&bar={"c":"d"}
+            # 只检查第一个键值对，如果值为 json，则为 json 类型
+            if get_content_type(qs[0][1]) == 'json':
+                request['content_type'] = 'json'
         if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
 
@@ -166,11 +165,10 @@ if __name__ == '__main__':
         qs = parse_qsl(o.query)
         if qs:
             is_dynamic_url = True
-            for par, val in qs:
-                # /xxx.php?foo={"a":"b"}
-                if get_content_type(val) == 'json':
-                    request['content_type'] = 'json'
-                    break
+            # /xxx.php?foo={"a":"b"}&bar={"c":"d"}
+            # 只检查第一个键值对，如果值为 json，则为 json 类型
+            if get_content_type(qs[0][1]) == 'json':
+                request['content_type'] = 'json'
         if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
         del headers['host']
