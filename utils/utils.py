@@ -27,7 +27,8 @@ def errmsg(token):
         'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
         'data_is_empty': '[*] HTTP post data is empty',
         'config_is_invalid': '[*] parse config file error: {}',
-        'base_request_failed': '[*] base request failed, status code is: {}'
+        'base_request_failed': '[*] base request failed, status code is: {}',
+        'data_is_invalid': '[*] post data is invalid, maybe need escaping'
     }
 
     return msg.get(token, '')
@@ -125,15 +126,18 @@ def get_content_type(content):
     """
 
     type = None
-        
-    try:
-        json.loads(content)
-        type = 'json'
-    except ValueError:
+    
+    if not content.replace('.','',1).isdigit():
         try:
-            ET.fromstring(content)
-            type = 'xml'
-        except ET.ParseError:
-            type = 'form'
+            json.loads(content)
+            type = 'json'
+        except ValueError:
+            try:
+                ET.fromstring(content)
+                type = 'xml'
+            except ET.ParseError:
+                type = 'form'
+    else:
+        type = 'form'
 
     return type
