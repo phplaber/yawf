@@ -111,7 +111,7 @@ def similar(str1, str2):
     比较字符串 str1 和 str2 的相似度
     """
 
-    return SequenceMatcher(None, str1, str2).ratio()
+    return SequenceMatcher(None, str1, str2).quick_ratio()
 
 def get_random_str(length):
     """
