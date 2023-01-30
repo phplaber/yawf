@@ -10,7 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from utils.shared import Shared
-from utils.constants import MARK_POINT, DBMS_ERRORS
+from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
 
 class DetectWaf:
@@ -244,8 +244,15 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
+        # 某些测试点不影响程序执行，无论怎么改变其值，页面内容都不会发生变化。需提前识别出这些测试点，减少误报。
+        test_rsp = send_request(self.gen_payload_request(get_random_str(10)))
+        invalid_mark_point = False
+        if similar(self.base_response, test_rsp.get('response')) > DIFF_THRESHOLD:
+            invalid_mark_point = True
+
         if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
-            or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']):
+                or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']) \
+                or invalid_mark_point:
             print("[*] SQLI detection skipped")
             return 
 
@@ -266,7 +273,7 @@ class Probe:
                             break
                 else:
                     # 基于内容相似度判断
-                    if similar(self.base_response, poc_rsp.get('response')) > 0.95:
+                    if similar(self.base_response, poc_rsp.get('response')) > DIFF_THRESHOLD:
                         vulnerable = True
 
                 if vulnerable:

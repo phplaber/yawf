@@ -22,6 +22,8 @@ DBMS_ERRORS = {
     "Sybase": (r"(?i)Warning.*sybase.*", r"Sybase message", r"Sybase.*Server message.*"),
 }
 
+DIFF_THRESHOLD = 0.95
+
 REQ_TIMEOUT = 30
 
 REQ_SCHEME = 'https'
