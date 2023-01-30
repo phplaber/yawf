@@ -186,7 +186,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
 
-        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
+        if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
+            or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']):
             print("[*] XSS detection skipped")
             return 
         
@@ -215,6 +216,7 @@ class Probe:
                         pass
                 else:
                     # 需要用户交互才能弹框
+                    time.sleep(1)
                     links = self.web_driver.find_elements(By.TAG_NAME, "a")
                     for link in links:
                         if link.get_attribute("href") == payload.replace('[UI]', ''):
@@ -242,7 +244,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
-        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
+        if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
+            or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']):
             print("[*] SQLI detection skipped")
             return 
 
@@ -287,7 +290,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
+        if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
+            or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']):
             print("[*] DT detection skipped")
             return 
 
@@ -365,10 +369,6 @@ class Probe:
         Log4j RCE 探针
         漏洞知识: https://www.anquanke.com/post/id/263325
         """
-
-        if self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']:
-            print("[*] Log4j RCE detection skipped")
-            return 
         
         vulnerable = False
         try:

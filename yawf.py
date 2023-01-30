@@ -10,7 +10,7 @@ import copy
 import optparse
 import email
 from io import StringIO
-from urllib.parse import urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
 from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type
@@ -89,8 +89,16 @@ if __name__ == '__main__':
     if options.url:
         # 动态 url query string、data 和 cookie 处支持手动标记和自动标记
         # url
-        request['url'] = options.url
-        is_dynamic_url = bool(re.search(r"\?[^#]*=[^#]*", request['url']))
+        request['url'] = unquote(options.url)
+        o = urlparse(request['url'])
+        qs = parse_qsl(o.query)
+        if qs:
+            is_dynamic_url = True
+            for par, val in qs:
+                # /xxx.php?foo={"a":"b"}
+                if get_content_type(val) == 'json':
+                    request['content_type'] = 'json'
+                    break
         if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
 
@@ -114,6 +122,9 @@ if __name__ == '__main__':
                 request['data'] = {}
                 for item in options.data.split('&'):
                     kv = item.split('=', 1)
+                    if len(kv) < 2:
+                        print(errmsg('data_is_invalid'))
+                        exit(1)
                     request['data'][kv[0]] = kv[1]
                     if MARK_POINT in kv[1]:
                         is_mark = True
@@ -150,8 +161,16 @@ if __name__ == '__main__':
         for k, v in dict(message.items()).items():
             headers[k.lower()] = v
         
-        request['url'] = scheme + '://' + headers['host'] + misc_list[1]
-        is_dynamic_url = bool(re.search(r"\?[^#]*=[^#]*", request['url']))
+        request['url'] = scheme + '://' + headers['host'] + unquote(misc_list[1])
+        o = urlparse(request['url'])
+        qs = parse_qsl(o.query)
+        if qs:
+            is_dynamic_url = True
+            for par, val in qs:
+                # /xxx.php?foo={"a":"b"}
+                if get_content_type(val) == 'json':
+                    request['content_type'] = 'json'
+                    break
         if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
         del headers['host']
@@ -192,7 +211,7 @@ if __name__ == '__main__':
     # 使用特定 ua
     request['headers']['user-agent'] = UA
     # 指定 Content-Type
-    if request['content_type'] is not None:
+    if request['content_type'] is not None and request['method'] == 'POST':
         if request['content_type'] == 'json':
             request['headers']['content-type'] = 'application/json; charset=utf-8'
         elif request['content_type'] == 'xml':
