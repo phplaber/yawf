@@ -369,6 +369,10 @@ if __name__ == '__main__':
     # request 对象列表
     Shared.requests = requests
 
+    if not requests:
+        print("[+] Not valid request object to fuzzing, Exit.")
+        exit(0)
+
     # 基准请求
     Shared.base_response = send_request(base_request)
     if Shared.base_response.get('status') != 200:
