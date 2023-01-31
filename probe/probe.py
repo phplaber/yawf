@@ -249,7 +249,9 @@ class Probe:
         # 某些测试点不影响程序执行，无论怎么改变其值，页面内容都不会发生变化。需提前识别出这些测试点，减少误报。
         test_rsp = send_request(self.gen_payload_request(get_random_str(10)))
         invalid_mark_point = False
-        if similar(self.base_response, test_rsp.get('response')) > DIFF_THRESHOLD:
+        if test_rsp.get('status') is not None and test_rsp.get('status') != Shared.base_response.get('status'):
+            invalid_mark_point = False
+        elif test_rsp.get('response') is not None and similar(self.base_response, test_rsp.get('response')) > DIFF_THRESHOLD:
             invalid_mark_point = True
 
         if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
@@ -276,7 +278,12 @@ class Probe:
                 else:
                     # 基于内容相似度判断
                     if similar(self.base_response, poc_rsp.get('response')) > DIFF_THRESHOLD:
-                        vulnerable = True
+                        # 参数可能被消杀（如整数化）处理，使用反向 payload 再确认一遍
+                        reverse_payload_request = self.gen_payload_request(payload.replace('1','0') if '=' not in payload else payload.replace('1','0',1), True)
+                        reverse_poc_rsp = send_request(reverse_payload_request)
+                        if reverse_poc_rsp.get('response'):
+                            if similar(self.base_response, reverse_poc_rsp.get('response')) < DIFF_THRESHOLD:
+                                vulnerable = True
 
                 if vulnerable:
                     print("[+] Found SQL Injection!")

@@ -4,5 +4,5 @@
 /**/and 1
 ' and 1--
 ' and 1#
-' and 'a'='a
+' and '1'='1
 
