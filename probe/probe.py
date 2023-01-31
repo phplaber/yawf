@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
@@ -216,12 +216,14 @@ class Probe:
                         pass
                 else:
                     # 需要用户交互才能弹框
-                    time.sleep(1)
-                    links = self.web_driver.find_elements(By.TAG_NAME, "a")
-                    for link in links:
-                        if link.get_attribute("href") == payload.replace('[UI]', ''):
-                            vulnerable = True
-                            break
+                    try:
+                        links = self.web_driver.find_elements(By.TAG_NAME, "a")
+                        for link in links:
+                            if link.get_attribute("href") == payload.replace('[UI]', ''):
+                                vulnerable = True
+                                break
+                    except StaleElementReferenceException:
+                        pass
 
                 if vulnerable:
                     print("[+] Found XSS!")
