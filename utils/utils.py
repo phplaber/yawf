@@ -4,6 +4,7 @@ import os
 import random
 import requests
 import json
+import base64
 from configparser import ConfigParser
 from utils.constants import *
 from utils.shared import Shared
@@ -141,3 +142,17 @@ def get_content_type(content):
         type = 'form'
 
     return type
+
+def is_base64(string):
+    """
+    校验字符串是否为 Base64 编码
+    """
+
+    is_b64 = False
+
+    try:
+        is_b64 = (base64.b64encode(base64.b64decode(string)) == string)
+    except Exception:
+        is_b64 = False
+
+    return is_b64
