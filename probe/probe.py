@@ -307,7 +307,8 @@ class Probe:
         """
 
         if self.request['url_json_flag'] \
-                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']):
+                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
+                or not self.request['dt_detect_flag']:
             print("[*] DT detection skipped")
             return 
 

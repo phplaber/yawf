@@ -62,6 +62,9 @@ if __name__ == '__main__':
 
     # 自动标记忽略的参数列表
     ignore_params = [ip.strip() for ip in Shared.conf['misc_ignore_params'].split(',')]
+
+    # dt 探针自动标记检测的参数列表（包含匹配）
+    dt_detect_params = [dp.strip() for dp in Shared.conf['probe_dt_detect_params'].split(',')]
     
     # 网络代理
     proxy_conf = Shared.conf['request_proxy']
@@ -140,6 +143,7 @@ if __name__ == '__main__':
                 kv = item.split(":", 1)
                 request['headers'][kv[0].strip().lower()] = kv[1].strip()
     else:
+        # HTTP 请求文件
         if not check_file(options.requestfile):
             print(errmsg('file_is_invalid'))
             exit(1)
@@ -236,6 +240,7 @@ if __name__ == '__main__':
         mark_request = copy.deepcopy(base_request)
         mark_request['content_type'] = content_type
         mark_request['url_json_flag'] = False
+        mark_request['dt_detect_flag'] = True
 
         if is_dynamic_url and MARK_POINT in request['url']:
             o = urlparse(request['url'])
@@ -301,6 +306,7 @@ if __name__ == '__main__':
         mark_request = copy.deepcopy(base_request)
         mark_request['content_type'] = content_type
         mark_request['url_json_flag'] = False
+        mark_request['dt_detect_flag'] = False
 
         # url query string
         if is_dynamic_url:
@@ -309,6 +315,10 @@ if __name__ == '__main__':
             for par, val in qs:
                 if par in ignore_params:
                     continue
+                for detect_param in dt_detect_params:
+                    if detect_param in par:
+                        mark_request['dt_detect_flag'] = True
+                        break
                 if get_content_type(val) == 'json':
                     # xxx.php?foo={"a":"b"} ---> xxx.php?foo={"a":"[fuzz]"}
                     # TODO 支持对 json 里的数据做标记
@@ -317,6 +327,7 @@ if __name__ == '__main__':
                 mark_request['url'] = base_request['url'].replace(par + '=' + val, par + '=' + MARK_POINT)
                 requests.append(copy.deepcopy(mark_request))
                 mark_request['url_json_flag'] = False
+                mark_request['dt_detect_flag'] = False
             mark_request['url'] = base_request['url']
 
         # data
@@ -328,10 +339,15 @@ if __name__ == '__main__':
                     # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
                     if k in ignore_params or type(v) is list or type(v) is dict:
                         continue
+                    for detect_param in dt_detect_params:
+                        if detect_param in k:
+                            mark_request['dt_detect_flag'] = True
+                            break
                     base_data[k] = MARK_POINT
                     mark_request['data'] = json.dumps(base_data)
                     requests.append(copy.deepcopy(mark_request))
                     base_data[k] = v
+                    mark_request['dt_detect_flag'] = False
                 mark_request['data'] = base_request['data']
             elif content_type == 'xml':
                 # xml data
@@ -361,18 +377,28 @@ if __name__ == '__main__':
                     # 1、忽略白名单参数；2、忽略非 form 数据（如：json 和 xml 等）
                     if k in ignore_params or get_content_type(v) != 'form':
                         continue
+                    for detect_param in dt_detect_params:
+                        if detect_param in k:
+                            mark_request['dt_detect_flag'] = True
+                            break
                     mark_request['data'][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
                     mark_request['data'][k] = v
+                    mark_request['dt_detect_flag'] = False
             
         # cookie
         if base_request['cookies']:
             for k, v in base_request['cookies'].items():
                 if k in ignore_params:
                     continue
+                for detect_param in dt_detect_params:
+                    if detect_param in k:
+                        mark_request['dt_detect_flag'] = True
+                        break
                 mark_request['cookies'][k] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
                 mark_request['cookies'][k] = v
+                mark_request['dt_detect_flag'] = False
     
     # request 对象列表
     Shared.requests = requests
