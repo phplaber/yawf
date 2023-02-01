@@ -258,7 +258,8 @@ if __name__ == '__main__':
                     temp_data = json.loads(request['data'])
                     base_data = json.loads(base_request['data'])
                     for k, v in temp_data.items():
-                        if MARK_POINT in v:
+                        # 忽略 list 和 dict 数据结构中的标记
+                        if type(v) is str and MARK_POINT in v:
                             base_data[k] = MARK_POINT
                             mark_request['data'] = json.dumps(base_data)
                             requests.append(copy.deepcopy(mark_request))
@@ -279,7 +280,8 @@ if __name__ == '__main__':
                     mark_request['data'] = base_request['data']
             elif content_type == 'form':
                 for k, v in request['data'].items():
-                    if MARK_POINT in v:
+                    # 只支持 form 数据（形如：parm1=va1&parm2=val2）的标记
+                    if MARK_POINT in v and get_content_type(v) == 'form':
                         mark_request['data'][k] = MARK_POINT
                         requests.append(copy.deepcopy(mark_request))
                         mark_request['data'][k] = base_request['data'][k]
@@ -323,7 +325,8 @@ if __name__ == '__main__':
                 temp_data = json.loads(base_request['data'])
                 base_data = copy.deepcopy(temp_data)
                 for k, v in temp_data.items():
-                    if k in ignore_params:
+                    # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
+                    if k in ignore_params or type(v) is list or type(v) is dict:
                         continue
                     base_data[k] = MARK_POINT
                     mark_request['data'] = json.dumps(base_data)
@@ -355,7 +358,8 @@ if __name__ == '__main__':
             elif content_type == 'form':
                 # form data
                 for k, v in base_request['data'].items():
-                    if k in ignore_params:
+                    # 1、忽略白名单参数；2、忽略非 form 数据（如：json 和 xml 等）
+                    if k in ignore_params or get_content_type(v) != 'form':
                         continue
                     mark_request['data'][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
