@@ -13,7 +13,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, is_base64
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type
 from utils.constants import *
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver, DetectWaf
@@ -307,7 +307,7 @@ if __name__ == '__main__':
             o = urlparse(base_request['url'])
             qs = parse_qsl(o.query)
             for par, val in qs:
-                if par in ignore_params or (type(val) is str and is_base64(val)):
+                if par in ignore_params:
                     continue
                 mark_request['url'] = base_request['url'].replace(par + '=' + val, par + '=' + MARK_POINT)
                 requests.append(copy.deepcopy(mark_request))
@@ -319,7 +319,7 @@ if __name__ == '__main__':
                 temp_data = json.loads(base_request['data'])
                 base_data = copy.deepcopy(temp_data)
                 for k, v in temp_data.items():
-                    if k in ignore_params or (type(v) is str and is_base64(v)):
+                    if k in ignore_params:
                         continue
                     base_data[k] = MARK_POINT
                     mark_request['data'] = json.dumps(base_data)
@@ -351,7 +351,7 @@ if __name__ == '__main__':
             elif base_request['content_type'] == 'form':
                 # form data
                 for k, v in base_request['data'].items():
-                    if k in ignore_params or (type(v) is str and is_base64(v)):
+                    if k in ignore_params:
                         continue
                     mark_request['data'][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
@@ -360,7 +360,7 @@ if __name__ == '__main__':
         # cookie
         if base_request['cookies']:
             for k, v in base_request['cookies'].items():
-                if k in ignore_params or (type(v) is str and is_base64(v)):
+                if k in ignore_params:
                     continue
                 mark_request['cookies'][k] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))

@@ -4,7 +4,7 @@ import os
 import random
 import requests
 import json
-import base64
+import re
 from configparser import ConfigParser
 from utils.constants import *
 from utils.shared import Shared
@@ -145,14 +145,13 @@ def get_content_type(content):
 
 def is_base64(string):
     """
-    校验字符串是否为 Base64 编码
+    【废弃】校验字符串是否为 Base64 编码
+    不可能真正校验字符串是否为 Base64 编码，只能判断字符串是否符合 Base64 数据格式
     """
 
     is_b64 = False
 
-    try:
-        is_b64 = (base64.b64encode(base64.b64decode(string)) == string)
-    except Exception:
-        is_b64 = False
+    if re.search("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$", string):
+        is_b64 = True
 
     return is_b64
