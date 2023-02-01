@@ -32,7 +32,8 @@
 4.  一次测试活动只获取一次 dnslog domain，通过随机字符串子域名加以区分每个探针使用的 payload，网络请求从 **10** 次减少到 **1** 次；
 5.  针对直接使用 payload 替换 post body 的场景（如：检测 fastjson rce等）只测试一次，避免不必要的重复测试，减少网络请求；
 6.  根据测试目标运行平台操作系统，选择性的使用特定该操作系统的 payload，减少无效网络请求；
-7.  根据内容类型，有选择的执行或跳过某个探针。如：当内容类型为 xml 且测试点在 post body 中时，只执行 xxe 探针，跳过其它探针；只有当内容类型为 json 且测试点不在 cookie 中时，才执行 rce_fastjson 探针等。
+7.  根据内容类型，有选择的执行或跳过某个探针。如：当内容类型为 xml 且测试点在 post body 中时，只执行 xxe 探针，跳过其它探针；只有当查询字符串中包含 json 或 post body 为 json 类型且测试点在 post body 中时，才执行 rce_fastjson 探针等；
+8.  通过配置检测和忽略的 HTTP 参数名称，跳过某些参数检测和只针对特定参数执行某类探针，减少大量网络请求（其中大多数为无效请求），最大程度的加快测试进程。
 
 ### 安装
 
@@ -43,8 +44,8 @@
 ```console
 $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
-$ pip install -r requirements.txt
-$ python yawf.py -h
+$ pip3 install -r requirements.txt
+$ python3 yawf.py -h
 
 _____.___.  _____  __      _____________
 \__  |   | /  _  \/  \    /  \_   _____/
@@ -83,6 +84,8 @@ Options:
 
 - 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
+- 在 **dt_detect_params** 项中配置名称包含这些关键词的参数，在自动标记模式下，才会去执行 dt 探针；
+
 - 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除；
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
@@ -112,6 +115,21 @@ Connection: keep-alive
 Upgrade-Insecure-Requests: 1
 ```
 如果想要尽可能全面的检测输入点，则不要手动标记，Yawf 会智能的在所有满足条件的地方自动标记。
+
+支持标记的位置如下：
+
+1.  **查询字符串**
+    -  `?par1=val1&par2=val2[fuzz]`，常规的查询字符串形式
+    -  `?par1={"foo":"bar[fuzz]"}`，值为 json 字符串，多个键值对任意选择一个值标记即可，在执行探针阶段 payload 会替代整个 json 字符串，这类目前只支持 rce_fastjson 和 rce_log4j 探针
+    -  `?par1={"foo":"bar[fuzz]"}&par2=val2[fuzz]`，组合形式
+2.  **Cookie**
+    -  `k1=v1[fuzz]; k2=v2[fuzz]`，不支持 rce_fastjson 和 xxe 探针
+3.  **POST Body**
+    -  `par1=val1&par2=val2[fuzz]`，常规的 form 编码数据格式
+    -  `{"par1":"val1","par2":"val2[fuzz]"}`，json 编码数据格式，支持对 json 中的各个键值对标记（不包含值为列表和嵌套 json 的情形）
+    -  `<par1>val1[fuzz]</par1>`，xml 编码数据格式，只支持 xxe 探针
+
+同时需注意，在自动标记模式下，参数是否被标记还受配置项 **ignore_params** 和 **dt_detect_params** 影响。
 
 #### 运行脚本
 
