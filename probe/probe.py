@@ -186,8 +186,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
 
-        if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
-            or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']):
+        if self.request['url_json_flag'] \
+                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']):
             print("[*] XSS detection skipped")
             return 
         
@@ -254,9 +254,9 @@ class Probe:
         elif test_rsp.get('response') is not None and similar(self.base_response, test_rsp.get('response')) > DIFF_THRESHOLD:
             invalid_mark_point = True
 
-        if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
-                or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']) \
-                or invalid_mark_point:
+        if invalid_mark_point \
+                or self.request['url_json_flag'] \
+                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']):
             print("[*] SQLI detection skipped")
             return 
 
@@ -306,8 +306,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if (self.base_request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
-            or (self.base_request['content_type'] == 'json' and MARK_POINT in self.request['url']):
+        if self.request['url_json_flag'] \
+                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']):
             print("[*] DT detection skipped")
             return 
 
@@ -348,9 +348,10 @@ class Probe:
         漏洞知识: https://xz.aliyun.com/t/8979
         """
 
-        if Shared.direct_use_payload_flag \
-                or self.base_request['content_type'] != 'json' \
-                or (self.base_request['content_type'] == 'json' and MARK_POINT in str(self.request['cookies'])):
+        if (self.request['url_json_flag'] \
+                or (self.request['content_type'] == 'json' \
+                    and MARK_POINT in self.request['data'] \
+                    and not Shared.direct_use_payload_flag)) is False:
             print("[*] Fastjson RCE detection skipped")
             return 
         
@@ -422,8 +423,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
-        if self.base_request['content_type'] != 'xml' \
-            or (self.base_request['content_type'] == 'xml' and MARK_POINT not in self.request['data']):
+        if self.request['content_type'] != 'xml' \
+                or (self.request['content_type'] == 'xml' and MARK_POINT not in self.request['data']):
             print("[*] XXE detection skipped")
             return 
         

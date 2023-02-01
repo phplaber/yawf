@@ -72,6 +72,7 @@ if __name__ == '__main__':
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
     requests = []
+    # 基础请求对象
     request = {
         'url': None,
         'method': None,
@@ -79,25 +80,21 @@ if __name__ == '__main__':
         'cookies': {},
         'headers': {},
         'data': {},
-        'timeout': timeout,
-        'content_type': None
+        'timeout': timeout
     }
     # 手动标记状态位
     is_mark = False
     # 动态 url 状态位
     is_dynamic_url = False
+    # POST Body 内容类型
+    content_type = None
     if options.url:
         # 动态 url query string、data 和 cookie 处支持手动标记和自动标记
         # url
         request['url'] = unquote(options.url)
         o = urlparse(request['url'])
-        qs = parse_qsl(o.query)
-        if qs:
+        if parse_qsl(o.query):
             is_dynamic_url = True
-            # /xxx.php?foo={"a":"b"}&bar={"c":"d"}
-            # 只检查第一个键值对，如果值为 json，则为 json 类型
-            if get_content_type(qs[0][1]) == 'json':
-                request['content_type'] = 'json'
         if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
 
@@ -108,15 +105,14 @@ if __name__ == '__main__':
                 exit(1)
             
             request['method'] = 'POST'
-            request['content_type'] = get_content_type(options.data)
+            content_type = get_content_type(options.data)
 
-            if request['content_type'] in ['json', 'xml']:
+            if content_type in ['json', 'xml']:
                 # json or xml data
                 request['data'] = options.data
                 if MARK_POINT in options.data:
                     is_mark = True
-            
-            if request['content_type'] == 'form':
+            elif content_type == 'form':
                 # form data
                 request['data'] = {}
                 for item in options.data.split('&'):
@@ -162,13 +158,8 @@ if __name__ == '__main__':
         
         request['url'] = scheme + '://' + headers['host'] + unquote(misc_list[1])
         o = urlparse(request['url'])
-        qs = parse_qsl(o.query)
-        if qs:
+        if parse_qsl(o.query):
             is_dynamic_url = True
-            # /xxx.php?foo={"a":"b"}&bar={"c":"d"}
-            # 只检查第一个键值对，如果值为 json，则为 json 类型
-            if get_content_type(qs[0][1]) == 'json':
-                request['content_type'] = 'json'
         if is_dynamic_url and MARK_POINT in request['url']:
             is_mark = True
         del headers['host']
@@ -177,14 +168,13 @@ if __name__ == '__main__':
         # data
         if request['method'] == 'POST':
             data_raw = contents.split('\n\n')[1]
-            request['content_type'] = get_content_type(data_raw)
-            if request['content_type'] in ['json', 'xml']:
+            content_type = get_content_type(data_raw)
+            if content_type in ['json', 'xml']:
                 # json or xml data
                 request['data'] = data_raw
                 if MARK_POINT in data_raw:
                     is_mark = True
-            
-            if request['content_type'] == 'form':
+            elif content_type == 'form':
                 # form data
                 request['data'] = {}
                 for item in data_raw.split('&'):
@@ -209,13 +199,12 @@ if __name__ == '__main__':
     # 使用特定 ua
     request['headers']['user-agent'] = UA
     # 指定 Content-Type
-    if request['content_type'] is not None and request['method'] == 'POST':
-        if request['content_type'] == 'json':
-            request['headers']['content-type'] = 'application/json; charset=utf-8'
-        elif request['content_type'] == 'xml':
-            request['headers']['content-type'] = 'application/xml; charset=utf-8'
-        elif request['content_type'] == 'form':
-            request['headers']['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8'
+    if content_type == 'json':
+        request['headers']['content-type'] = 'application/json; charset=utf-8'
+    elif content_type == 'xml':
+        request['headers']['content-type'] = 'application/xml; charset=utf-8'
+    elif content_type == 'form':
+        request['headers']['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8'
 
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
@@ -238,7 +227,6 @@ if __name__ == '__main__':
             else:
                 for k, v in request['data'].items():
                     base_request['data'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
-        base_request['content_type'] = request['content_type']
         base_request['cookies'] = {}
         if request['cookies']:
             for k, v in request['cookies'].items():
@@ -246,18 +234,26 @@ if __name__ == '__main__':
 
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
+        mark_request['content_type'] = content_type
+        mark_request['url_json_flag'] = False
+
         if is_dynamic_url and MARK_POINT in request['url']:
             o = urlparse(request['url'])
             qs = parse_qsl(o.query)
             for par, val in qs:
                 if MARK_POINT in val:
-                    # xxx.php?foo=bar[fuzz] ---> xxx.php?foo=[fuzz]
+                    if get_content_type(val) == 'json':
+                        # xxx.php?foo={"a":"b[fuzz]"} ---> xxx.php?foo={"a":"[fuzz]"}
+                        # TODO 支持对 json 里的数据做标记
+                        # 目前只支持 rce_fastjson 和 rce_log4j 探针
+                        mark_request['url_json_flag'] = True
                     mark_request['url'] = base_request['url'].replace(par + '=' + val.replace(MARK_POINT, ''), par + '=' + MARK_POINT)
                     requests.append(copy.deepcopy(mark_request))
+                    mark_request['url_json_flag'] = False
             mark_request['url'] = base_request['url']
             
         if request['data']:
-            if request['content_type'] == 'json':
+            if content_type == 'json':
                 if MARK_POINT in request['data']:
                     temp_data = json.loads(request['data'])
                     base_data = json.loads(base_request['data'])
@@ -268,7 +264,7 @@ if __name__ == '__main__':
                             requests.append(copy.deepcopy(mark_request))
                             base_data[k] = v.replace(MARK_POINT, '')
                     mark_request['data'] = base_request['data']
-            elif request['content_type'] == 'xml':
+            elif content_type == 'xml':
                 if MARK_POINT in request['data']:
                     temp_data = request['data']
                     while True:
@@ -281,7 +277,7 @@ if __name__ == '__main__':
                         requests.append(copy.deepcopy(mark_request))
                         temp_data = temp_data[:first_index+len(first_match)-len(MARK_POINT)-1] + temp_data[first_index+len(first_match)-1:]
                     mark_request['data'] = base_request['data']
-            elif request['content_type'] == 'form':
+            elif content_type == 'form':
                 for k, v in request['data'].items():
                     if MARK_POINT in v:
                         mark_request['data'][k] = MARK_POINT
@@ -301,6 +297,8 @@ if __name__ == '__main__':
         # 在 url query string、data 和 cookie 处自动标记
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
+        mark_request['content_type'] = content_type
+        mark_request['url_json_flag'] = False
 
         # url query string
         if is_dynamic_url:
@@ -309,13 +307,19 @@ if __name__ == '__main__':
             for par, val in qs:
                 if par in ignore_params:
                     continue
+                if get_content_type(val) == 'json':
+                    # xxx.php?foo={"a":"b"} ---> xxx.php?foo={"a":"[fuzz]"}
+                    # TODO 支持对 json 里的数据做标记
+                    # 目前只执行 rce_fastjson 和 rce_log4j 探针
+                    mark_request['url_json_flag'] = True
                 mark_request['url'] = base_request['url'].replace(par + '=' + val, par + '=' + MARK_POINT)
                 requests.append(copy.deepcopy(mark_request))
+                mark_request['url_json_flag'] = False
             mark_request['url'] = base_request['url']
 
         # data
         if base_request['data']:
-            if base_request['content_type'] == 'json':
+            if content_type == 'json':
                 temp_data = json.loads(base_request['data'])
                 base_data = copy.deepcopy(temp_data)
                 for k, v in temp_data.items():
@@ -326,7 +330,7 @@ if __name__ == '__main__':
                     requests.append(copy.deepcopy(mark_request))
                     base_data[k] = v
                 mark_request['data'] = base_request['data']
-            elif base_request['content_type'] == 'xml':
+            elif content_type == 'xml':
                 # xml data
                 tagList = []
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
@@ -348,7 +352,7 @@ if __name__ == '__main__':
                     requests.append(copy.deepcopy(mark_request))
 
                 mark_request['data'] = base_request['data']
-            elif base_request['content_type'] == 'form':
+            elif content_type == 'form':
                 # form data
                 for k, v in base_request['data'].items():
                     if k in ignore_params:
