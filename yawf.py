@@ -429,7 +429,7 @@ if __name__ == '__main__':
         for payload in detect_payloads:
             detect_request['url'] += '&ispayload={}'.format(payload) if is_dynamic_url else '?ispayload={}'.format(payload)
                 
-            what_waf = dw.detect(send_request(detect_request))
+            what_waf = dw.detect(send_request(detect_request, True))
             if what_waf:
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)

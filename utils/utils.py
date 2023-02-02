@@ -46,7 +46,7 @@ def check_file(filename):
 
     return valid
 
-def send_request(request):
+def send_request(request, require_response_header=False):
     """
     发送 HTTP 请求
     """
@@ -68,7 +68,7 @@ def send_request(request):
     return {
         'request': request,
         'response': response,
-        'headers': headers,
+        'headers': headers if require_response_header else None,
         'status': status
     }
 
