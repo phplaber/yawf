@@ -78,7 +78,8 @@ if __name__ == '__main__':
     # 基础请求对象
     request = {
         'url': None,
-        'method': None,
+        'method': 'GET',
+        'params': {},
         'proxies': proxies,
         'cookies': {},
         'headers': {},
@@ -91,56 +92,30 @@ if __name__ == '__main__':
     is_dynamic_url = False
     # POST Body 内容类型
     content_type = None
+    
+    o = None
+    data = None
+    cookies = None
     if options.url:
-        # 动态 url query string、data 和 cookie 处支持手动标记和自动标记
-        # url
-        request['url'] = unquote(options.url)
-        o = urlparse(request['url'])
-        if parse_qsl(o.query):
-            is_dynamic_url = True
-        if is_dynamic_url and MARK_POINT in request['url']:
-            is_mark = True
+        # URL
+        o = urlparse(unquote(options.url))
+        request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
-        # data, method
-        if (options.method and options.method.upper() == 'POST') or options.data:
-            if not options.data:
-                print(errmsg('data_is_empty'))
-                exit(1)
-            
+        if options.method:
+            request['method'] = options.method.upper()
+
+        if options.data:
             request['method'] = 'POST'
-            content_type = get_content_type(options.data)
+            data = options.data
 
-            if content_type in ['json', 'xml']:
-                # json or xml data
-                request['data'] = options.data
-                if MARK_POINT in options.data:
-                    is_mark = True
-            elif content_type == 'form':
-                # form data
-                request['data'] = {}
-                for item in options.data.split('&'):
-                    kv = item.split('=', 1)
-                    if len(kv) < 2:
-                        print(errmsg('data_is_invalid'))
-                        exit(1)
-                    request['data'][kv[0]] = kv[1]
-                    if MARK_POINT in kv[1]:
-                        is_mark = True
-        else:
-            request['method'] = 'GET'
-        
-        # cookie
         if options.cookies:
-            for item in options.cookies.split(";"):
-                kv = item.split("=", 1)
-                request['cookies'][kv[0].strip()] = kv[1]
-                if MARK_POINT in kv[1]:
-                    is_mark = True
+            cookies = options.cookies
 
-        # header
         if options.headers:
             for item in options.headers.split("\\n"):
                 kv = item.split(":", 1)
+                if len(kv) < 2:
+                    continue
                 request['headers'][kv[0].strip().lower()] = kv[1].strip()
     else:
         # HTTP 请求文件
@@ -153,63 +128,96 @@ if __name__ == '__main__':
         
         with open(options.requestfile, "r") as f:
             contents = f.read()
-        misc, headers = contents.split('\n', 1)
+        misc, str_headers = contents.split('\n', 1)
         misc_list = misc.split(' ')
-        message = email.message_from_file(StringIO(headers))
+        message = email.message_from_file(StringIO(str_headers))
         headers = {}
         for k, v in dict(message.items()).items():
             headers[k.lower()] = v
-        
-        request['url'] = scheme + '://' + headers['host'] + unquote(misc_list[1])
-        o = urlparse(request['url'])
-        if parse_qsl(o.query):
-            is_dynamic_url = True
-        if is_dynamic_url and MARK_POINT in request['url']:
-            is_mark = True
+
+        o = urlparse(unquote(misc_list[1]))
+        request['url'] = scheme + '://' + headers['host'] + o._replace(fragment="")._replace(query="").geturl()
         del headers['host']
+
         request['method'] = misc_list[0].upper()
-
-        # data
-        if request['method'] == 'POST':
-            data_raw = contents.split('\n\n')[1]
-            content_type = get_content_type(data_raw)
-            if content_type in ['json', 'xml']:
-                # json or xml data
-                request['data'] = data_raw
-                if MARK_POINT in data_raw:
-                    is_mark = True
-            elif content_type == 'form':
-                # form data
-                request['data'] = {}
-                for item in data_raw.split('&'):
-                    kv = item.split('=', 1)
-                    request['data'][kv[0]] = kv[1]
-                    if MARK_POINT in kv[1]:
-                        is_mark = True
-
-        # cookie
-        if headers.get('cookie', False):
-            for item in headers['cookie'].split(";"):
-                kv = item.split("=", 1)
-                request['cookies'][kv[0].strip()] = kv[1]
-                if MARK_POINT in kv[1]:
-                    is_mark = True
-            
+        data = contents.split('\n\n')[1]
+        cookies = headers.get('cookie')
+        if cookies is not None:
             del headers['cookie']
-        
-        # header
+
         request['headers'] = headers
+
+    # 查询字符串
+    qs = parse_qsl(o.query)
+    if qs:
+        is_dynamic_url = True
+        for par, val in qs:
+            request['params'][par]=val
+            if not is_mark and MARK_POINT in val:
+                is_mark = True
+
+    if request['method'] not in ['GET', 'POST']:
+        print(errmsg('method_is_invalid'))
+        exit(1)
+
+    if request['method'] == 'POST' and data is None:
+        print(errmsg('data_is_empty'))
+        exit(1)
+
+    # post data
+    if data is not None:
+        content_type = get_content_type(data)
+
+        if content_type == 'json':
+            # json data
+            request['data'] = json.loads(data)
+            for k, v in request['data'].items():
+                if not is_mark and type(v) is str and MARK_POINT in v:
+                    is_mark = True
+        elif content_type == 'xml':
+            # xml data
+            request['data'] = data
+            if not is_mark and MARK_POINT in data:
+                is_mark = True
+        elif content_type == 'form':
+            # form data
+            for item in data.split('&'):
+                kv = item.split('=', 1)
+                if len(kv) < 2:
+                    continue
+                request['data'][kv[0].strip()] = kv[1]
+                if not is_mark and MARK_POINT in kv[1]:
+                    is_mark = True
+        else:
+            print(errmsg('data_is_invalid'))
+            exit(1)
+
+    # cookies
+    if cookies is not None:
+        for item in cookies.split(";"):
+            kv = item.split("=", 1)
+            if len(kv) < 2:
+                continue
+            request['cookies'][kv[0].strip()] = kv[1]
+            if not is_mark and MARK_POINT in kv[1]:
+                is_mark = True
 
     # 使用特定 ua
     request['headers']['user-agent'] = UA
     # 指定 Content-Type
-    if content_type == 'json':
-        request['headers']['content-type'] = 'application/json; charset=utf-8'
-    elif content_type == 'xml':
-        request['headers']['content-type'] = 'application/xml; charset=utf-8'
-    elif content_type == 'form':
-        request['headers']['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8'
+    if request['method'] == 'POST':
+        if content_type == 'json':
+            request['headers']['content-type'] = 'application/json; charset=utf-8'
+        elif content_type == 'xml':
+            request['headers']['content-type'] = 'application/xml; charset=utf-8'
+        elif content_type == 'form':
+            request['headers']['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8'
+        else:
+            request['headers']['content-type'] = 'text/plain; charset=utf-8'
 
+    # 共享 content_type 变量
+    Shared.content_type = content_type
+    
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
         print(errmsg('url_is_invalid'))
@@ -219,58 +227,55 @@ if __name__ == '__main__':
     if is_mark:
         # 手动标记
         # 获取原始请求对象（不包含标记点）
-        base_request['url'] = request['url'] if MARK_POINT not in request['url'] else request['url'].replace(MARK_POINT, '')
+        base_request['url'] = request['url']
         base_request['method'] = request['method']
         base_request['proxies'] = request['proxies']
         base_request['headers'] = request['headers']
         base_request['timeout'] = request['timeout']
-        base_request['data'] = {}
-        if request['data']:
-            if type(request['data']) is str:
-                base_request['data'] = request['data'] if MARK_POINT not in request['data'] else request['data'].replace(MARK_POINT, '')
+        for item in ['params', 'data', 'cookies']:
+            base_request[item] = {}
+            if not request[item]:
+                continue
+            if type(request[item]) is not str:
+                for k, v in request[item].items():
+                    if type(v) is str and MARK_POINT in v:
+                        base_request[item][k] = v.replace(MARK_POINT, '')
+                    else:
+                        base_request[item][k] = v
             else:
-                for k, v in request['data'].items():
-                    base_request['data'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
-        base_request['cookies'] = {}
-        if request['cookies']:
-            for k, v in request['cookies'].items():
-                base_request['cookies'][k] = v if MARK_POINT not in v else v.replace(MARK_POINT, '')
+                base_request[item] = request[item] if MARK_POINT not in request[item] else request[item].replace(MARK_POINT, '')
 
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
-        mark_request['content_type'] = content_type
         mark_request['url_json_flag'] = False
         mark_request['dt_detect_flag'] = True
 
-        if is_dynamic_url and MARK_POINT in request['url']:
-            o = urlparse(request['url'])
-            qs = parse_qsl(o.query)
-            for par, val in qs:
-                if MARK_POINT in val:
-                    if get_content_type(val) == 'json':
-                        # xxx.php?foo={"a":"b[fuzz]"} ---> xxx.php?foo={"a":"[fuzz]"}
-                        # TODO 支持对 json 里的数据做标记
-                        # 目前只支持 rce_fastjson 和 rce_log4j 探针
-                        mark_request['url_json_flag'] = True
-                    mark_request['url'] = base_request['url'].replace(par + '=' + val.replace(MARK_POINT, ''), par + '=' + MARK_POINT)
-                    requests.append(copy.deepcopy(mark_request))
-                    mark_request['url_json_flag'] = False
-            mark_request['url'] = base_request['url']
-            
-        if request['data']:
-            if content_type == 'json':
-                if MARK_POINT in request['data']:
-                    temp_data = json.loads(request['data'])
-                    base_data = json.loads(base_request['data'])
-                    for k, v in temp_data.items():
-                        # 忽略 list 和 dict 数据结构中的标记
+        if is_dynamic_url:
+            for par, val in request['params'].items():
+                if MARK_POINT not in val:
+                    continue
+                if get_content_type(val) == 'json':
+                    # xxx.php?foo={"a":"b[fuzz]","c":"d[fuzz]"}&bar={"aa":"bb"}
+                    mark_request['url_json_flag'] = True
+                    val_dict = json.loads(val)
+                    base_val_dict = json.loads(val.replace(MARK_POINT, ''))
+                    for k, v in val_dict.items():
+                        # 忽略 json 里的 list 和 dict 等数据结构
                         if type(v) is str and MARK_POINT in v:
-                            base_data[k] = MARK_POINT
-                            mark_request['data'] = json.dumps(base_data)
+                            base_val_dict[k] = MARK_POINT
+                            mark_request['params'][par] = json.dumps(base_val_dict)
                             requests.append(copy.deepcopy(mark_request))
-                            base_data[k] = v.replace(MARK_POINT, '')
-                    mark_request['data'] = base_request['data']
-            elif content_type == 'xml':
+                            base_val_dict[k] = v.replace(MARK_POINT, '')
+                    mark_request['url_json_flag'] = False
+                else:
+                    mark_request['params'][par] = MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                mark_request['params'][par] = base_request['params'][par]
+            
+        for item in ['data', 'cookies']:
+            if not request[item]:
+                continue
+            if item == 'data' and content_type == 'xml':
                 if MARK_POINT in request['data']:
                     temp_data = request['data']
                     while True:
@@ -283,73 +288,64 @@ if __name__ == '__main__':
                         requests.append(copy.deepcopy(mark_request))
                         temp_data = temp_data[:first_index+len(first_match)-len(MARK_POINT)-1] + temp_data[first_index+len(first_match)-1:]
                     mark_request['data'] = base_request['data']
-            elif content_type == 'form':
-                for k, v in request['data'].items():
-                    # 只支持 form 数据（形如：parm1=va1&parm2=val2）的标记
-                    if MARK_POINT in v and get_content_type(v) == 'form':
-                        mark_request['data'][k] = MARK_POINT
+            else:
+                for k, v in request[item].items():
+                    condition = type(v) is str and MARK_POINT in v
+                    if item == 'data' and content_type == 'form':
+                        # form 数据类型只支持常规形式标记
+                        # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
+                        condition = condition and get_content_type(v) is None
+                    if condition:
+                        mark_request[item][k] = MARK_POINT
                         requests.append(copy.deepcopy(mark_request))
-                        mark_request['data'][k] = base_request['data'][k]
-            
-        if request['cookies']:
-            for k, v in request['cookies'].items():
-                if MARK_POINT in v:
-                    mark_request['cookies'][k] = MARK_POINT
-                    requests.append(copy.deepcopy(mark_request))
-                    mark_request['cookies'][k] = base_request['cookies'][k]
+                        mark_request[item][k] = v.replace(MARK_POINT, '')
     else:
         # 自动标记
         base_request = request
 
-        # 在 url query string、data 和 cookie 处自动标记
+        # 在查询字符串、data 和 cookie 处自动标记
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
-        mark_request['content_type'] = content_type
         mark_request['url_json_flag'] = False
         mark_request['dt_detect_flag'] = False
 
-        # url query string
         if is_dynamic_url:
-            o = urlparse(base_request['url'])
-            qs = parse_qsl(o.query)
-            for par, val in qs:
+            for par, val in base_request['params'].items():
                 if par in ignore_params:
                     continue
-                for detect_param in dt_detect_params:
-                    if detect_param in par:
-                        mark_request['dt_detect_flag'] = True
-                        break
                 if get_content_type(val) == 'json':
-                    # xxx.php?foo={"a":"b"} ---> xxx.php?foo={"a":"[fuzz]"}
-                    # TODO 支持对 json 里的数据做标记
-                    # 目前只执行 rce_fastjson 和 rce_log4j 探针
+                    # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
                     mark_request['url_json_flag'] = True
-                mark_request['url'] = base_request['url'].replace(par + '=' + val, par + '=' + MARK_POINT)
-                requests.append(copy.deepcopy(mark_request))
-                mark_request['url_json_flag'] = False
-                mark_request['dt_detect_flag'] = False
-            mark_request['url'] = base_request['url']
-
-        # data
-        if base_request['data']:
-            if content_type == 'json':
-                temp_data = json.loads(base_request['data'])
-                base_data = copy.deepcopy(temp_data)
-                for k, v in temp_data.items():
-                    # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
-                    if k in ignore_params or type(v) is list or type(v) is dict:
-                        continue
+                    val_dict = json.loads(val)
+                    base_val_dict = copy.deepcopy(val_dict)
+                    for k, v in val_dict.items():
+                        # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
+                        if k in ignore_params or (type(v) is list or type(v) is dict):
+                            continue
+                        for detect_param in dt_detect_params:
+                            if detect_param in k:
+                                mark_request['dt_detect_flag'] = True
+                                break
+                        base_val_dict[k] = MARK_POINT
+                        mark_request['params'][par] = json.dumps(base_val_dict)
+                        requests.append(copy.deepcopy(mark_request))
+                        base_val_dict[k] = v
+                        mark_request['dt_detect_flag'] = False
+                    mark_request['url_json_flag'] = False
+                else:
                     for detect_param in dt_detect_params:
-                        if detect_param in k:
+                        if detect_param in par:
                             mark_request['dt_detect_flag'] = True
                             break
-                    base_data[k] = MARK_POINT
-                    mark_request['data'] = json.dumps(base_data)
+                    mark_request['params'][par] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    base_data[k] = v
                     mark_request['dt_detect_flag'] = False
-                mark_request['data'] = base_request['data']
-            elif content_type == 'xml':
+                mark_request['params'][par] = base_request['params'][par]
+
+        for item in ['data', 'cookies']:
+            if not base_request[item]:
+                continue
+            if item == 'data' and content_type == 'xml':
                 # xml data
                 tagList = []
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
@@ -371,34 +367,26 @@ if __name__ == '__main__':
                     requests.append(copy.deepcopy(mark_request))
 
                 mark_request['data'] = base_request['data']
-            elif content_type == 'form':
-                # form data
-                for k, v in base_request['data'].items():
-                    # 1、忽略白名单参数；2、忽略非 form 数据（如：json 和 xml 等）
-                    if k in ignore_params or get_content_type(v) != 'form':
+            else:
+                for k, v in base_request[item].items():
+                    skip_condition = k in ignore_params
+                    if item == 'data':
+                        if content_type == 'json':
+                            skip_condition = skip_condition or (type(v) is list or type(v) is dict)
+                        elif content_type == 'form':
+                            # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
+                            skip_condition = skip_condition or get_content_type(v) is not None
+                
+                    if skip_condition:
                         continue
                     for detect_param in dt_detect_params:
                         if detect_param in k:
                             mark_request['dt_detect_flag'] = True
                             break
-                    mark_request['data'][k] = MARK_POINT
+                    mark_request[item][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request['data'][k] = v
+                    mark_request[item][k] = v
                     mark_request['dt_detect_flag'] = False
-            
-        # cookie
-        if base_request['cookies']:
-            for k, v in base_request['cookies'].items():
-                if k in ignore_params:
-                    continue
-                for detect_param in dt_detect_params:
-                    if detect_param in k:
-                        mark_request['dt_detect_flag'] = True
-                        break
-                mark_request['cookies'][k] = MARK_POINT
-                requests.append(copy.deepcopy(mark_request))
-                mark_request['cookies'][k] = v
-                mark_request['dt_detect_flag'] = False
     
     # request 对象列表
     Shared.requests = requests
@@ -420,22 +408,18 @@ if __name__ == '__main__':
     """
     if Shared.conf['misc_enable_waf_detecter'].strip() == 'on':
         dw = DetectWaf()
-        detect_request = base_request.copy()
+        detect_request = copy.deepcopy(base_request)
         detect_payloads = [
             '<img/src=1 onerror=alert(1)>',
             '\' and \'a\'=\'a'
         ]
 
         for payload in detect_payloads:
-            detect_request['url'] += '&ispayload={}'.format(payload) if is_dynamic_url else '?ispayload={}'.format(payload)
-                
+            detect_request['params']['ispayload'] = payload
             what_waf = dw.detect(send_request(detect_request, True))
             if what_waf:
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)
-            
-            # 重置 detect_request['url']，避免不断追加 ispayload 参数
-            detect_request['url'] = base_request['url']
 
     # 获取探针配置
     if Shared.conf['probe_customize']:

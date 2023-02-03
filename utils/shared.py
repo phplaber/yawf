@@ -25,3 +25,5 @@ class Shared:
     web_driver = None
 
     direct_use_payload_flag = False
+
+    content_type = None

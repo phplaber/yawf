@@ -29,7 +29,8 @@ def errmsg(token):
         'data_is_empty': '[*] HTTP post data is empty',
         'config_is_invalid': '[*] parse config file error: {}',
         'base_request_failed': '[*] base request failed, status code is: {}',
-        'data_is_invalid': '[*] post data is invalid, maybe need escaping'
+        'data_is_invalid': '[*] post data is invalid, support form/json/xml data type',
+        'method_is_invalid': '[*] Only support GET and POST method'
     }
 
     return msg.get(token, '')
@@ -52,14 +53,27 @@ def send_request(request, require_response_header=False):
     """
 
     response = headers = status = None
-    try:
-        if request['method'] == 'GET':
-            rsp = requests.get(request['url'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'], timeout=request['timeout'], verify=False)
-        if request['method'] == 'POST':
-            rsp = requests.post(request['url'], data=request['data'], headers=request['headers'], cookies=request['cookies'], proxies=request['proxies'], timeout=request['timeout'], verify=False)
+    
+    json_data = None
+    data_data = None
+    if request['method'] == 'POST':
+        if 'json' in request['headers']['content-type']:
+            json_data = request['data']
+        else:
+            data_data = request['data']
+    try:    
+        rsp = requests.request(request['method'], request['url'], 
+            params=request['params'],
+            headers=request['headers'], 
+            cookies=request['cookies'], 
+            proxies=request['proxies'], 
+            data=data_data,
+            json=json_data, 
+            timeout=request['timeout'], 
+            verify=False)
 
         response = rsp.text
-        headers = rsp.headers
+        headers = rsp.headers if require_response_header else None
         status = rsp.status_code
 
     except requests.exceptions.RequestException as e:
@@ -68,7 +82,7 @@ def send_request(request, require_response_header=False):
     return {
         'request': request,
         'response': response,
-        'headers': headers if require_response_header else None,
+        'headers': headers,
         'status': status
     }
 
@@ -137,9 +151,8 @@ def get_content_type(content):
                 ET.fromstring(content)
                 type = 'xml'
             except ET.ParseError:
-                type = 'form'
-    else:
-        type = 'form'
+                if re.search(r"[A-Za-z0-9_]+=[^=]+", content):
+                    type = 'form'
 
     return type
 

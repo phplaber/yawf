@@ -3,6 +3,7 @@
 import re
 import copy
 import time
+import json
 import requests
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -142,41 +143,56 @@ class Probe:
         self.base_response = Shared.base_response.get('response')
         self.dnslog = Shared.dnslog
         self.web_driver = Shared.web_driver
+        self.content_type = Shared.content_type
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
         生成带 payload 的 request 对象
+        reserve_original_params：是否保留原始参数值，默认 False。用于 sqli 探针
+        direct_use_payload：直接使用 payload，默认 False。用于 rce_fastjson 探针，减少重复测试
         """
 
         payload_request = copy.deepcopy(self.request)
         for k, v in payload_request.items():
-            if k == 'url' and MARK_POINT in v:
-                if not reserve_original_params:
-                    payload_request['url'] = v.replace(MARK_POINT, payload)
-                else:
-                    tail_index = v.index(MARK_POINT) + len(MARK_POINT) - len(v)
-                    payload_request['url'] = self.base_request['url'][:tail_index] + payload + self.base_request['url'][tail_index:] if tail_index else self.base_request['url'] + payload
-                break
-            elif k in ['data', 'cookies'] and v:
-                if k == 'data' and type(v) is str:
-                    # post body 为 xml 和 json 类型的场景
-                    if MARK_POINT in v :
-                        if direct_use_payload:
-                            # 直接使用 payload 的 POST 请求（如：检测 fastjson rce），只需测试一次
-                            payload_request['data'] = payload
-                            Shared.direct_use_payload_flag = True
+            if k not in ['params', 'data', 'cookies'] or not v:
+                continue
+            if type(v) is str:
+                # data 为 xml 编码数据
+                if MARK_POINT in v:
+                    payload_request[k] = v.replace(MARK_POINT, payload)
+                    break
+            else:
+                flag = False
+                for kk, vv in v.items():
+                    if type(vv) is str and MARK_POINT in vv:
+                        if not direct_use_payload:
+                            if not payload_request['url_json_flag']:
+                                if not reserve_original_params:
+                                    payload_request[k][kk] = payload
+                                else:
+                                    payload_request[k][kk] = str(self.base_request[k][kk]) + payload
+                            else:
+                                # 标记点在查询字符串 json 中
+                                val_dict = json.loads(payload_request[k][kk])
+                                base_val_dict = json.loads(self.base_request[k][kk])
+                                for kkk, vvv in val_dict.items():
+                                    if type(vvv) is str and MARK_POINT in vvv:
+                                        if not reserve_original_params:
+                                            base_val_dict[kkk] = payload
+                                        else:
+                                            base_val_dict[kkk] = str(base_val_dict[kkk]) + payload
+                                        payload_request[k][kk] = json.dumps(base_val_dict)
+                                        break
                         else:
-                            payload_request['data'] = v.replace(MARK_POINT, payload)
+                            # TODO 控制执行 fastjson 探针
+                            if k == 'params':
+                                payload_request[k][kk] = payload
+                            if k == 'data':
+                                payload_request[k] = payload
+                        flag = True
                         break
-                else:
-                    flag = False
-                    for kk, vv in v.items():
-                        if vv == MARK_POINT:
-                            payload_request[k][kk] = payload if not reserve_original_params else self.base_request[k][kk] + payload
-                            flag = True
-                            break
-                    if flag:
-                        break
+                if flag:
+                    break
         
         return payload_request
 
@@ -186,8 +202,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/cross-site-scripting
         """
 
-        if self.request['url_json_flag'] \
-                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']):
+        if self.content_type == 'xml' and MARK_POINT in self.request['data']:
             print("[*] XSS detection skipped")
             return 
         
@@ -255,8 +270,7 @@ class Probe:
             invalid_mark_point = True
 
         if invalid_mark_point \
-                or self.request['url_json_flag'] \
-                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']):
+                or (self.content_type == 'xml' and MARK_POINT in self.request['data']):
             print("[*] SQLI detection skipped")
             return 
 
@@ -306,8 +320,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if self.request['url_json_flag'] \
-                or (self.request['content_type'] == 'xml' and MARK_POINT in self.request['data']) \
+        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
                 or not self.request['dt_detect_flag']:
             print("[*] DT detection skipped")
             return 
@@ -350,9 +363,8 @@ class Probe:
         """
 
         if (self.request['url_json_flag'] \
-                or (self.request['content_type'] == 'json' \
-                    and MARK_POINT in self.request['data'] \
-                    and not Shared.direct_use_payload_flag)) is False:
+                or (self.content_type == 'json' \
+                    and MARK_POINT in str(self.request['data']))) is False:
             print("[*] Fastjson RCE detection skipped")
             return 
         
@@ -424,8 +436,8 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
-        if self.request['content_type'] != 'xml' \
-                or (self.request['content_type'] == 'xml' and MARK_POINT not in self.request['data']):
+        if self.content_type != 'xml' \
+                or (self.content_type == 'xml' and MARK_POINT not in self.request['data']):
             print("[*] XXE detection skipped")
             return 
         
