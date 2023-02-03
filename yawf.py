@@ -389,11 +389,11 @@ if __name__ == '__main__':
                     mark_request['dt_detect_flag'] = False
     
     # request 对象列表
-    Shared.requests = requests
-
     if not requests:
         print("[+] Not valid request object to fuzzing, Exit.")
         exit(0)
+    
+    Shared.requests = requests
 
     # 基准请求
     Shared.base_response = send_request(base_request)
