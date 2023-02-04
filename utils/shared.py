@@ -24,6 +24,6 @@ class Shared:
 
     web_driver = None
 
-    direct_use_payload_flag = False
+    direct_use_payload_flag = {'params': {}, 'data': False}
 
     content_type = None

@@ -154,7 +154,7 @@ class Probe:
 
         payload_request = copy.deepcopy(self.request)
         for k, v in payload_request.items():
-            if k not in ['params', 'data', 'cookies'] or not v:
+            if k not in ['params', 'data', 'cookies']:
                 continue
             if type(v) is str:
                 # data 为 xml 编码数据
@@ -184,11 +184,13 @@ class Probe:
                                         payload_request[k][kk] = json.dumps(base_val_dict)
                                         break
                         else:
-                            # TODO 控制执行 fastjson 探针
+                            # 直接使用 payload 替代查询字符串参数值或 post body
                             if k == 'params':
                                 payload_request[k][kk] = payload
-                            if k == 'data':
+                                Shared.direct_use_payload_flag[k][kk] = True
+                            elif k == 'data':
                                 payload_request[k] = payload
+                                Shared.direct_use_payload_flag[k] = True
                         flag = True
                         break
                 if flag:
@@ -362,9 +364,18 @@ class Probe:
         漏洞知识: https://xz.aliyun.com/t/8979
         """
 
-        if (self.request['url_json_flag'] \
-                or (self.content_type == 'json' \
-                    and MARK_POINT in str(self.request['data']))) is False:
+        # 确保针对查询字符串和 POST Body 中 json 多值标记只执行一次 rce_fastjson 探针
+        is_run = False
+        if self.request['url_json_flag']:
+            for k, v in self.request['params'].items():
+                if MARK_POINT in v and not Shared.direct_use_payload_flag['params'].get(k):
+                    is_run = True
+
+        if self.content_type == 'json':
+            if MARK_POINT in str(self.request['data']) and not Shared.direct_use_payload_flag['data']:
+                is_run = True
+
+        if not is_run:
             print("[*] Fastjson RCE detection skipped")
             return 
         
