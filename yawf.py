@@ -435,9 +435,9 @@ if __name__ == '__main__':
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
 
     # 获取线程数
-    if len(Shared.requests) == 1:
-        threads_num = 1
-    elif int(Shared.conf['misc_threads_num']) > 0:
+    if len(Shared.requests) <= THREADS_NUM:
+        threads_num = len(Shared.requests)
+    elif Shared.conf['misc_threads_num'] and int(Shared.conf['misc_threads_num']) > 0:
         threads_num = int(Shared.conf['misc_threads_num'])
     else:
         threads_num = THREADS_NUM
