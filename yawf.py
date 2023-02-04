@@ -34,6 +34,9 @@ Created by yns0ng (@phplaber)           \n\
 
 if __name__ == '__main__':
 
+    # 记录启动时间
+    Shared.start_time = int(time.time())
+
     print(banner)
 
     parser = optparse.OptionParser()

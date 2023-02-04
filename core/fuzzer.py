@@ -11,7 +11,6 @@ class Fuzzer:
     """
 
     def __init__(self, threads_num):
-        self.start_time = int(time.time())
         self.main(threads_num)
 
     def main(self, threads_num):
@@ -30,4 +29,4 @@ class Fuzzer:
         for thread in fuzz_threads:
             thread.join()
 
-        print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, int(time.time()) - self.start_time))
+        print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, int(time.time()) - Shared.start_time))
