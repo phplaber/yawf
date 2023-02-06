@@ -131,8 +131,12 @@ class Probe:
 
                 if not poc_rsp.get('response'):
                     continue
-                    
-                self.web_driver.get(url=payload_request['url'])
+                
+                query_list = ['{}={}'.format(par, val) for par, val in payload_request['params'].items()] \
+                    if payload_request['params'] \
+                    else []
+                self.web_driver.get(url=payload_request['url'] + '?' + '&'.join(query_list) if query_list \
+                    else payload_request['url'])
                 if '[UI]' not in payload:
                     # 不需要用户交互就能弹框
                     try:
