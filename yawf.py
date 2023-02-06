@@ -13,10 +13,10 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf
 from utils.constants import *
 from utils.shared import Shared
-from probe.probe import Dnslog, Webdriver, DetectWaf
+from probe.probe import Dnslog, Webdriver
 
 banner = "\
 _____.___.  _____  __      _____________\n\
@@ -406,13 +406,9 @@ if __name__ == '__main__':
         print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
         exit(1)
 
-    """
-    如果配置开启 Waf 检测，在真正开始检测漏洞前，先判断测试目标前面是否部署了 Waf。如果部署了 Waf，则中断检测。
-    检测原理：在 url 中传递 xss 和 sqli payload，检测 response 对象是否包含 Waf 特征。
-    参考：https://github.com/Ekultek/WhatWaf
-    """
+    # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
+    # 如果部署了 Waf，则中断检测。
     if Shared.conf['misc_enable_waf_detecter'].strip() == 'on':
-        dw = DetectWaf()
         detect_request = copy.deepcopy(base_request)
         detect_payloads = [
             '<img/src=1 onerror=alert(1)>',
@@ -421,7 +417,7 @@ if __name__ == '__main__':
 
         for payload in detect_payloads:
             detect_request['params']['ispayload'] = payload
-            what_waf = dw.detect(send_request(detect_request, True))
+            what_waf = detect_waf(send_request(detect_request, True))
             if what_waf:
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)

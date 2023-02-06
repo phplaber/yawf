@@ -168,3 +168,92 @@ def is_base64(string):
         is_b64 = True
 
     return is_b64
+
+def detect_waf(req_rsp):
+    """
+    检测目标对象前是否部署 WAF，以及是哪种 WAF
+    检测原理：在 url 中传递 xss 和 sqli payload，检测 response 对象是否包含 Waf 特征。
+    参考：https://github.com/Ekultek/WhatWaf
+    """
+    response = req_rsp.get('response')
+    headers = req_rsp.get('headers')
+    status = req_rsp.get('status')
+
+    # 请求失败，直接返回
+    if status is None:
+        return 
+
+    # 阿里云盾
+    if status == 405:
+        # 阻断
+        detection_schema = (
+            re.compile(r"error(s)?.aliyun(dun)?.(com|net)", re.I),
+            re.compile(r"http(s)?://(www.)?aliyun.(com|net)", re.I)
+        )
+        for detection in detection_schema:
+            if detection.search(response):
+                return 'AliYunDun'
+        
+    elif status == 200:
+        # 非阻断，如滑块验证
+        detection = re.compile(r"TraceID: [0-9a-z]{30}", re.I)
+        if detection.search(response):
+            return 'AliYunDun'
+
+    # 云加速
+    detection_schema = (
+        re.compile(r"fh(l)?", re.I),
+        re.compile(r"yunjiasu.nginx", re.I)
+    )
+    for detection in detection_schema:
+        if detection.search(headers.get('x-server', '')) or detection.search(headers.get('server', '')):
+            return 'Yunjiasu'
+
+    # 安全狗
+    detection_schema = (
+        re.compile(r"(http(s)?)?(://)?(www|404|bbs|\w+)?.safedog.\w", re.I),
+        re.compile(r"waf(.?\d+.?\d+)", re.I),
+    )
+    for detection in detection_schema:
+        if detection.search(response) or detection.search(headers.get('x-powered-by', '')):
+            return 'SafeDog'
+
+    # 加速乐
+    detection_schema = (
+        re.compile(r"^jsl(_)?tracking", re.I),
+        re.compile(r"(__)?jsluid(=)?", re.I),
+        re.compile(r"notice.jiasule", re.I),
+        re.compile(r"(static|www|dynamic).jiasule.(com|net)", re.I)
+    )
+    for detection in detection_schema:
+        set_cookie = headers.get('set-cookie', '')
+        server = headers.get('server', '')
+        if any(detection.search(item) for item in [set_cookie, server]) or detection.search(response):
+            return 'Jiasule'
+            
+    # CloudFlare
+    detection_schemas = (
+        re.compile(r"cloudflare.ray.id.|var.cloudflare.", re.I),
+        re.compile(r"cloudflare.nginx", re.I),
+        re.compile(r"..cfduid=([a-z0-9]{43})?", re.I),
+        re.compile(r"cf[-|_]ray(..)?([0-9a-f]{16})?[-|_]?(dfw|iad)?", re.I),
+        re.compile(r".>attention.required!.\|.cloudflare<.+", re.I),
+        re.compile(r"http(s)?.//report.(uri.)?cloudflare.com(/cdn.cgi(.beacon/expect.ct)?)?", re.I),
+        re.compile(r"ray.id", re.I)
+    )
+    server = headers.get('server', '')
+    cookie = headers.get('cookie', '')
+    set_cookie = headers.get('set-cookie', '')
+    cf_ray = headers.get('cf-ray', '')
+    expect_ct = headers.get('expect-ct', '')
+    if cf_ray or "__cfduid" in set_cookie or "cloudflare" in expect_ct:
+        return 'CloudFlare'
+    for detection in detection_schemas:
+        if detection.search(response) \
+                or detection.search(server) \
+                or detection.search(cookie) \
+                or detection.search(set_cookie) \
+                or detection.search(expect_ct):
+            return 'CloudFlare'
+        
+    return 
