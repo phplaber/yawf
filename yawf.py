@@ -37,7 +37,9 @@ if __name__ == '__main__':
     # 记录启动时间
     Shared.start_time = int(time.time())
 
-    print(banner)
+    # 标准输出指向终端（非重定向和管道）
+    if sys.stdout.isatty():
+        print(banner)
 
     parser = optparse.OptionParser()
     parser.add_option("-u", "--url", dest="url", help="Target URL (e.g. \"http://www.target.com/page.php?id=1\")")
