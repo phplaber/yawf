@@ -10,6 +10,7 @@ from utils.constants import *
 from utils.shared import Shared
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
+from requests.auth import HTTPDigestAuth
 
 # 忽略 SSL 告警信息
 try:
@@ -56,11 +57,18 @@ def send_request(request, require_response_header=False):
     
     json_data = None
     data_data = None
+    auth = None
     if request['method'] == 'POST':
         if 'json' in request['headers']['content-type']:
             json_data = request['data']
         else:
             data_data = request['data']
+    if request['auth']:
+        cred = request['auth']['auth_cred'].split(':', 1)
+        if request['auth']['auth_type'] == 'Basic':
+            auth = (cred[0], cred[1])
+        elif request['auth']['auth_type'] == 'Digest':
+            auth = HTTPDigestAuth(cred[0], cred[1])
     try:    
         rsp = requests.request(request['method'], request['url'], 
             params=request['params'],
@@ -69,6 +77,7 @@ def send_request(request, require_response_header=False):
             proxies=request['proxies'], 
             data=data_data,
             json=json_data, 
+            auth=auth,
             timeout=request['timeout'], 
             verify=False)
 
@@ -257,3 +266,4 @@ def detect_waf(req_rsp):
             return 'CloudFlare'
         
     return 
+

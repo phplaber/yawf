@@ -47,6 +47,8 @@ if __name__ == '__main__':
     parser.add_option("-d", dest="data", help="Data string to be sent through POST (e.g. \"id=1\")")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
     parser.add_option("--headers", dest="headers", help="Extra headers (e.g. \"Accept-Language: fr\\nETag: 123\")")
+    parser.add_option("--auth-type", dest="auth_type", help="HTTP authentication type (Basic, Digest)")
+    parser.add_option("--auth-cred", dest="auth_cred", help="HTTP authentication credentials (user:pass)")
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     options, _ = parser.parse_args()
 
@@ -89,6 +91,7 @@ if __name__ == '__main__':
         'cookies': {},
         'headers': {},
         'data': {},
+        'auth': {},
         'timeout': timeout
     }
     # 手动标记状态位
@@ -207,6 +210,15 @@ if __name__ == '__main__':
             if not is_mark and MARK_POINT in kv[1]:
                 is_mark = True
 
+    # HTTP 认证
+    if options.auth_type and options.auth_cred:
+        if options.auth_type in ['Basic', 'Digest'] and ':' in options.auth_cred:
+            request['auth']['auth_type'] = options.auth_type
+            request['auth']['auth_cred'] = options.auth_cred
+            # 删除认证请求头 Authorization
+            if 'authorization' in request['headers']:
+                del request['headers']['authorization']
+
     # 使用特定 ua
     request['headers']['user-agent'] = UA
     # 指定 Content-Type
@@ -237,6 +249,7 @@ if __name__ == '__main__':
         base_request['proxies'] = request['proxies']
         base_request['headers'] = request['headers']
         base_request['timeout'] = request['timeout']
+        base_request['auth'] = request['auth']
         for item in ['params', 'data', 'cookies']:
             base_request[item] = {}
             if not request[item]:
