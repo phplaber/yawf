@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*- 
 
-
 class Shared:
     """
-    全局共享数据
+    全局共享数据（静态变量）
     """
 
     start_time = 0
