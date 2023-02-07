@@ -457,7 +457,7 @@ if __name__ == '__main__':
         threads_num = THREADS_NUM
 
     # 初始化 dnslog 实例
-    if any(p in 'xxe:rce_fastjson:rce_log4j' for p in Shared.probes):
+    if any(p in 'xxe:fastjson:log4shell' for p in Shared.probes):
         Shared.dnslog = Dnslog()
 
     # 初始化 webdriver（headless Chrome）实例

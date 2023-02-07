@@ -1,4 +1,4 @@
-# Fastjson RCE payload
+# Fastjson detect payload
 
 {"test":{"@type":"java.net.URL","val":"dnslog"}}
 {"test":{"@type":"java.net.InetAddress","val":"dnslog"}}

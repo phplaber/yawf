@@ -61,7 +61,7 @@ class Probe:
         """
         生成带 payload 的 request 对象
         reserve_original_params：是否保留原始参数值，默认 False。用于 sqli 探针
-        direct_use_payload：直接使用 payload，默认 False。用于 rce_fastjson 探针，减少重复测试
+        direct_use_payload：直接使用 payload，默认 False。用于 fastjson 探针，减少重复测试
         """
 
         payload_request = copy.deepcopy(self.request)
@@ -274,13 +274,15 @@ class Probe:
         except Exception as e:
             print("[*] (probe:dt) {}".format(e))
 
-    def rce_fastjson(self):
+    def fastjson(self):
         """
-        Fastjson RCE 探针
-        漏洞知识: https://xz.aliyun.com/t/8979
+        Fastjson 探针
+        检测到使用 Fastjson 后，再通过 rce payload 确认漏洞是否存在
+        （目前只检测目标是否使用 Fastjson，暂不支持验证漏洞是否存在）
+        漏洞知识: https://paper.seebug.org/1192/
         """
 
-        # 确保针对查询字符串和 POST Body 中 json 多值标记只执行一次 rce_fastjson 探针
+        # 确保针对查询字符串和 POST Body 中 json 多值标记只执行一次 fastjson 探针
         is_run = False
         if self.request['url_json_flag']:
             for k, v in self.request['params'].items():
@@ -292,13 +294,13 @@ class Probe:
                 is_run = True
 
         if not is_run:
-            print("[*] Fastjson RCE detection skipped")
+            print("[*] Fastjson detection skipped")
             return 
         
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            for payload in Shared.probes_payload['rce_fastjson']:
+            for payload in Shared.probes_payload['fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
@@ -309,30 +311,30 @@ class Probe:
                     vulnerable = True
 
                 if vulnerable:
-                    print("[+] Found Fastjson RCE!")
+                    print("[+] Found Fastjson!")
                     Shared.fuzz_results.append({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
-                        'type': 'Fastjson RCE'
+                        'type': 'Fastjson'
                     })
                     break
 
             if not vulnerable:
-                print("[-] Not Found Fastjson RCE.")
+                print("[-] Not Found Fastjson.")
         except Exception as e:
-            print("[*] (probe:rce_fastjson) {}".format(e))
+            print("[*] (probe:fastjson) {}".format(e))
     
-    def rce_log4j(self):
+    def log4shell(self):
         """
-        Log4j RCE 探针
+        Log4Shell 探针
         漏洞知识: https://www.anquanke.com/post/id/263325
         """
         
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            for payload in Shared.probes_payload['rce_log4j']:
+            for payload in Shared.probes_payload['log4shell']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
@@ -343,19 +345,19 @@ class Probe:
                     vulnerable = True
 
                 if vulnerable:
-                    print("[+] Found Log4j RCE!")
+                    print("[+] Found Log4Shell!")
                     Shared.fuzz_results.append({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
-                        'type': 'Log4j RCE'
+                        'type': 'Log4Shell'
                     })
                     break
 
             if not vulnerable:
-                print("[-] Not Found Log4j RCE.")
+                print("[-] Not Found Log4Shell.")
         except Exception as e:
-            print("[*] (probe:rce_log4j) {}".format(e))
+            print("[*] (probe:log4shell) {}".format(e))
 
     def xxe(self):
         """
