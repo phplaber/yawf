@@ -295,16 +295,19 @@ if __name__ == '__main__':
                 continue
             if item == 'data' and content_type == 'xml':
                 if MARK_POINT in request['data']:
-                    temp_data = request['data']
-                    while True:
-                        if MARK_POINT not in temp_data:
-                            break
-                        m = re.search(r'>[0-9a-zA-Z_\-]*{}<'.format(MARK_POINT.replace('[', '\[')), temp_data)
-                        first_match = m.group()
-                        first_index = m.start()
-                        mark_request['data'] = base_request['data'][:first_index+1] + MARK_POINT + base_request['data'][first_index+len(first_match)-len(MARK_POINT)-1:]
+                    # 全部标记点的位置
+                    all_mark_point_index = [mp.start() \
+                        for mp in re.finditer(MARK_POINT.replace('[', '\['), request['data'])]
+                    cursor_idx = 0
+                    for idx in all_mark_point_index:
+                        mark_xml = base_request['data'][:(idx-cursor_idx)] \
+                            + MARK_POINT \
+                            + base_request['data'][(idx-cursor_idx):]
+                        # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
+                        mark_request['data'] = re.sub(r'>[^<>]*{}<'.format(MARK_POINT.replace('[', '\[')), \
+                            '>{}<'.format(MARK_POINT), mark_xml)
                         requests.append(copy.deepcopy(mark_request))
-                        temp_data = temp_data[:first_index+len(first_match)-len(MARK_POINT)-1] + temp_data[first_index+len(first_match)-1:]
+                        cursor_idx += len(MARK_POINT)
                     mark_request['data'] = base_request['data']
             else:
                 for k, v in request[item].items():
@@ -365,25 +368,21 @@ if __name__ == '__main__':
                 continue
             if item == 'data' and content_type == 'xml':
                 # xml data
-                tagList = []
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
 
-                for elem in xmlTree.iter():
-                    tag = elem.tag
-                    if re.search(r'<{}>[0-9a-zA-Z_\-]*</{}>'.format(tag, tag), base_request['data']):
-                        tagList.append(tag)
-
-                # 移除重复元素 tag
+                tagList = [elem.tag \
+                    if re.search(r'<{}>[^<>]*</{}>'.format(elem.tag, elem.tag), base_request['data']) \
+                    else None \
+                    for elem in xmlTree.iter()]
+                # 移除重复元素 tag 和 None 值
                 # 【优化点】也会移除不同父节点下具有相同 tag 名称的子节点，可能漏掉一些检测点
-                tagList = list(set(tagList))
+                tagList = list(set(list(filter(None, tagList))))
+                tagList.sort()
 
-                for tag in tagList:
-                    m = re.search(r'<{}>[0-9a-zA-Z_\-]*</{}>'.format(tag, tag), base_request['data'])
-                    first_match = m.group()
-                    first_index = m.start()
-                    mark_request['data'] = base_request['data'][:first_index] + '<{}>{}</{}>'.format(tag, MARK_POINT, tag) + base_request['data'][first_index+len(first_match):]
+                for elem_tag in tagList:
+                    mark_request['data'] = re.sub(r'<{}>[^<>]*</{}>'.format(elem_tag, elem_tag), \
+                        '<{}>{}</{}>'.format(elem_tag, MARK_POINT, elem_tag), base_request['data'])
                     requests.append(copy.deepcopy(mark_request))
-
                 mark_request['data'] = base_request['data']
             else:
                 for k, v in base_request[item].items():
