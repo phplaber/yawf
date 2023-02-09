@@ -74,6 +74,8 @@ Options:
   --auth-cred=AUTH_CRED
                         HTTP authentication credentials (user:pass)
   -f REQUESTFILE        Load HTTP request from a file
+  --output-dir=OUTPUT_DIR
+                        Custom output directory path
 ```
 
 ### 使用
@@ -139,7 +141,7 @@ Upgrade-Insecure-Requests: 1
 
 #### 运行脚本
 
-设置必要的参数，运行 **yawf.py** 脚本，等待脚本运行结束。如果 Yawf 发现疑似漏洞，会将详情写入 output 目录下按时间戳命名的文件中，如果 output 目录不存在，Yawf 会安全的创建，所以无需担心。
+设置必要的参数，运行 **yawf.py** 脚本，等待脚本运行结束。一旦 Yawf 发现疑似漏洞，如果选项 **--output-dir** 传入目录路径，则将详情写入该目录下按时间戳命名的文件里，否则，写入和脚本同级的 output 目录下文件，文件同样按时间戳命名。如果目录不存在，Yawf 会安全的创建。
 
 详情包括标记过的 request 对象、payload、触发漏洞的 request 对象以及漏洞类型。
 

@@ -50,6 +50,7 @@ if __name__ == '__main__':
     parser.add_option("--auth-type", dest="auth_type", help="HTTP authentication type (Basic, Digest)")
     parser.add_option("--auth-cred", dest="auth_cred", help="HTTP authentication credentials (user:pass)")
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
+    parser.add_option("--output-dir", dest="output_dir", help="Custom output directory path")
     options, _ = parser.parse_args()
 
     # -u 和 -r 选项二选一
@@ -472,7 +473,7 @@ if __name__ == '__main__':
 
     # 记录漏洞
     if Shared.fuzz_results:
-        outputdir = os.path.join(script_rel_dir, 'output')
+        outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
         if not os.path.exists(outputdir):
             os.makedirs(outputdir)
         outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
