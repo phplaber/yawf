@@ -11,6 +11,7 @@ from utils.shared import Shared
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
 from requests.auth import HTTPDigestAuth
+from requests_ntlm2 import HttpNtlmAuth
 
 # 忽略 SSL 告警信息
 try:
@@ -31,7 +32,8 @@ def errmsg(token):
         'config_is_invalid': '[*] parse config file error: {}',
         'base_request_failed': '[*] base request failed, status code is: {}',
         'data_is_invalid': '[*] post data is invalid, support form/json/xml data type',
-        'method_is_invalid': '[*] Only support GET and POST method'
+        'method_is_invalid': '[*] Only support GET and POST method',
+        'cred_is_invalid': '[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"'
     }
 
     return msg.get(token, '')
@@ -69,6 +71,8 @@ def send_request(request, require_response_header=False):
             auth = (cred[0], cred[1])
         elif request['auth']['auth_type'] == 'Digest':
             auth = HTTPDigestAuth(cred[0], cred[1])
+        elif request['auth']['auth_type'] == 'NTLM':
+            auth = HttpNtlmAuth(cred[0], cred[1])
     try:    
         rsp = requests.request(request['method'], request['url'], 
             params=request['params'],

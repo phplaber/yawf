@@ -7,7 +7,7 @@
 1.  支持检测动态 URL 和 HTTP Request 文件目标对象；
 2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST Body；
 3.  支持 GET 和 POST 请求，以及 form、json 和 xml 数据类型；
-4.  支持 Basic 和 Digest HTTP 认证；
+4.  支持 HTTP Basic/Digest/NTLM 认证；
 5.  支持多线程对测试目标进行检测，默认 3 个线程；
 6.  容易扩展，探针和 Payload 文件分离；
 7.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
@@ -70,7 +70,7 @@ Options:
   -c COOKIES            HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
   --headers=HEADERS     Extra headers (e.g. "Accept-Language: fr\nETag: 123")
   --auth-type=AUTH_TYPE
-                        HTTP authentication type (Basic, Digest)
+                        HTTP authentication type (Basic, Digest, NTLM)
   --auth-cred=AUTH_CRED
                         HTTP authentication credentials (user:pass)
   -f REQUESTFILE        Load HTTP request from a file

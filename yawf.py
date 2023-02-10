@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_option("-d", dest="data", help="Data string to be sent through POST (e.g. \"id=1\")")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
     parser.add_option("--headers", dest="headers", help="Extra headers (e.g. \"Accept-Language: fr\\nETag: 123\")")
-    parser.add_option("--auth-type", dest="auth_type", help="HTTP authentication type (Basic, Digest)")
+    parser.add_option("--auth-type", dest="auth_type", help="HTTP authentication type (Basic, Digest, NTLM)")
     parser.add_option("--auth-cred", dest="auth_cred", help="HTTP authentication credentials (user:pass)")
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("--output-dir", dest="output_dir", help="Custom output directory path")
@@ -213,7 +213,10 @@ if __name__ == '__main__':
 
     # HTTP 认证
     if options.auth_type and options.auth_cred:
-        if options.auth_type in ['Basic', 'Digest'] and ':' in options.auth_cred:
+        if options.auth_type in ['Basic', 'Digest', 'NTLM'] and ':' in options.auth_cred:
+            if options.auth_type == 'NTLM' and re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred) is None:
+                print(errmsg('cred_is_invalid'))
+                exit(1)
             request['auth']['auth_type'] = options.auth_type
             request['auth']['auth_cred'] = options.auth_cred
             # 删除认证请求头 Authorization
