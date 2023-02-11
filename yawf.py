@@ -223,8 +223,9 @@ if __name__ == '__main__':
             if 'authorization' in request['headers']:
                 del request['headers']['authorization']
 
-    # 使用特定 ua
-    request['headers']['user-agent'] = UA
+    # 指定 User-Agent
+    custom_ua = Shared.conf['request_user_agent']
+    request['headers']['user-agent'] = custom_ua if custom_ua else UA
     # 指定 Content-Type
     if request['method'] == 'POST':
         if content_type == 'json':
