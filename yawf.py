@@ -32,6 +32,16 @@ Created by yns0ng (@phplaber)           \n\
 \
 ".format(version=VERSION)
 
+probe_list = '\
+List of available probes: \n\
+ - xss                    \n\
+ - sqli                   \n\
+ - dt                     \n\
+ - fastjson               \n\
+ - log4shell              \n\
+ - xxe                    \n\
+'
+
 if __name__ == '__main__':
 
     # 记录启动时间
@@ -51,7 +61,13 @@ if __name__ == '__main__':
     parser.add_option("--auth-cred", dest="auth_cred", help="HTTP authentication credentials (user:pass)")
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("--output-dir", dest="output_dir", help="Custom output directory path")
+    parser.add_option("--probe-list", action="store_true", dest="probe_list", help="List of available probes")
     options, _ = parser.parse_args()
+
+    # 显示可用的探针列表
+    if options.probe_list:
+        print(probe_list)
+        exit(0)
 
     # -u 和 -r 选项二选一
     if not options.url and not options.requestfile:

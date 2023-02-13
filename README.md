@@ -76,6 +76,7 @@ Options:
   -f REQUESTFILE        Load HTTP request from a file
   --output-dir=OUTPUT_DIR
                         Custom output directory path
+  --probe-list          List of available probes
 ```
 
 ### 使用
