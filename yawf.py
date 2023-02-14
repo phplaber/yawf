@@ -40,6 +40,7 @@ List of available probes: \n\
  - fastjson               \n\
  - log4shell              \n\
  - xxe                    \n\
+ - ssrf                   \n\
 '
 
 if __name__ == '__main__':
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         print(probe_list)
         exit(0)
 
-    # -u 和 -r 选项二选一
+    # -u 和 -f 选项二选一
     if not options.url and not options.requestfile:
         parser.print_help()
         print('\n\n[*] option -u or -f must be set')
@@ -87,8 +88,8 @@ if __name__ == '__main__':
     # 自动标记忽略的参数列表
     ignore_params = [ip.strip() for ip in Shared.conf['misc_ignore_params'].split(',')]
 
-    # dt 探针自动标记检测的参数列表（包含匹配）
-    dt_detect_params = [dp.strip() for dp in Shared.conf['probe_dt_detect_params'].split(',')]
+    # dt 和 ssrf 探针自动标记检测的参数列表（包含匹配）
+    dt_and_ssrf_detect_params = [dp.strip() for dp in Shared.conf['probe_dt_and_ssrf_detect_flag'].split(',')]
     
     # 网络代理
     proxy_conf = Shared.conf['request_proxy']
@@ -287,7 +288,7 @@ if __name__ == '__main__':
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
         mark_request['url_json_flag'] = False
-        mark_request['dt_detect_flag'] = True
+        mark_request['dt_and_ssrf_detect_flag'] = True
 
         if is_dynamic_url:
             for par, val in request['params'].items():
@@ -349,7 +350,7 @@ if __name__ == '__main__':
         # 构造全部 request 对象（每个标记点对应一个对象）
         mark_request = copy.deepcopy(base_request)
         mark_request['url_json_flag'] = False
-        mark_request['dt_detect_flag'] = False
+        mark_request['dt_and_ssrf_detect_flag'] = False
 
         if is_dynamic_url:
             for par, val in base_request['params'].items():
@@ -364,24 +365,24 @@ if __name__ == '__main__':
                         # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
                         if k in ignore_params or (type(v) is list or type(v) is dict):
                             continue
-                        for detect_param in dt_detect_params:
-                            if detect_param in k:
-                                mark_request['dt_detect_flag'] = True
+                        for detect_param in dt_and_ssrf_detect_params:
+                            if detect_param in k.lower():
+                                mark_request['dt_and_ssrf_detect_flag'] = True
                                 break
                         base_val_dict[k] = MARK_POINT
                         mark_request['params'][par] = json.dumps(base_val_dict)
                         requests.append(copy.deepcopy(mark_request))
                         base_val_dict[k] = v
-                        mark_request['dt_detect_flag'] = False
+                        mark_request['dt_and_ssrf_detect_flag'] = False
                     mark_request['url_json_flag'] = False
                 else:
-                    for detect_param in dt_detect_params:
-                        if detect_param in par:
-                            mark_request['dt_detect_flag'] = True
+                    for detect_param in dt_and_ssrf_detect_params:
+                        if detect_param in par.lower():
+                            mark_request['dt_and_ssrf_detect_flag'] = True
                             break
                     mark_request['params'][par] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request['dt_detect_flag'] = False
+                    mark_request['dt_and_ssrf_detect_flag'] = False
                 mark_request['params'][par] = base_request['params'][par]
 
         for item in ['data', 'cookies']:
@@ -415,14 +416,14 @@ if __name__ == '__main__':
                             # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
                             condition = condition and get_content_type(v) is None
                     if condition:
-                        for detect_param in dt_detect_params:
-                            if detect_param in k:
-                                mark_request['dt_detect_flag'] = True
+                        for detect_param in dt_and_ssrf_detect_params:
+                            if detect_param in k.lower():
+                                mark_request['dt_and_ssrf_detect_flag'] = True
                                 break
                         mark_request[item][k] = MARK_POINT
                         requests.append(copy.deepcopy(mark_request))
                         mark_request[item][k] = v
-                        mark_request['dt_detect_flag'] = False
+                        mark_request['dt_and_ssrf_detect_flag'] = False
     
     # request 对象列表
     if not requests:
@@ -475,7 +476,7 @@ if __name__ == '__main__':
         threads_num = THREADS_NUM
 
     # 初始化 dnslog 实例
-    if any(p in 'xxe:fastjson:log4shell' for p in Shared.probes):
+    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
         Shared.dnslog = Dnslog()
 
     # 初始化 webdriver（headless Chrome）实例
