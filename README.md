@@ -1,6 +1,6 @@
 ## Yawf - Yet Another Web Fuzzer
 
-**Yawf** 是一个开源的 Web 漏洞自动化检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、XXE、Directory traversal 和 Log4Shell 等。
+**Yawf** 是一个开源的 Web 漏洞自动化检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal 和 Log4Shell 等。
 
 ### 功能
 
@@ -22,6 +22,7 @@
 4.  **fastjson** - Fastjson 探针（探测目标是否使用 Fastjson 组件）
 5.  **log4shell** - Log4Shell 探针
 6.  **xxe** - XXE 探针
+7.  **ssrf** - SSRF 探针
 
 #### 性能优化
 
@@ -56,7 +57,7 @@ _____.___.  _____  __      _____________
  \/              \/      \/       \/    
 
 Automated Web Vulnerability Fuzzer      
-v2.0                               
+v2.2                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
@@ -95,7 +96,7 @@ Options:
 
 - 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
-- 在 **dt_detect_params** 项中配置名称包含这些关键词的参数，在自动标记模式下，才会去执行 dt 探针；
+- 在 **dt_and_ssrf_detect_flag** 项中配置名称包含这些关键词的参数，在自动标记模式下，才会去执行 dt 和 ssrf 探针；
 
 - 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除；
 
