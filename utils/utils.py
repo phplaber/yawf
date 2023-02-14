@@ -164,7 +164,7 @@ def get_content_type(content):
                 ET.fromstring(content)
                 type = 'xml'
             except ET.ParseError:
-                if re.search(r"[A-Za-z0-9_]+=[^=]+", content):
+                if re.search(r"^[A-Za-z0-9_]+=[^=]+", content):
                     type = 'form'
 
     return type

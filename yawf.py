@@ -210,7 +210,7 @@ if __name__ == '__main__':
                 kv = item.split('=', 1)
                 if len(kv) < 2:
                     continue
-                request['data'][kv[0].strip()] = kv[1]
+                request['data'][kv[0].strip()] = unquote(kv[1])
                 if not is_mark and MARK_POINT in kv[1]:
                     is_mark = True
         else:
