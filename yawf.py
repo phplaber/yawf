@@ -407,24 +407,22 @@ if __name__ == '__main__':
                 mark_request['data'] = base_request['data']
             else:
                 for k, v in base_request[item].items():
-                    skip_condition = k in ignore_params
+                    condition = k not in ignore_params
                     if item == 'data':
                         if content_type == 'json':
-                            skip_condition = skip_condition or (type(v) is list or type(v) is dict)
+                            condition = condition and (type(v) is not list and type(v) is not dict)
                         elif content_type == 'form':
                             # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
-                            skip_condition = skip_condition or get_content_type(v) is not None
-                
-                    if skip_condition:
-                        continue
-                    for detect_param in dt_detect_params:
-                        if detect_param in k:
-                            mark_request['dt_detect_flag'] = True
-                            break
-                    mark_request[item][k] = MARK_POINT
-                    requests.append(copy.deepcopy(mark_request))
-                    mark_request[item][k] = v
-                    mark_request['dt_detect_flag'] = False
+                            condition = condition and get_content_type(v) is None
+                    if condition:
+                        for detect_param in dt_detect_params:
+                            if detect_param in k:
+                                mark_request['dt_detect_flag'] = True
+                                break
+                        mark_request[item][k] = MARK_POINT
+                        requests.append(copy.deepcopy(mark_request))
+                        mark_request[item][k] = v
+                        mark_request['dt_detect_flag'] = False
     
     # request 对象列表
     if not requests:
