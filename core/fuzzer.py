@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import time
 from threading import Condition
 from core.fuzz_thread import FuzzThread
 from utils.shared import Shared
@@ -29,4 +28,3 @@ class Fuzzer:
         for thread in fuzz_threads:
             thread.join()
 
-        print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, int(time.time()) - Shared.start_time))

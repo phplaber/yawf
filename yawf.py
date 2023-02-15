@@ -46,7 +46,7 @@ List of available probes: \n\
 if __name__ == '__main__':
 
     # 记录启动时间
-    Shared.start_time = int(time.time())
+    start_time = int(time.time())
 
     # 标准输出指向终端（非重定向和管道）
     if sys.stdout.isatty():
@@ -502,3 +502,5 @@ if __name__ == '__main__':
                 f.write('\n')
 
         print('[+] Fuzz results saved in: {}'.format(outputfile))
+
+    print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, int(time.time()) - start_time))
