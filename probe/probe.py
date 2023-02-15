@@ -246,14 +246,11 @@ class Probe:
         vulnerable = False
         try:
             for payload in Shared.probes_payload['dt']:
-                if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows':
-                    # Windows 平台
-                    if 'passwd' in payload:
-                        continue
-                else:
-                    # Linux 平台
-                    if 'passwd' not in payload:
-                        continue
+                # 将 payload 中的占位符 filepath 替换为平台特定文件
+                payload = payload.replace('filepath', '/boot.ini') \
+                    if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows' \
+                    else payload.replace('filepath', '/etc/passwd')
+                
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
                 if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
@@ -374,22 +371,20 @@ class Probe:
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
             for payload in Shared.probes_payload['xxe']:
-                payload_request = self.gen_payload_request('&xxe;')
+                # 将 payload 中的占位符 filepath 替换为平台特定文件
+                payload = payload.replace('filepath', '/c:/boot.ini') \
+                    if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows' \
+                    else payload.replace('filepath', '/etc/passwd')
+                # 将 payload 中的占位符 dnslog 替换为 dnslog 子域名
                 payload = payload.replace('dnslog', dnslog_domain)
+
+                payload_request = self.gen_payload_request('&xxe;')
                 if '?>' in payload_request['data']:
                     payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
                 else:
                     payload_request['data'] = payload + payload_request['data']
                 if 'http' not in payload:
                     # 有回显
-                    if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows':
-                        # Windows 平台
-                        if 'passwd' in payload:
-                            continue
-                    else:
-                        # Linux 平台
-                        if 'passwd' not in payload:
-                            continue
                     poc_rsp = send_request(payload_request)
 
                     if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
