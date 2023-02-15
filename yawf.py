@@ -433,7 +433,7 @@ if __name__ == '__main__':
     Shared.requests = requests
 
     # 基准请求
-    Shared.base_response = send_request(base_request)
+    Shared.base_response = send_request(base_request, True)
     if Shared.base_response.get('status') != 200:
         print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
         exit(1)

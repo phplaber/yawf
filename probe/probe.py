@@ -13,6 +13,7 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
+from bs4 import BeautifulSoup
 
 class Webdriver:
     def __init__(self):
@@ -179,13 +180,23 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/sql-injection
         """
 
-        # 某些测试点不影响程序执行，无论怎么改变其值，页面内容都不会发生变化。需提前识别出这些测试点，减少误报。
-        test_rsp = send_request(self.gen_payload_request(get_random_str(10)))
+        # 某些测试点不影响程序执行，无论怎么改变其值，页面内容都不会发生变化。
+        # 需提前识别出这些测试点，减少误报。
+        is_html = True
         invalid_mark_point = False
-        if test_rsp.get('status') is not None and test_rsp.get('status') != Shared.base_response.get('status'):
-            invalid_mark_point = False
-        elif test_rsp.get('response') is not None and similar(self.base_response, test_rsp.get('response')) > DIFF_THRESHOLD:
-            invalid_mark_point = True
+        test_rsp = send_request(self.gen_payload_request(get_random_str(10)))
+        if test_rsp.get('response'):
+            # 如果响应体为 HTML，则比较文本内容，否则，直接比较
+            if 'text/html' in Shared.base_response.get('headers').get('content-type'):
+                base_rsp_body = BeautifulSoup(self.base_response, "html.parser").get_text()
+                test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
+            else:
+                is_html = False
+                base_rsp_body = self.base_response
+                test_rsp_body = test_rsp.get('response')
+
+            if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
+                invalid_mark_point = True
 
         if invalid_mark_point \
                 or (self.content_type == 'xml' and MARK_POINT in self.request['data']):
@@ -209,12 +220,16 @@ class Probe:
                             break
                 else:
                     # 基于内容相似度判断
-                    if similar(self.base_response, poc_rsp.get('response')) > DIFF_THRESHOLD:
+                    poc_rsp_body = BeautifulSoup(poc_rsp.get('response'), "html.parser").get_text() if is_html else poc_rsp.get('response')
+                    
+                    if similar(base_rsp_body, poc_rsp_body) > DIFF_THRESHOLD:
                         # 参数可能被消杀（如整数化）处理，使用反向 payload 再确认一遍
                         reverse_payload_request = self.gen_payload_request(payload.replace('1','0') if '=' not in payload else payload.replace('1','0',1), True)
                         reverse_poc_rsp = send_request(reverse_payload_request)
                         if reverse_poc_rsp.get('response'):
-                            if similar(self.base_response, reverse_poc_rsp.get('response')) < DIFF_THRESHOLD:
+                            reverse_rsp_body = BeautifulSoup(reverse_poc_rsp.get('response'), "html.parser").get_text() if is_html else reverse_poc_rsp.get('response')
+                            
+                            if similar(base_rsp_body, reverse_rsp_body) < DIFF_THRESHOLD:
                                 vulnerable = True
 
                 if vulnerable:
