@@ -32,17 +32,6 @@ Created by yns0ng (@phplaber)           \n\
 \
 ".format(version=VERSION)
 
-probe_list = '\
-List of available probes: \n\
- - xss                    \n\
- - sqli                   \n\
- - dt                     \n\
- - fastjson               \n\
- - log4shell              \n\
- - xxe                    \n\
- - ssrf                   \n\
-'
-
 if __name__ == '__main__':
 
     # 记录启动时间
@@ -65,9 +54,16 @@ if __name__ == '__main__':
     parser.add_option("--probe-list", action="store_true", dest="probe_list", help="List of available probes")
     options, _ = parser.parse_args()
 
+    # 脚本相对目录
+    script_rel_dir = os.path.dirname(sys.argv[0])
+
     # 显示可用的探针列表
     if options.probe_list:
-        print(probe_list)
+        files = next(os.walk(os.path.join(script_rel_dir, 'probe', 'payload')), (None, None, []))[2]
+        s = 'List of available probes: \n'
+        for f in files:
+            s += ' - {}\n'.format(os.path.splitext(f)[0])
+        print(s.rstrip())
         exit(0)
 
     # -u 和 -f 选项二选一
@@ -75,9 +71,6 @@ if __name__ == '__main__':
         parser.print_help()
         print('\n\n[*] option -u or -f must be set')
         exit(1)
-
-    # 脚本相对目录
-    script_rel_dir = os.path.dirname(sys.argv[0])
 
     # 解析配置文件
     status = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
