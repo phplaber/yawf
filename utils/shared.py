@@ -26,3 +26,5 @@ class Shared:
     direct_use_payload_flag = {'params': {}, 'data': False}
 
     content_type = None
+
+    req_pool = None

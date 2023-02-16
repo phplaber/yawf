@@ -51,6 +51,18 @@ def check_file(filename):
 
     return valid
 
+def init_requests_pool(scheme):
+    """
+    初始化请求连接池
+    减少每次请求时建立 TCP 连接、TLS 握手等操作的开销，提高请求的效率
+    """
+
+    pool = requests.Session()
+    adapter = requests.adapters.HTTPAdapter()
+    pool.mount('{}://'.format(scheme), adapter)
+
+    Shared.req_pool = pool
+
 def send_request(request, require_response_header=False):
     """
     发送 HTTP 请求
@@ -75,7 +87,7 @@ def send_request(request, require_response_header=False):
         elif request['auth']['auth_type'] == 'NTLM':
             auth = HttpNtlmAuth(cred[0], cred[1])
     try:    
-        rsp = requests.request(request['method'], request['url'], 
+        rsp = Shared.req_pool.request(request['method'], request['url'], 
             params=request['params'],
             headers=request['headers'], 
             cookies=request['cookies'], 

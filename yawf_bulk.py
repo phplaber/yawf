@@ -10,7 +10,7 @@ import copy
 import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, init_requests_pool
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, THREADS_NUM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
@@ -111,7 +111,7 @@ if __name__ == '__main__':
             if scheme.lower() not in ['http', 'https']:
                 print(errmsg('scheme_is_invalid'))
                 continue
-            
+
             request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
             # 查询字符串
@@ -203,6 +203,9 @@ if __name__ == '__main__':
                 continue
             
             Shared.requests = requests
+
+            # 初始化请求连接池
+            init_requests_pool(scheme.lower())
 
             # 基准请求
             Shared.base_response = send_request(base_request, True)
