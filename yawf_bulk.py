@@ -237,6 +237,6 @@ if __name__ == '__main__':
 
     # 关闭 webdriver
     if Shared.web_driver:
-        Shared.web_driver.close()
+        Shared.web_driver.quit()
 
     print("\n\n[+] Fuzz finished, {} urls scanned in {} seconds.".format(num, int(time.time()) - start_time))

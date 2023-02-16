@@ -488,7 +488,7 @@ if __name__ == '__main__':
 
     # 关闭 webdriver
     if Shared.web_driver:
-        Shared.web_driver.close()
+        Shared.web_driver.quit()
 
     # 记录漏洞
     if Shared.fuzz_results:
