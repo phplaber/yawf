@@ -156,7 +156,7 @@ def get_content_type(content):
 
     type = None
     
-    if not content.replace('.','',1).isdigit():
+    if not content.replace('.','',1).isdigit() and content not in ['true', 'false']:
         try:
             json.loads(content)
             type = 'json'
