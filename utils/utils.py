@@ -33,7 +33,8 @@ def errmsg(token):
         'base_request_failed': '[*] base request failed, status code is: {}',
         'data_is_invalid': '[*] post data is invalid, support form/json/xml data type',
         'method_is_invalid': '[*] Only support GET and POST method',
-        'cred_is_invalid': '[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"'
+        'cred_is_invalid': '[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"',
+        'scheme_is_invalid': '[*] Only support http(s) scheme',
     }
 
     return msg.get(token, '')

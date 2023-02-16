@@ -106,6 +106,12 @@ if __name__ == '__main__':
             
             # URL
             o = urlparse(unquote(url))
+            scheme = o.scheme
+            # 只支持检测 HTTP 服务
+            if scheme.lower() not in ['http', 'https']:
+                print(errmsg('scheme_is_invalid'))
+                continue
+            
             request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
             # 查询字符串

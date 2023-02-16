@@ -118,6 +118,7 @@ if __name__ == '__main__':
     if options.url:
         # URL
         o = urlparse(unquote(options.url))
+        scheme = o.scheme
         request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
         if options.method:
@@ -166,6 +167,11 @@ if __name__ == '__main__':
 
         request['headers'] = headers
 
+    # 只支持检测 HTTP 服务
+    if scheme.lower() not in ['http', 'https']:
+        print(errmsg('scheme_is_invalid'))
+        exit(1)
+    
     # 查询字符串
     qs = parse_qsl(o.query)
     if qs:
