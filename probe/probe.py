@@ -34,7 +34,7 @@ class Dnslog:
     def __init__(self):
         self.proxies = Shared.base_response.get('request').get('proxies')
         self.timeout = Shared.base_response.get('request').get('timeout')
-        self.req_session = requests.session()
+        self.req_session = requests.Session()
         req = self.req_session.get("http://www.dnslog.cn/getdomain.php", 
             proxies=self.proxies, 
             timeout=self.timeout
