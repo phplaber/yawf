@@ -185,18 +185,20 @@ class Probe:
         is_html = True
         invalid_mark_point = False
         test_rsp = send_request(self.gen_payload_request(get_random_str(10)))
-        if test_rsp.get('response'):
-            # 如果响应体为 HTML，则比较文本内容，否则，直接比较
-            if 'text/html' in Shared.base_response.get('headers').get('content-type'):
-                base_rsp_body = BeautifulSoup(self.base_response, "html.parser").get_text()
-                test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
-            else:
-                is_html = False
-                base_rsp_body = self.base_response
-                test_rsp_body = test_rsp.get('response')
+        if test_rsp.get('response') is None:
+            return 
 
-            if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
-                invalid_mark_point = True
+        # 如果响应体为 HTML，则比较文本内容，否则，直接比较
+        if 'text/html' in Shared.base_response.get('headers').get('content-type'):
+            base_rsp_body = BeautifulSoup(self.base_response, "html.parser").get_text()
+            test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
+        else:
+            is_html = False
+            base_rsp_body = self.base_response
+            test_rsp_body = test_rsp.get('response')
+
+        if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
+            invalid_mark_point = True
 
         if invalid_mark_point \
                 or (self.content_type == 'xml' and MARK_POINT in self.request['data']):

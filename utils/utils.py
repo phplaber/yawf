@@ -58,7 +58,7 @@ def init_requests_pool(scheme):
     """
 
     pool = requests.Session()
-    adapter = requests.adapters.HTTPAdapter()
+    adapter = requests.adapters.HTTPAdapter(max_retries=3)
     pool.mount('{}://'.format(scheme), adapter)
 
     Shared.req_pool = pool
