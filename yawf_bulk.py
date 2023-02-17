@@ -71,10 +71,6 @@ if __name__ == '__main__':
     for probe in Shared.probes:
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
 
-    # 初始化 webdriver（headless Chrome）实例
-    if any(p in 'xss' for p in Shared.probes):
-        Shared.web_driver = Webdriver().driver
-
     num = 0
     with open(options.urls, 'r', encoding='utf-8') as f:
         for url in f:
@@ -225,8 +221,16 @@ if __name__ == '__main__':
             else:
                 threads_num = THREADS_NUM
 
+            # 初始化 webdriver（headless Chrome）实例
+            if any(p in 'xss' for p in Shared.probes):
+                Shared.web_driver = Webdriver().driver
+
             # 开始检测
             Fuzzer(threads_num)
+
+            # 关闭 webdriver
+            if Shared.web_driver:
+                Shared.web_driver.quit()
 
             # 记录漏洞
             if Shared.fuzz_results:
@@ -243,9 +247,5 @@ if __name__ == '__main__':
             print('\n -------------------------------------------- \n')
 
             time.sleep(0.2)
-
-    # 关闭 webdriver
-    if Shared.web_driver:
-        Shared.web_driver.quit()
 
     print("\n\n[+] Fuzz finished, {} urls scanned in {} seconds.".format(num, int(time.time()) - start_time))
