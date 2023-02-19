@@ -10,7 +10,7 @@ import copy
 import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, init_requests_pool
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, init_requests_pool, get_default_headers
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, THREADS_NUM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
@@ -58,6 +58,9 @@ if __name__ == '__main__':
     timeout_conf = Shared.conf['request_timeout']
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
+    # 获取 requests 默认请求头
+    default_headers = get_default_headers()
+
     # 获取探针配置
     if Shared.conf['probe_customize']:
         Shared.probes = [probe.strip() for probe in Shared.conf['probe_customize'].split(',')]
@@ -90,7 +93,7 @@ if __name__ == '__main__':
                 'params': {},
                 'proxies': proxies,
                 'cookies': {},
-                'headers': {},
+                'headers': default_headers,
                 'data': {},
                 'auth': {},
                 'timeout': timeout

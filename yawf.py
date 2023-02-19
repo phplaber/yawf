@@ -13,7 +13,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf, init_requests_pool
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf, init_requests_pool, get_default_headers
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
@@ -92,6 +92,9 @@ if __name__ == '__main__':
     timeout_conf = Shared.conf['request_timeout']
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
+    # 获取 requests 默认请求头
+    default_headers = get_default_headers()
+
     requests = []
     # 基础请求对象
     request = {
@@ -100,7 +103,7 @@ if __name__ == '__main__':
         'params': {},
         'proxies': proxies,
         'cookies': {},
-        'headers': {},
+        'headers': default_headers,
         'data': {},
         'auth': {},
         'timeout': timeout
@@ -112,7 +115,6 @@ if __name__ == '__main__':
     # POST Body 内容类型
     content_type = None
     
-    o = None
     data = None
     cookies = None
     if options.url:
@@ -143,29 +145,27 @@ if __name__ == '__main__':
             print(errmsg('file_is_invalid'))
             exit(1)
         
-        scheme_conf = Shared.conf['request_scheme']
-        scheme = scheme_conf if scheme_conf else REQ_SCHEME
-        
         with open(options.requestfile, "r") as f:
             contents = f.read()
         misc, str_headers = contents.split('\n', 1)
         misc_list = misc.split(' ')
         message = email.message_from_file(StringIO(str_headers))
-        headers = {}
+        host_and_cookie = {}
         for k, v in dict(message.items()).items():
-            headers[k.lower()] = v
+            kl = k.lower()
+            if kl not in ['host', 'cookie']:
+                request['headers'][kl] = v
+            else:
+                host_and_cookie[kl] = v
 
+        scheme_conf = Shared.conf['request_scheme']
+        scheme = scheme_conf if scheme_conf else REQ_SCHEME
+        
         o = urlparse(unquote(misc_list[1]))
-        request['url'] = scheme + '://' + headers['host'] + o._replace(fragment="")._replace(query="").geturl()
-        del headers['host']
-
+        request['url'] = scheme + '://' + host_and_cookie['host'] + o._replace(fragment="")._replace(query="").geturl()
         request['method'] = misc_list[0].upper()
         data = contents.split('\n\n')[1]
-        cookies = headers.get('cookie')
-        if cookies is not None:
-            del headers['cookie']
-
-        request['headers'] = headers
+        cookies = host_and_cookie.get('cookie')
 
     # 只支持检测 HTTP 服务
     if scheme.lower() not in ['http', 'https']:

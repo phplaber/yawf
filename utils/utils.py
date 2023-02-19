@@ -51,6 +51,17 @@ def check_file(filename):
 
     return valid
 
+def get_default_headers():
+    """
+    获取默认请求头
+    返回区分大小写的常规 dict 类型，且请求头名称为小写
+    """
+
+    case_sensitive_dict = requests.utils.default_headers()
+    normal_plain_dict = dict((k.lower(), v) for k, v in case_sensitive_dict.items())
+
+    return normal_plain_dict
+
 def init_requests_pool(scheme):
     """
     初始化请求连接池
