@@ -449,26 +449,15 @@ class Probe:
         vulnerable = False
         try:
             dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
-            # 获取参数值为空时的响应体
-            empty_rsp = send_request(self.gen_payload_request(''))
             for payload in Shared.probes_payload['ssrf']:
-                if 'dnslog' not in payload:
-                    # 有回显
-                    payload_request = self.gen_payload_request(payload)
-                    poc_rsp = send_request(payload_request)
+                # 无回显
+                payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
+                _ = send_request(payload_request)
+                time.sleep(1)
 
-                    if poc_rsp.get('response') and 'Connection refused' not in poc_rsp.get('response') \
-                        and poc_rsp.get('response') != empty_rsp.get('response'):
-                        vulnerable = True
-                else:
-                    # 无回显
-                    payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
-                    _ = send_request(payload_request)
-                    time.sleep(1)
-
-                    dnslog_records = self.dnslog.pull_logs()
-                    if dnslog_records and dnslog_domain in str(dnslog_records):
-                        vulnerable = True
+                dnslog_records = self.dnslog.pull_logs()
+                if dnslog_records and dnslog_domain in str(dnslog_records):
+                    vulnerable = True
 
                 if vulnerable:
                     print("[+] Found SSRF!")

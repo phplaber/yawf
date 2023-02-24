@@ -249,6 +249,6 @@ if __name__ == '__main__':
 
             print('\n -------------------------------------------- \n')
 
-            time.sleep(0.2)
+            time.sleep(1)
 
     print("\n\n[+] Fuzz finished, {} urls scanned in {} seconds.".format(num, int(time.time()) - start_time))
