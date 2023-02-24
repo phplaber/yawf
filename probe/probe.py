@@ -278,7 +278,7 @@ class Probe:
             for payload in Shared.probes_payload['dt']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/boot.ini') \
-                    if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows' \
+                    if Shared.platform == 'windows' \
                     else payload.replace('filepath', '/etc/passwd')
                 
                 payload_request = self.gen_payload_request(payload)
@@ -403,7 +403,7 @@ class Probe:
             for payload in Shared.probes_payload['xxe']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/c:/boot.ini') \
-                    if Shared.conf['misc_platform'] and Shared.conf['misc_platform'].lower() == 'windows' \
+                    if Shared.platform == 'windows' \
                     else payload.replace('filepath', '/etc/passwd')
                 # 将 payload 中的占位符 dnslog 替换为 dnslog 子域名
                 payload = payload.replace('dnslog', dnslog_domain)

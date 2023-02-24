@@ -29,7 +29,7 @@ def errmsg(token):
         'url_is_invalid': '[*] URL does not appear to be dynamic',
         'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
         'data_is_empty': '[*] HTTP post data is empty',
-        'config_is_invalid': '[*] parse config file error: {}',
+        'config_is_invalid': '[*] parse config file error',
         'base_request_failed': '[*] base request failed, status code is: {}',
         'data_is_invalid': '[*] post data is invalid, support form/json/xml data type',
         'method_is_invalid': '[*] Only support GET and POST method',
@@ -126,24 +126,21 @@ def send_request(request, require_response_header=False):
 def parse_conf(file):
     """
     解析配置文件，将配置数据存储在内存中
-    通过 Shared.conf[section_option] 获取配置项的值
+    通过 conf_dict[section_option] 获取配置项的值
     """
 
-    status = None
+    conf_dict = {}
 
-    if check_file(file):
-        try:
-            conf = ConfigParser()
-            conf.read(file, encoding='utf-8')
-            for section in conf.sections():
-                for option in conf.options(section):
-                    Shared.conf['{}_{}'.format(section, option)] = conf.get(section, option)
-        except Exception as e:
-            status = str(e)
-    else:
-        status = 'file not exist or unable to read'
+    try:
+        conf = ConfigParser()
+        conf.read(file, encoding='utf-8')
+        for section in conf.sections():
+            for option in conf.options(section):
+                conf_dict['{}_{}'.format(section, option)] = conf.get(section, option)
+    except Exception:
+        pass
 
-    return status
+    return conf_dict
 
 def parse_payload(file):
     """
@@ -152,9 +149,8 @@ def parse_payload(file):
 
     payloads = []
 
-    if check_file(file):
-        with open(file) as f:
-            payloads = [payload.strip() for payload in f if not payload.startswith('#') and payload != '\n']
+    with open(file) as f:
+        payloads = [payload.strip() for payload in f if not payload.startswith('#') and payload != '\n']
     
     return payloads
 

@@ -15,7 +15,7 @@ class Shared:
 
     probes = []
 
-    conf = {}
+    platform = None
 
     probes_payload = {}
 

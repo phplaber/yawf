@@ -14,7 +14,7 @@ from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
 from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf, init_requests_pool, get_default_headers
-from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM
+from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
 
@@ -73,23 +73,23 @@ if __name__ == '__main__':
         exit(1)
 
     # 解析配置文件
-    status = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
-    if status is not None:
-        print(errmsg('config_is_invalid').format(status))
+    conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
+    if not conf_dict:
+        print(errmsg('config_is_invalid'))
         exit(1)
 
     # 自动标记忽略的参数列表
-    ignore_params = [ip.strip() for ip in Shared.conf['misc_ignore_params'].split(',')]
+    ignore_params = [ip.strip() for ip in conf_dict['misc_ignore_params'].split(',')]
 
     # dt 和 ssrf 探针自动标记检测的参数列表（包含匹配）
-    dt_and_ssrf_detect_params = [dp.strip() for dp in Shared.conf['probe_dt_and_ssrf_detect_flag'].split(',')]
+    dt_and_ssrf_detect_params = [dp.strip() for dp in conf_dict['probe_dt_and_ssrf_detect_flag'].split(',')]
     
     # 网络代理
-    proxy_conf = Shared.conf['request_proxy']
+    proxy_conf = conf_dict['request_proxy']
     proxies = {'http': proxy_conf, 'https': proxy_conf} if proxy_conf else {}
     
     # 请求超时时间（秒）
-    timeout_conf = Shared.conf['request_timeout']
+    timeout_conf = conf_dict['request_timeout']
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
     # 获取 requests 默认请求头
@@ -158,7 +158,7 @@ if __name__ == '__main__':
             else:
                 host_and_cookie[kl] = v
 
-        scheme_conf = Shared.conf['request_scheme']
+        scheme_conf = conf_dict['request_scheme']
         scheme = scheme_conf if scheme_conf else REQ_SCHEME
         
         o = urlparse(unquote(misc_list[1]))
@@ -240,7 +240,7 @@ if __name__ == '__main__':
                 del request['headers']['authorization']
 
     # 指定 User-Agent
-    custom_ua = Shared.conf['request_user_agent']
+    custom_ua = conf_dict['request_user_agent']
     request['headers']['user-agent'] = custom_ua if custom_ua else UA
     # 指定 Content-Type
     if request['method'] == 'POST':
@@ -253,8 +253,9 @@ if __name__ == '__main__':
         else:
             request['headers']['content-type'] = 'text/plain; charset=utf-8'
 
-    # 共享 content_type 变量
+    # 全局共享变量
     Shared.content_type = content_type
+    Shared.platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
     
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
@@ -442,7 +443,7 @@ if __name__ == '__main__':
 
     # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
     # 如果部署了 Waf，则中断检测。
-    if Shared.conf['misc_enable_waf_detecter'].strip() == 'on':
+    if conf_dict['misc_enable_waf_detecter'].strip() == 'on':
         detect_request = copy.deepcopy(base_request)
         detect_payloads = [
             '<img/src=1 onerror=alert(1)>',
@@ -457,10 +458,10 @@ if __name__ == '__main__':
                 exit(0)
 
     # 获取探针配置
-    if Shared.conf['probe_customize']:
-        Shared.probes = [probe.strip() for probe in Shared.conf['probe_customize'].split(',')]
-    elif Shared.conf['probe_default']:
-        Shared.probes = [probe.strip() for probe in Shared.conf['probe_default'].split(',')]
+    if conf_dict['probe_customize']:
+        Shared.probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
+    elif conf_dict['probe_default']:
+        Shared.probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
     else:
         Shared.probes.append(PROBE)
 
@@ -472,8 +473,8 @@ if __name__ == '__main__':
     # 获取线程数
     if len(Shared.requests) <= THREADS_NUM:
         threads_num = len(Shared.requests)
-    elif Shared.conf['misc_threads_num'] and int(Shared.conf['misc_threads_num']) > 0:
-        threads_num = int(Shared.conf['misc_threads_num'])
+    elif conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0:
+        threads_num = int(conf_dict['misc_threads_num'])
     else:
         threads_num = THREADS_NUM
 

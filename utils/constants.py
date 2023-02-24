@@ -29,3 +29,5 @@ REQ_TIMEOUT = 30.0
 REQ_SCHEME = 'https'
 
 PROBE = 'xss'
+
+PLATFORM = 'linux'
