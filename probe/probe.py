@@ -9,7 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoAlertPresentException
 from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
@@ -26,6 +26,8 @@ class Webdriver:
         options.add_argument('--no-sandbox')
         # 在内存资源有限的环境中运行需要
         options.add_argument('--disable-dev-shm-usage')
+        # 禁用扩展程序
+        options.add_argument('--disable-extensions')
         # 忽略 DevTools 监听 ws 信息
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         self.driver = webdriver.Chrome(options=options)
@@ -55,7 +57,6 @@ class Probe:
         self.base_request = Shared.base_response.get('request')
         self.base_response = Shared.base_response.get('response')
         self.dnslog = Shared.dnslog
-        self.web_driver = Shared.web_driver
         self.content_type = Shared.content_type
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
@@ -124,8 +125,10 @@ class Probe:
             return 
         
         vulnerable = False
+        web_driver = Shared.web_driver
         try:
             for payload in Shared.probes_payload['xss']:
+                no_alert = False
                 # 使用 AngularJS payload，页面需使用 AngularJS 指令
                 if '{{' in payload and 'ng-app' not in self.base_response:
                     continue
@@ -136,27 +139,32 @@ class Probe:
                 # 添加 cookie
                 if payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
-                        self.web_driver.add_cookie({'name': n, 'value': v})
+                        web_driver.add_cookie({'name': n, 'value': v})
 
                 # 添加额外的 header
-                self.web_driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
+                web_driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
                 
                 # 加载页面
-                self.web_driver.get(url)
+                web_driver.get(url)
                 if '[UI]' not in payload:
                     # 不需要用户交互就能弹框
                     try:
                         # 在切换执行 alert 前，等待 3 秒
-                        WebDriverWait(self.web_driver, 3).until (EC.alert_is_present())
-                        alert = self.web_driver.switch_to.alert
-                        alert.accept()
-                        vulnerable = True
+                        WebDriverWait(web_driver, 3).until (EC.alert_is_present())
+                        try:
+                            alert = web_driver.switch_to.alert
+                            alert.accept()
+                        except NoAlertPresentException:
+                            no_alert = True
+                        
+                        if not no_alert:
+                            vulnerable = True
                     except TimeoutException:
                         pass
                 else:
                     # 需要用户交互才能弹框
                     try:
-                        links = self.web_driver.find_elements(By.TAG_NAME, "a")
+                        links = web_driver.find_elements(By.TAG_NAME, "a")
                         for link in links:
                             if link.get_attribute("href") == payload.replace('[UI]', ''):
                                 vulnerable = True
