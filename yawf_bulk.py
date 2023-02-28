@@ -170,23 +170,24 @@ if __name__ == '__main__':
                         continue
                     if get_content_type(val) == 'json':
                         # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
-                        mark_request['url_json_flag'] = True
                         val_dict = json.loads(val)
-                        base_val_dict = copy.deepcopy(val_dict)
-                        for k, v in val_dict.items():
-                            # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
-                            if k in ignore_params or (type(v) is list or type(v) is dict):
-                                continue
-                            for detect_param in dt_and_ssrf_detect_params:
-                                if detect_param in k.lower():
-                                    mark_request['dt_and_ssrf_detect_flag'] = True
-                                    break
-                            base_val_dict[k] = MARK_POINT
-                            mark_request['params'][par] = json.dumps(base_val_dict)
-                            requests.append(copy.deepcopy(mark_request))
-                            base_val_dict[k] = v
-                            mark_request['dt_and_ssrf_detect_flag'] = False
-                        mark_request['url_json_flag'] = False
+                        if type(val_dict) is dict:
+                            mark_request['url_json_flag'] = True
+                            base_val_dict = copy.deepcopy(val_dict)
+                            for k, v in val_dict.items():
+                                # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
+                                if k in ignore_params or (type(v) is list or type(v) is dict):
+                                    continue
+                                for detect_param in dt_and_ssrf_detect_params:
+                                    if detect_param in k.lower():
+                                        mark_request['dt_and_ssrf_detect_flag'] = True
+                                        break
+                                base_val_dict[k] = MARK_POINT
+                                mark_request['params'][par] = json.dumps(base_val_dict)
+                                requests.append(copy.deepcopy(mark_request))
+                                base_val_dict[k] = v
+                                mark_request['dt_and_ssrf_detect_flag'] = False
+                            mark_request['url_json_flag'] = False
                     else:
                         for detect_param in dt_and_ssrf_detect_params:
                             if detect_param in par.lower():
