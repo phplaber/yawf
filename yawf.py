@@ -135,10 +135,8 @@ if __name__ == '__main__':
 
         if options.headers:
             for item in options.headers.split("\\n"):
-                kv = item.split(":", 1)
-                if len(kv) < 2:
-                    continue
-                request['headers'][kv[0].strip().lower()] = kv[1].strip()
+                name, value = item.split(":", 1)
+                request['headers'][name.strip().lower()] = value.strip()
     else:
         # HTTP 请求文件
         if not check_file(options.requestfile):
@@ -207,11 +205,9 @@ if __name__ == '__main__':
         elif content_type == 'form':
             # form data
             for item in data.split('&'):
-                kv = item.split('=', 1)
-                if len(kv) < 2:
-                    continue
-                request['data'][kv[0].strip()] = unquote(kv[1])
-                if not is_mark and MARK_POINT in kv[1]:
+                name, value = item.split('=', 1)
+                request['data'][name.strip()] = unquote(value)
+                if not is_mark and MARK_POINT in value:
                     is_mark = True
         else:
             print(errmsg('data_is_invalid'))
@@ -220,11 +216,9 @@ if __name__ == '__main__':
     # cookies
     if cookies is not None:
         for item in cookies.split(";"):
-            kv = item.split("=", 1)
-            if len(kv) < 2:
-                continue
-            request['cookies'][kv[0].strip()] = kv[1]
-            if not is_mark and MARK_POINT in kv[1]:
+            name, value = item.split("=", 1)
+            request['cookies'][name.strip()] = value
+            if not is_mark and MARK_POINT in value:
                 is_mark = True
 
     # HTTP 认证

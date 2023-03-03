@@ -123,18 +123,14 @@ if __name__ == '__main__':
             # cookies
             if options.cookies:
                 for item in options.cookies.split(";"):
-                    kv = item.split("=", 1)
-                    if len(kv) < 2:
-                        continue
-                    request['cookies'][kv[0].strip()] = kv[1]
+                    name, value = item.split("=", 1)
+                    request['cookies'][name.strip()] = value
 
             # 请求头
             if options.headers:
                 for item in options.headers.split("\\n"):
-                    kv = item.split(":", 1)
-                    if len(kv) < 2:
-                        continue
-                    request['headers'][kv[0].strip().lower()] = kv[1].strip()
+                    name, value = item.split(":", 1)
+                    request['headers'][name.strip().lower()] = value.strip()
 
             # HTTP 认证
             if options.auth_type and options.auth_cred:
