@@ -7,6 +7,8 @@ import re
 import time
 import json
 import copy
+import shutil
+import atexit
 import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from core.fuzzer import Fuzzer
@@ -74,8 +76,17 @@ if __name__ == '__main__':
     for probe in Shared.probes:
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
 
+    # 创建临时 urls 文件，检测完后删除
+    temp_urls_file = os.path.join(script_rel_dir, 'temp_urls.txt')
+    shutil.copyfile(options.urls, temp_urls_file)
+
+    def exit_handler():
+        os.remove(temp_urls_file)
+
+    atexit.register(exit_handler)
+
     num = 0
-    with open(options.urls, 'r', encoding='utf-8') as f:
+    with open(temp_urls_file, 'r', encoding='utf-8') as f:
         for url in f:
             num += 1
             url = url.rstrip()
