@@ -58,7 +58,7 @@ _____.___.  _____  __      _____________
  \/              \/      \/       \/    
 
 Automated Web Vulnerability Fuzzer      
-v2.3                               
+v2.4                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
@@ -70,6 +70,8 @@ Options:
   -m METHOD             HTTP method, default: GET (e.g. POST)
   -d DATA               Data string to be sent through POST (e.g. "id=1")
   -c COOKIES            HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
+  --cookiejar=COOKIEJAR
+                        File containing cookies in Netscape format
   --headers=HEADERS     Extra headers (e.g. "Accept-Language: fr\nETag: 123")
   --auth-type=AUTH_TYPE
                         HTTP authentication type (Basic, Digest, NTLM)
