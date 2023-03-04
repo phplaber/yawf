@@ -17,6 +17,7 @@ from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payl
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
+from http.cookiejar import MozillaCookieJar
 
 banner = "\
 _____.___.  _____  __      _____________\n\
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     parser.add_option("-m", dest="method", help="HTTP method, default: GET (e.g. POST)")
     parser.add_option("-d", dest="data", help="Data string to be sent through POST (e.g. \"id=1\")")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
+    parser.add_option("--cookiejar", dest="cookiejar", help="File containing cookies in Netscape format")
     parser.add_option("--headers", dest="headers", help="Extra headers (e.g. \"Accept-Language: fr\\nETag: 123\")")
     parser.add_option("--auth-type", dest="auth_type", help="HTTP authentication type (Basic, Digest, NTLM)")
     parser.add_option("--auth-cred", dest="auth_cred", help="HTTP authentication credentials (user:pass)")
@@ -132,6 +134,10 @@ if __name__ == '__main__':
 
         if options.cookies:
             cookies = options.cookies
+        elif options.cookiejar and check_file(options.cookiejar):
+            cj = MozillaCookieJar()
+            cj.load(options.cookiejar, ignore_discard=True)
+            Shared.cookiejar = cj
 
         if options.headers:
             for item in options.headers.split("\\n"):

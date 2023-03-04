@@ -16,6 +16,7 @@ from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payl
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
+from http.cookiejar import MozillaCookieJar
 
 if __name__ == '__main__':
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option("-l", dest="urls", help="List of target urls")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
+    parser.add_option("--cookiejar", dest="cookiejar", help="File containing cookies in Netscape format")
     parser.add_option("--headers", dest="headers", help="Extra headers (e.g. \"Accept-Language: fr\\nETag: 123\")")
     parser.add_option("--auth-type", dest="auth_type", help="HTTP authentication type (Basic, Digest, NTLM)")
     parser.add_option("--auth-cred", dest="auth_cred", help="HTTP authentication credentials (user:pass)")
@@ -75,6 +77,12 @@ if __name__ == '__main__':
     payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
     for probe in Shared.probes:
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
+
+    # 从文件批量加载 Cookie
+    cj = None
+    if options.cookiejar and check_file(options.cookiejar):
+        cj = MozillaCookieJar()
+        cj.load(options.cookiejar, ignore_discard=True)
 
     # 创建临时 urls 文件，检测完后删除
     temp_urls_file = os.path.join(script_rel_dir, 'temp_urls.txt')
@@ -136,6 +144,8 @@ if __name__ == '__main__':
                 for item in options.cookies.split(";"):
                     name, value = item.split("=", 1)
                     request['cookies'][name.strip()] = value
+            elif options.cookiejar:
+                Shared.cookiejar = cj
 
             # 请求头
             if options.headers:

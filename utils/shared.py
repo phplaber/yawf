@@ -28,3 +28,5 @@ class Shared:
     content_type = None
 
     req_pool = None
+
+    cookiejar = None
