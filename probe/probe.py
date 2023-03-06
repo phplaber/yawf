@@ -137,8 +137,20 @@ class Probe:
                 
                 query_list = ['{}={}'.format(par, val) for par, val in payload_request['params'].items()] if payload_request['params'] else []
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
+                
                 # 添加 cookie
-                if payload_request['cookies']:
+                if Shared.cookiejar is not None:
+                    for cookie in Shared.cookiejar:
+                        web_driver.add_cookie({
+                            'name': cookie.name, 
+                            'value': cookie.value, 
+                            'domain': cookie.domain, 
+                            'path': cookie.path, 
+                            'secure': cookie.secure, 
+                            'domain_specified': cookie.domain_specified, 
+                            'expires': cookie.expires
+                        })
+                elif payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
                         web_driver.add_cookie({'name': n, 'value': v})
 
@@ -146,10 +158,7 @@ class Probe:
                 web_driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
                 
                 # 加载页面
-                if Shared.cookiejar is not None:
-                    web_driver.get(url, options={'cookiejar': Shared.cookiejar})
-                else:
-                    web_driver.get(url)
+                web_driver.get(url)
                 if '[UI]' not in payload:
                     # 不需要用户交互就能弹框
                     try:
