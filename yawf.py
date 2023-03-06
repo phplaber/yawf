@@ -436,12 +436,6 @@ if __name__ == '__main__':
     # 初始化请求连接池
     init_requests_pool(scheme.lower())
 
-    # 基准请求
-    Shared.base_response = send_request(base_request, True)
-    if Shared.base_response.get('status') != 200:
-        print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
-        exit(1)
-
     # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
     # 如果部署了 Waf，则中断检测。
     if conf_dict['misc_enable_waf_detecter'].strip() == 'on':
@@ -457,6 +451,12 @@ if __name__ == '__main__':
             if what_waf:
                 print("[+] Found Waf: {}, Exit.".format(what_waf))
                 exit(0)
+
+    # 基准请求
+    Shared.base_response = send_request(base_request, True)
+    if Shared.base_response.get('status') != 200:
+        print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
+        exit(1)
 
     # 获取探针配置
     if conf_dict['probe_customize']:
