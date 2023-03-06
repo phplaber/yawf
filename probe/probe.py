@@ -129,6 +129,7 @@ class Probe:
         try:
             for payload in Shared.probes_payload['xss']:
                 no_alert = False
+                alert_text = ''
                 # 使用 AngularJS payload，页面需使用 AngularJS 指令
                 if '{{' in payload and 'ng-app' not in self.base_response:
                     continue
@@ -156,11 +157,12 @@ class Probe:
                         WebDriverWait(web_driver, 3).until (EC.alert_is_present())
                         try:
                             alert = web_driver.switch_to.alert
+                            alert_text = alert.text
                             alert.accept()
                         except NoAlertPresentException:
                             no_alert = True
                         
-                        if not no_alert:
+                        if not no_alert and alert_text == '1':
                             vulnerable = True
                     except TimeoutException:
                         pass
