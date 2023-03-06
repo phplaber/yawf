@@ -12,7 +12,7 @@ import atexit
 import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, init_requests_pool, get_default_headers
+from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf, init_requests_pool, get_default_headers
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
 from probe.probe import Dnslog, Webdriver
@@ -62,9 +62,6 @@ if __name__ == '__main__':
     timeout_conf = conf_dict['request_timeout']
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
-    # 获取 requests 默认请求头
-    default_headers = get_default_headers()
-
     # 获取探针配置
     if conf_dict['probe_customize']:
         Shared.probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
@@ -78,11 +75,43 @@ if __name__ == '__main__':
     for probe in Shared.probes:
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
 
-    # 从文件批量加载 Cookie
-    cj = None
-    if options.cookiejar and check_file(options.cookiejar):
+    # cookies
+    cookies = {}
+    if options.cookies:
+        for item in options.cookies.split(";"):
+            name, value = item.split("=", 1)
+            cookies[name.strip()] = value
+    elif options.cookiejar and check_file(options.cookiejar):
         cj = MozillaCookieJar()
         cj.load(options.cookiejar, ignore_discard=True)
+        Shared.cookiejar = cj
+
+    # 请求头
+    headers = get_default_headers()
+    if options.headers:
+        for item in options.headers.split("\\n"):
+            name, value = item.split(":", 1)
+            headers[name.strip().lower()] = value.strip()
+
+    # HTTP 认证
+    auth = {}
+    if options.auth_type and options.auth_cred:
+        if options.auth_type in ['Basic', 'Digest', 'NTLM'] and ':' in options.auth_cred:
+            if options.auth_type == 'NTLM' and re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred) is None:
+                print(errmsg('cred_is_invalid'))
+                exit(1)
+            auth['auth_type'] = options.auth_type
+            auth['auth_cred'] = options.auth_cred
+            # 删除认证请求头 Authorization
+            if 'authorization' in headers:
+                del headers['authorization']
+
+    # 指定 User-Agent
+    custom_ua = conf_dict['request_user_agent']
+    headers['user-agent'] = custom_ua if custom_ua else UA
+
+    # 全局共享变量
+    Shared.platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
 
     # 创建临时 urls 文件，检测完后删除
     temp_urls_file = os.path.join(script_rel_dir, 'temp_urls.txt')
@@ -93,7 +122,22 @@ if __name__ == '__main__':
 
     atexit.register(exit_handler)
 
+    # 初始请求对象
+    init_request = {
+        'url': None,
+        'method': 'GET',
+        'params': {},
+        'proxies': proxies,
+        'cookies': cookies,
+        'headers': headers,
+        'data': {},
+        'auth': auth,
+        'timeout': timeout
+    }
+
     num = 0
+    detect_waf_done = False
+    # 遍历检测 url
     with open(temp_urls_file, 'r', encoding='utf-8') as f:
         for url in f:
             num += 1
@@ -105,22 +149,10 @@ if __name__ == '__main__':
             Shared.fuzz_results = []
 
             requests = []
-            # 基础请求对象
-            request = {
-                'url': None,
-                'method': 'GET',
-                'params': {},
-                'proxies': proxies,
-                'cookies': {},
-                'headers': default_headers,
-                'data': {},
-                'auth': {},
-                'timeout': timeout
-            }
+            request = copy.deepcopy(init_request)
+            
             # 动态 url 状态位
             is_dynamic_url = False
-            # POST Body 内容类型
-            content_type = None
             
             # URL
             o = urlparse(unquote(url))
@@ -139,50 +171,40 @@ if __name__ == '__main__':
                 for par, val in qs:
                     request['params'][par]=val
 
-            # cookies
-            if options.cookies:
-                for item in options.cookies.split(";"):
-                    name, value = item.split("=", 1)
-                    request['cookies'][name.strip()] = value
-            elif options.cookiejar:
-                Shared.cookiejar = cj
+            # 初始化请求连接池
+            init_requests_pool(scheme.lower())
 
-            # 请求头
-            if options.headers:
-                for item in options.headers.split("\\n"):
-                    name, value = item.split(":", 1)
-                    request['headers'][name.strip().lower()] = value.strip()
+            # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
+            # 如果部署了 Waf，则中断检测。
+            if conf_dict['misc_enable_waf_detecter'].strip() == 'on' and not detect_waf_done:
+                detect_waf_done = True
+                detect_request = copy.deepcopy(request)
+                detect_payloads = [
+                    '<img/src=1 onerror=alert(1)>',
+                    '\' and \'a\'=\'a'
+                ]
 
-            # HTTP 认证
-            if options.auth_type and options.auth_cred:
-                if options.auth_type in ['Basic', 'Digest', 'NTLM'] and ':' in options.auth_cred:
-                    if options.auth_type == 'NTLM' and re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred) is None:
-                        print(errmsg('cred_is_invalid'))
-                        continue
-                    request['auth']['auth_type'] = options.auth_type
-                    request['auth']['auth_cred'] = options.auth_cred
-                    # 删除认证请求头 Authorization
-                    if 'authorization' in request['headers']:
-                        del request['headers']['authorization']
+                for payload in detect_payloads:
+                    detect_request['params']['ispayload'] = payload
+                    what_waf = detect_waf(send_request(detect_request, True))
+                    if what_waf:
+                        print("[+] Found Waf: {}, Exit.".format(what_waf))
+                        exit(0)
 
-            # 指定 User-Agent
-            custom_ua = conf_dict['request_user_agent']
-            request['headers']['user-agent'] = custom_ua if custom_ua else UA
-
-            # 全局共享变量
-            Shared.content_type = content_type
-            Shared.platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
-
-            base_request = request
+            # 基准请求
+            Shared.base_response = send_request(request, True)
+            if Shared.base_response.get('status') != 200:
+                print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
+                continue
 
             # 在查询字符串处自动标记
             # 构造全部 request 对象（每个标记点对应一个对象）
-            mark_request = copy.deepcopy(base_request)
+            mark_request = copy.deepcopy(request)
             mark_request['url_json_flag'] = False
             mark_request['dt_and_ssrf_detect_flag'] = False
 
             if is_dynamic_url:
-                for par, val in base_request['params'].items():
+                for par, val in request['params'].items():
                     if par in ignore_params:
                         continue
                     if get_content_type(val) == 'json':
@@ -213,7 +235,7 @@ if __name__ == '__main__':
                         mark_request['params'][par] = MARK_POINT
                         requests.append(copy.deepcopy(mark_request))
                         mark_request['dt_and_ssrf_detect_flag'] = False
-                    mark_request['params'][par] = base_request['params'][par]
+                    mark_request['params'][par] = request['params'][par]
             
             # request 对象列表
             if not requests:
@@ -221,15 +243,6 @@ if __name__ == '__main__':
                 continue
             
             Shared.requests = requests
-
-            # 初始化请求连接池
-            init_requests_pool(scheme.lower())
-
-            # 基准请求
-            Shared.base_response = send_request(base_request, True)
-            if Shared.base_response.get('status') != 200:
-                print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
-                continue
 
             # 初始化 dnslog 实例
             if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
