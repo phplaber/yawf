@@ -145,7 +145,10 @@ class Probe:
                 web_driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
                 
                 # 加载页面
-                web_driver.get(url)
+                if Shared.cookiejar is not None:
+                    web_driver.get(url, options={'cookiejar': Shared.cookiejar})
+                else:
+                    web_driver.get(url)
                 if '[UI]' not in payload:
                     # 不需要用户交互就能弹框
                     try:
