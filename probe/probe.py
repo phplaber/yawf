@@ -140,16 +140,8 @@ class Probe:
                 
                 # 添加 cookie
                 if Shared.cookiejar is not None:
-                    for cookie in Shared.cookiejar:
-                        web_driver.add_cookie({
-                            'name': cookie.name, 
-                            'value': cookie.value, 
-                            'domain': cookie.domain, 
-                            'path': cookie.path, 
-                            'secure': cookie.secure, 
-                            'domain_specified': cookie.domain_specified, 
-                            'expires': cookie.expires
-                        })
+                    # TODO 从 cookiejar 添加 cookie
+                    pass
                 elif payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
                         web_driver.add_cookie({'name': n, 'value': v})
