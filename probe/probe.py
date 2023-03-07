@@ -155,7 +155,7 @@ class Probe:
                     # 不需要用户交互就能弹框
                     try:
                         # 在切换执行 alert 前，等待 3 秒
-                        WebDriverWait(web_driver, 3).until (EC.alert_is_present())
+                        WebDriverWait(web_driver, 3).until(EC.alert_is_present())
                         try:
                             alert = web_driver.switch_to.alert
                             alert_text = alert.text
