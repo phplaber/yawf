@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     parser = optparse.OptionParser()
     parser.add_option("-u", "--url", dest="url", help="Target URL (e.g. \"http://www.target.com/page.php?id=1\")")
-    parser.add_option("-m", dest="method", help="HTTP method, default: GET (e.g. POST)")
+    parser.add_option("-m", dest="method", default="GET", help="HTTP method, default: GET (e.g. POST)")
     parser.add_option("-d", dest="data", help="Data string to be sent through POST (e.g. \"id=1\")")
     parser.add_option("-c", dest="cookies", help="HTTP Cookie header value (e.g. \"PHPSESSID=a8d127e..\")")
     parser.add_option("--cookiejar", dest="cookiejar", help="File containing cookies in Netscape format")
@@ -125,8 +125,7 @@ if __name__ == '__main__':
         scheme = o.scheme
         request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
-        if options.method:
-            request['method'] = options.method.upper()
+        request['method'] = options.method.upper()
 
         if options.data:
             request['method'] = 'POST'
