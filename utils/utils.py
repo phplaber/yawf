@@ -6,7 +6,6 @@ import requests
 import json
 import re
 from configparser import ConfigParser
-from utils.constants import *
 from utils.shared import Shared
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
