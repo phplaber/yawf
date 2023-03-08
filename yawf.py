@@ -480,7 +480,7 @@ if __name__ == '__main__':
 
     # 初始化 dnslog 实例
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
-        Shared.dnslog = Dnslog()
+        Shared.dnslog = Dnslog(proxies, timeout)
 
     # 初始化 webdriver（headless Chrome）实例
     if any(p in 'xss' for p in Shared.probes):

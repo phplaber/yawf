@@ -75,6 +75,10 @@ if __name__ == '__main__':
     for probe in Shared.probes:
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
 
+    # 初始化 dnslog 实例
+    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
+        Shared.dnslog = Dnslog(proxies, timeout)
+
     # cookies
     cookies = {}
     if options.cookies:
@@ -243,10 +247,6 @@ if __name__ == '__main__':
                 continue
             
             Shared.requests = requests
-
-            # 初始化 dnslog 实例
-            if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
-                Shared.dnslog = Dnslog()
 
             # 获取线程数
             if len(Shared.requests) <= THREADS_NUM:
