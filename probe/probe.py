@@ -332,7 +332,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
             for payload in Shared.probes_payload['fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
@@ -366,7 +366,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
             for payload in Shared.probes_payload['log4shell']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
@@ -405,7 +405,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
             for payload in Shared.probes_payload['xxe']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/c:/boot.ini') \
@@ -462,7 +462,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(5), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
             for payload in Shared.probes_payload['ssrf']:
                 # 无回显
                 payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
