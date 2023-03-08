@@ -12,8 +12,9 @@
 6.  容易扩展，探针和 Payload 文件分离；
 7.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
 8.  支持设置 HTTP 网络代理；
-9.  高度可配置化，简单配置实现定制需求；
-10. 支持批量检测（目前只支持 GET 请求）。
+9.  支持 dnslog.cn 和 ceye.io 两种带外服务；
+10. 高度可配置化，简单配置实现定制需求；
+11. 支持批量检测（目前只支持 GET 请求）。
 
 #### 探针
 
@@ -81,13 +82,15 @@ Options:
   --output-dir=OUTPUT_DIR
                         Custom output directory path
   --probe-list          List of available probes
+  --dnslog-provider=DNSLOG_PROVIDER
+                        Dnslog service provider, default: dnslog (e.g. ceye)
 ```
 
 ### 使用
 
 #### 配置
 
-根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme 和探针等。
+拷贝配置样例文件 **yawf.conf.sample**，并重命名为 **yawf.conf**。根据自身需求，修改 **yawf.conf** 配置文件中配置项，如：网络代理、scheme 和探针等。
 
 - 在 **proxy** 项中配置网络代理服务器，如：127.0.0.1:8080，在调试 payload 的时候很有用；
 
@@ -100,6 +103,8 @@ Options:
 - 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
 - 在 **dt_and_ssrf_detect_flag** 项中配置名称包含这些关键词的参数，在自动标记模式下，才会去执行 dt 和 ssrf 探针；
+
+- 在 **id** 项中配置 ceye.io 平台分配给你的 Identifier；在 **token** 项中配置 ceye.io 平台分配给你的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容；
 
 - 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除；
 

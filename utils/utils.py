@@ -24,6 +24,7 @@ def errmsg(token):
     """
     错误消息
     """
+    
     msg = {
         'url_is_invalid': '[*] URL does not appear to be dynamic',
         'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
@@ -34,6 +35,7 @@ def errmsg(token):
         'method_is_invalid': '[*] Only support GET and POST method',
         'cred_is_invalid': '[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"',
         'scheme_is_invalid': '[*] Only support http(s) scheme',
+        'dnslog_is_invalid': '[*] Only support dnslog and ceye provider',
     }
 
     return msg.get(token, '')

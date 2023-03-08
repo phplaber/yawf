@@ -16,7 +16,7 @@ from core.fuzzer import Fuzzer
 from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf, init_requests_pool, get_default_headers
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
-from probe.probe import Dnslog, Webdriver
+from probe.probe import Dnslog, Ceye, Webdriver
 from http.cookiejar import MozillaCookieJar
 
 banner = "\
@@ -54,6 +54,7 @@ if __name__ == '__main__':
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("--output-dir", dest="output_dir", help="Custom output directory path")
     parser.add_option("--probe-list", action="store_true", dest="probe_list", help="List of available probes")
+    parser.add_option("--dnslog-provider", dest="dnslog_provider", default="dnslog", help="Dnslog service provider, default: dnslog (e.g. ceye)")
     options, _ = parser.parse_args()
 
     # 脚本相对目录
@@ -72,6 +73,12 @@ if __name__ == '__main__':
     if not options.url and not options.requestfile:
         parser.print_help()
         print('\n\n[*] option -u or -f must be set')
+        exit(1)
+
+    # 校验 dnslog 服务
+    dnslog_provider = options.dnslog_provider.lower()
+    if dnslog_provider not in ['dnslog', 'ceye']:
+        print(errmsg('dnslog_is_invalid'))
         exit(1)
 
     # 解析配置文件
@@ -480,7 +487,7 @@ if __name__ == '__main__':
 
     # 初始化 dnslog 实例
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
-        Shared.dnslog = Dnslog(proxies, timeout)
+        Shared.dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
 
     # 初始化 webdriver（headless Chrome）实例
     if any(p in 'xss' for p in Shared.probes):

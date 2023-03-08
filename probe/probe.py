@@ -2,7 +2,6 @@
 
 import re
 import copy
-import time
 import json
 import requests
 from selenium import webdriver
@@ -43,13 +42,29 @@ class Dnslog:
         )
         self.domain = req.text
 
-    def pull_logs(self):
+    def pull_logs(self, filter):
         req = self.req_session.get("http://www.dnslog.cn/getrecords.php", 
             proxies=self.proxies, 
             timeout=self.timeout
         )
 
         return req.json()
+
+class Ceye:
+    def __init__(self, proxies, timeout, id, token):
+        self.proxies = proxies
+        self.timeout = timeout
+        
+        self.domain = id
+        self.token  = token
+
+    def pull_logs(self, filter):
+        req = requests.get("http://api.ceye.io/v1/records?token={}&type=dns&filter={}".format(self.token, filter), 
+            proxies=self.proxies, 
+            timeout=self.timeout
+        )
+
+        return req.json().get('data')
 
 class Probe:
     def __init__(self, request):
@@ -337,9 +352,8 @@ class Probe:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
-                time.sleep(1)
 
-                dnslog_records = self.dnslog.pull_logs()
+                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
@@ -371,9 +385,8 @@ class Probe:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
-                time.sleep(1)
 
-                dnslog_records = self.dnslog.pull_logs()
+                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
@@ -428,9 +441,8 @@ class Probe:
                 else:
                     # 无回显
                     _ = send_request(payload_request)
-                    time.sleep(1)
 
-                    dnslog_records = self.dnslog.pull_logs()
+                    dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                     if dnslog_records and dnslog_domain in str(dnslog_records):
                         vulnerable = True
 
@@ -467,9 +479,8 @@ class Probe:
                 # 无回显
                 payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
                 _ = send_request(payload_request)
-                time.sleep(1)
 
-                dnslog_records = self.dnslog.pull_logs()
+                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
