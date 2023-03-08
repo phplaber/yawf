@@ -59,7 +59,7 @@ _____.___.  _____  __      _____________
  \/              \/      \/       \/    
 
 Automated Web Vulnerability Fuzzer      
-v2.4                               
+v2.5                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
@@ -104,7 +104,7 @@ Options:
 
 - 在 **dt_and_ssrf_detect_flag** 项中配置名称包含这些关键词的参数，在自动标记模式下，才会去执行 dt 和 ssrf 探针；
 
-- 在 **id** 项中配置 ceye.io 平台分配给你的 Identifier；在 **token** 项中配置 ceye.io 平台分配给你的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容；
+- 在 **id** 项中配置 ceye.io 平台分配的 Identifier；在 **token** 项中配置 ceye.io 平台分配的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容；
 
 - 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除；
 
