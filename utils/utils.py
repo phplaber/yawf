@@ -86,7 +86,7 @@ def send_request(request, require_response_header=False):
     cookies = None
     if request['method'] == 'POST':
         if 'json' in request['headers']['content-type']:
-            json_data = request['data']
+            json_data = json.loads(request['data']) if type(request['data']) is str else request['data']
         else:
             data_data = request['data']
     if request['auth']:
