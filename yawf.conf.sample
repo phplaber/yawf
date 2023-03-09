@@ -29,10 +29,10 @@ dt_and_ssrf_detect_flag : file, path, dir, src, dest, target, redirect, folder, 
 [ceye]
 
 # Identifier
-id : Your Identifier
+id : 
 
 # API Token
-token : Your API Token
+token : 
 
 # [[杂项]]
 [misc]
