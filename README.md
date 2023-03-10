@@ -60,7 +60,7 @@ _____.___.  _____  __      _____________
  \/              \/      \/       \/    
 
 Automated Web Vulnerability Fuzzer      
-v2.5                               
+v2.6                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
