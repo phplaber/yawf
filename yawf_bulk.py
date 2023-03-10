@@ -125,7 +125,7 @@ if __name__ == '__main__':
     Shared.platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
 
     # 创建临时 urls 文件，检测完后删除
-    temp_urls_file = os.path.join(script_rel_dir, 'temp_urls.txt')
+    temp_urls_file = os.path.join(os.path.dirname(options.urls), 'temp_urls.txt')
     shutil.copyfile(options.urls, temp_urls_file)
 
     def exit_handler():
