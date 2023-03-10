@@ -48,6 +48,7 @@
 ```console
 $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
+$ cp yawf.conf.sample yawf.conf
 $ pip3 install -r requirements.txt
 $ python3 yawf.py -h
 
@@ -162,6 +163,18 @@ Upgrade-Insecure-Requests: 1
 如果已经收集了一批 URL（带查询字符串），则可以运行 ****yawf_bulk.py**** 脚本进行批量检测。最简单的，使用 **-l** 选项传入 URL 列表文件即可。批量检测脚本不支持手动标记。
 
 ![bulk](./bulk_poc.jpeg "bulk scanning")
+
+### Docker 安装和运行
+
+除了以上安装和运行方式，也支持 Docker 方式安装和运行 Yawf。使用 Docker 的方式，更加便捷，可快速搭建起运行 Yawf 的环境，包括：ChromeDriver, google-chrome, Python3 以及依赖模块。
+
+```console
+$ git clone https://github.com/phplaber/yawf.git
+$ cd yawf
+$ cp yawf.conf.sample yawf.conf
+$ docker build --no-cache -t yawf_env .
+$ docker run -it --rm -v ~/Sec/scan/:/data yawf_env yawf.py -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --output-dir=/data
+```
 
 至此，Yawf 的使用就结束了。后续就是人工介入，确认漏洞是否存在、等级，然后进入漏洞处置流程。
 
