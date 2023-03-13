@@ -42,7 +42,7 @@ class Dnslog:
         )
         self.domain = req.text
 
-    def pull_logs(self, filter):
+    def pull_logs(self, _):
         req = self.req_session.get("http://www.dnslog.cn/getrecords.php", 
             proxies=self.proxies, 
             timeout=self.timeout
