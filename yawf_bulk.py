@@ -87,10 +87,7 @@ if __name__ == '__main__':
         Shared.dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
         
     # 获取配置线程数
-    if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0:
-        threads_num = int(conf_dict['misc_threads_num'])
-    else:
-        threads_num = THREADS_NUM
+    conf_threads_num = int(conf_dict['misc_threads_num']) if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0 else THREADS_NUM
 
     # cookies
     cookies = {}
@@ -262,8 +259,7 @@ if __name__ == '__main__':
             Shared.requests = requests
 
             # 获取实际线程数
-            if len(Shared.requests) < threads_num:
-                threads_num = len(Shared.requests)
+            threads_num = len(Shared.requests) if len(Shared.requests) < conf_threads_num else conf_threads_num
 
             # 初始化 webdriver（headless Chrome）实例
             if any(p in 'xss' for p in Shared.probes):
