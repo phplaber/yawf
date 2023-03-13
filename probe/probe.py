@@ -69,10 +69,6 @@ class Ceye:
 class Probe:
     def __init__(self, request):
         self.request = request
-        self.base_request = Shared.base_response.get('request')
-        self.base_response = Shared.base_response.get('response')
-        self.dnslog = Shared.dnslog
-        self.content_type = Shared.content_type
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
@@ -99,11 +95,11 @@ class Probe:
                                 if not reserve_original_params:
                                     payload_request[k][kk] = payload
                                 else:
-                                    payload_request[k][kk] = str(self.base_request[k][kk]) + payload
+                                    payload_request[k][kk] = str(Shared.base_response.get('request')[k][kk]) + payload
                             else:
                                 # 标记点在查询字符串 json 中
                                 val_dict = json.loads(payload_request[k][kk])
-                                base_val_dict = json.loads(self.base_request[k][kk])
+                                base_val_dict = json.loads(Shared.base_response.get('request')[k][kk])
                                 for kkk, vvv in val_dict.items():
                                     if type(vvv) is str and MARK_POINT in vvv:
                                         if not reserve_original_params:
@@ -146,7 +142,7 @@ class Probe:
                 no_alert = False
                 alert_text = ''
                 # 使用 AngularJS payload，页面需使用 AngularJS 指令
-                if '{{' in payload and 'ng-app' not in self.base_response:
+                if '{{' in payload and 'ng-app' not in Shared.base_response.get('response'):
                     continue
                 payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
                 
@@ -224,18 +220,18 @@ class Probe:
 
         # 如果响应体为 HTML，则比较文本内容，否则，直接比较
         if 'text/html' in Shared.base_response.get('headers').get('content-type'):
-            base_rsp_body = BeautifulSoup(self.base_response, "html.parser").get_text()
+            base_rsp_body = BeautifulSoup(Shared.base_response.get('response'), "html.parser").get_text()
             test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
         else:
             is_html = False
-            base_rsp_body = self.base_response
+            base_rsp_body = Shared.base_response.get('response')
             test_rsp_body = test_rsp.get('response')
 
         if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
             invalid_mark_point = True
 
         if invalid_mark_point \
-                or (self.content_type == 'xml' and MARK_POINT in self.request['data']):
+                or (Shared.content_type == 'xml' and MARK_POINT in self.request['data']):
             print("[*] SQLI detection skipped")
             return 
 
@@ -251,7 +247,7 @@ class Probe:
                 if 'and' not in payload:
                     # 基于报错判断
                     for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, self.base_response, re.I):
+                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, Shared.base_response.get('response'), re.I):
                             vulnerable = True
                             break
                 else:
@@ -289,7 +285,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
+        if (Shared.content_type == 'xml' and MARK_POINT in self.request['data']) \
                 or not self.request['dt_and_ssrf_detect_flag']:
             print("[*] DT detection skipped")
             return 
@@ -337,7 +333,7 @@ class Probe:
                 if MARK_POINT in v and not Shared.direct_use_payload_flag['params'].get(k):
                     is_run = True
 
-        if self.content_type == 'json':
+        if Shared.content_type == 'json':
             if MARK_POINT in str(self.request['data']) and not Shared.direct_use_payload_flag['data']:
                 is_run = True
 
@@ -347,13 +343,13 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
             for payload in Shared.probes_payload['fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
 
-                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
+                dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
@@ -380,13 +376,13 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
             for payload in Shared.probes_payload['log4shell']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
 
-                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
+                dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
@@ -411,14 +407,14 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
-        if self.content_type != 'xml' \
-                or (self.content_type == 'xml' and MARK_POINT not in self.request['data']):
+        if Shared.content_type != 'xml' \
+                or (Shared.content_type == 'xml' and MARK_POINT not in self.request['data']):
             print("[*] XXE detection skipped")
             return 
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
             for payload in Shared.probes_payload['xxe']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/c:/boot.ini') \
@@ -442,7 +438,7 @@ class Probe:
                     # 无回显
                     _ = send_request(payload_request)
 
-                    dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
+                    dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                     if dnslog_records and dnslog_domain in str(dnslog_records):
                         vulnerable = True
 
@@ -467,20 +463,20 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/ssrf
         """
 
-        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
+        if (Shared.content_type == 'xml' and MARK_POINT in self.request['data']) \
                 or not self.request['dt_and_ssrf_detect_flag']:
             print("[*] SSRF detection skipped")
             return 
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
             for payload in Shared.probes_payload['ssrf']:
                 # 无回显
                 payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
                 _ = send_request(payload_request)
 
-                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
+                dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
