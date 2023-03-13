@@ -88,6 +88,11 @@ if __name__ == '__main__':
         
     # 获取配置线程数
     conf_threads_num = int(conf_dict['misc_threads_num']) if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0 else THREADS_NUM
+    
+    # 创建存储漏洞文件目录
+    outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
+    if not os.path.exists(outputdir):
+        os.makedirs(outputdir)
 
     # cookies
     cookies = {}
@@ -274,9 +279,6 @@ if __name__ == '__main__':
 
             # 记录漏洞
             if Shared.fuzz_results:
-                outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
-                if not os.path.exists(outputdir):
-                    os.makedirs(outputdir)
                 outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
                 with open(outputfile, 'w') as f:
                     for result in Shared.fuzz_results:
