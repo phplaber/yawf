@@ -478,12 +478,8 @@ if __name__ == '__main__':
         Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
 
     # 获取线程数
-    if len(Shared.requests) <= THREADS_NUM:
-        threads_num = len(Shared.requests)
-    elif conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0:
-        threads_num = int(conf_dict['misc_threads_num'])
-    else:
-        threads_num = THREADS_NUM
+    conf_threads_num = int(conf_dict['misc_threads_num']) if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0 else THREADS_NUM
+    threads_num = len(Shared.requests) if len(Shared.requests) < conf_threads_num else conf_threads_num
 
     # 初始化 dnslog 实例
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
