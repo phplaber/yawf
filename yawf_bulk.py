@@ -175,9 +175,9 @@ if __name__ == '__main__':
             
             # URL
             o = urlparse(unquote(url))
-            scheme = o.scheme
+            scheme = o.scheme.lower()
             # 只支持检测 HTTP 服务
-            if scheme.lower() not in ['http', 'https']:
+            if scheme not in ['http', 'https']:
                 print(errmsg('scheme_is_invalid'))
                 continue
 
@@ -191,7 +191,7 @@ if __name__ == '__main__':
                     request['params'][par]=val
 
             # 初始化请求连接池
-            init_requests_pool(scheme.lower())
+            init_requests_pool(scheme)
 
             # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
             # 如果部署了 Waf，则中断检测。

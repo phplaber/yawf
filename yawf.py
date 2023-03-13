@@ -129,7 +129,7 @@ if __name__ == '__main__':
     if options.url:
         # URL
         o = urlparse(unquote(options.url))
-        scheme = o.scheme
+        scheme = o.scheme.lower()
         request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
         request['method'] = options.method.upper()
@@ -169,7 +169,7 @@ if __name__ == '__main__':
                 host_and_cookie[kl] = v
 
         scheme_conf = conf_dict['request_scheme']
-        scheme = scheme_conf if scheme_conf else REQ_SCHEME
+        scheme = scheme_conf.lower() if scheme_conf else REQ_SCHEME
         
         o = urlparse(unquote(misc_list[1]))
         request['url'] = scheme + '://' + host_and_cookie['host'] + o._replace(fragment="")._replace(query="").geturl()
@@ -178,7 +178,7 @@ if __name__ == '__main__':
         cookies = host_and_cookie.get('cookie')
 
     # 只支持检测 HTTP 服务
-    if scheme.lower() not in ['http', 'https']:
+    if scheme not in ['http', 'https']:
         print(errmsg('scheme_is_invalid'))
         exit(1)
     
@@ -440,7 +440,7 @@ if __name__ == '__main__':
     Shared.requests = requests
 
     # 初始化请求连接池
-    init_requests_pool(scheme.lower())
+    init_requests_pool(scheme)
 
     # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
     # 如果部署了 Waf，则中断检测。
