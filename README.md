@@ -162,7 +162,7 @@ Upgrade-Insecure-Requests: 1
 
 如果已经收集了一批 URL（带查询字符串），则可以运行 ****yawf_bulk.py**** 脚本进行批量检测。最简单的，使用 **-l** 选项传入 URL 列表文件即可。批量检测脚本不支持手动标记。
 
-![bulk](./bulk_poc.jpeg "bulk scanning")
+![bulk](./data/bulk_poc.jpeg "bulk scanning")
 
 ### Docker 安装和运行
 
