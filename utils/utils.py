@@ -208,6 +208,35 @@ def is_base64(string):
 
     return is_b64
 
+def get_jsonp_keys(jsonp):
+    """
+    递归获取 jsonp 参数中所有的键名，用于敏感数据检测。
+    如：
+    callback({"username":"admin"}); // username
+    callback({"data": {username:"admin"}}); // data, username
+    """
+
+    def get_keys(node):
+        result = []
+        if isinstance(node, esprima.nodes.ObjectExpression):
+            for property in node.properties:
+                if isinstance(property.key, esprima.nodes.Identifier):
+                    result.append(property.key.name)
+                elif isinstance(property.key, esprima.nodes.Literal):
+                    result.append(property.key.value)
+                result += get_keys(property.value)
+        elif isinstance(node, esprima.nodes.Node):
+            for _, value in node.items():
+                result += get_keys(value)
+        elif isinstance(node, list):
+            for item in node:
+                result += get_keys(item)
+        return result
+
+    ast_obj = esprima.parse(jsonp)
+
+    return list(get_keys(ast_obj))
+
 def detect_waf(req_rsp):
     """
     检测目标对象前是否部署 WAF，以及是哪种 WAF

@@ -13,7 +13,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, init_requests_pool, get_default_headers
+from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, init_requests_pool, get_default_headers, get_jsonp_keys
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
 from probe.probe import Dnslog, Ceye, Webdriver
@@ -121,6 +121,8 @@ if __name__ == '__main__':
     is_mark = False
     # 动态 url 状态位
     is_dynamic_url = False
+    # JSONP 标记位
+    is_jsonp = False
     # POST Body 内容类型
     content_type = None
     
@@ -187,6 +189,9 @@ if __name__ == '__main__':
     if qs:
         is_dynamic_url = True
         for par, val in qs:
+            # 初步判断是否是 JSONP
+            if not is_jsonp and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
+                is_jsonp = True
             request['params'][par]=val
             if not is_mark and MARK_POINT in val:
                 is_mark = True
@@ -309,6 +314,24 @@ if __name__ == '__main__':
     if Shared.base_response.get('status') != 200:
         print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
         exit(1)
+
+    # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
+    if is_jsonp and 'json' in Shared.base_response.get('headers').get('content-type'):
+        sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
+        # 语义分析，获取 jsonp 中所有的 Literal 和 Identifier key
+        jsonp_keys = get_jsonp_keys(Shared.base_response.get('response'))
+        if any(key in sens_info_keywords for key in jsonp_keys):
+            print("[+] Found JSONP information leakage!")
+            Shared.fuzz_results.append({
+                'request': base_request,
+                'payload': '',
+                'poc': '',
+                'type': 'JSONP'
+            })
+        else:
+            print("[-] Not Found JSONP information leakage.")
+    else:
+        print("[-] Not Found JSONP.")
 
     # 构造全部 request 对象（每个标记点对应一个对象）
     mark_request = copy.deepcopy(base_request)
