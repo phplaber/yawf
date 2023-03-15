@@ -148,17 +148,17 @@ def parse_conf(file):
 
     return conf_dict
 
-def parse_payload(file):
+def read_file(file):
     """
-    解析 payload 文件
+    逐行读取文件内容到 list，忽略 # 开头行和空白行
     """
 
-    payloads = []
+    lines = []
 
-    with open(file) as f:
-        payloads = [payload.strip() for payload in f if not payload.startswith('#') and payload != '\n']
+    with open(file, 'r', encoding='utf-8') as f:
+        lines = [line.strip() for line in f if not line.startswith('#') and line != '\n']
     
-    return payloads
+    return lines
 
 def similar(str1, str2):
     """

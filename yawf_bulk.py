@@ -12,7 +12,7 @@ import atexit
 import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, parse_payload, get_content_type, detect_waf, init_requests_pool, get_default_headers
+from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, init_requests_pool, get_default_headers
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
 from utils.shared import Shared
 from probe.probe import Dnslog, Ceye, Webdriver
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     # 获取探针 payload
     payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
     for probe in Shared.probes:
-        Shared.probes_payload[probe] = parse_payload(os.path.join(payload_path, '{}.txt'.format(probe)))
+        Shared.probes_payload[probe] = read_file(os.path.join(payload_path, '{}.txt'.format(probe)))
 
     # 初始化 dnslog 实例
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
