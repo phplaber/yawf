@@ -1,0 +1,14 @@
+# dt 和 ssrf 探针检测参数（包含匹配）
+
+file
+path
+dir
+src
+dest
+target
+redirect
+folder
+resource
+link
+url
+api

@@ -22,9 +22,6 @@ default : sqli, xss
 # 自定义探针
 customize : xss
 
-# dt 和 ssrf 探针检测参数（包含匹配）
-dt_and_ssrf_detect_flag : file, path, dir, src, dest, target, redirect, folder, resource, link, url, api
-
 # [[CEYE.IO]]
 [ceye]
 
@@ -39,9 +36,6 @@ token :
 
 # 线程数
 threads_num : 3
-
-# 自动标记忽略的参数
-ignore_params : session, PHPSESSID, session_id, sessionId, remember_me, rememberMe, csrf_token, CSRFToken, access_token, authentication_token
 
 # 测试目标运行平台 [linux|windows]
 platform : linux

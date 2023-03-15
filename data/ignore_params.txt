@@ -1,0 +1,27 @@
+# 自动标记忽略的参数
+
+_
+sid
+s_id
+session
+session_id
+sessionid
+sessionId
+session_key
+session_token
+session_var
+auth_token
+auth_key
+auth_session_id
+auth_id
+remember_me
+rememberMe
+csrftoken
+csrf_token
+CSRFToken
+access_token
+authentication_token
+timestamp
+JSESSIONID
+PHPSESSID
+ASPSESSIONID

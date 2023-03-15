@@ -56,10 +56,10 @@ if __name__ == '__main__':
         exit(1)
 
     # 自动标记忽略的参数列表
-    ignore_params = [ip.strip() for ip in conf_dict['misc_ignore_params'].split(',')]
+    ignore_params = read_file(os.path.join(script_rel_dir, 'data', 'ignore_params.txt'))
 
     # dt 和 ssrf 探针自动标记检测的参数列表（包含匹配）
-    dt_and_ssrf_detect_params = [dp.strip() for dp in conf_dict['probe_dt_and_ssrf_detect_flag'].split(',')]
+    dt_and_ssrf_detect_params = read_file(os.path.join(script_rel_dir, 'data', 'dt_and_ssrf_detect_params.txt'))
     
     # 网络代理
     proxy_conf = conf_dict['request_proxy']
