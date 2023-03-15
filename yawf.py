@@ -268,16 +268,10 @@ if __name__ == '__main__':
         print(errmsg('url_is_invalid'))
         exit(1)
 
-    base_request = {}
+    # 获取原始请求
+    base_request = copy.deepcopy(request)
     if is_mark:
-        # 手动标记
         # 获取原始请求对象（不包含标记点）
-        base_request['url'] = request['url']
-        base_request['method'] = request['method']
-        base_request['proxies'] = request['proxies']
-        base_request['headers'] = request['headers']
-        base_request['timeout'] = request['timeout']
-        base_request['auth'] = request['auth']
         for item in ['params', 'data', 'cookies']:
             base_request[item] = {}
             if not request[item]:
@@ -291,111 +285,65 @@ if __name__ == '__main__':
             else:
                 base_request[item] = request[item] if MARK_POINT not in request[item] else request[item].replace(MARK_POINT, '')
 
-        # 构造全部 request 对象（每个标记点对应一个对象）
-        mark_request = copy.deepcopy(base_request)
-        mark_request['url_json_flag'] = False
-        mark_request['dt_and_ssrf_detect_flag'] = True
+    # 构造全部 request 对象（每个标记点对应一个对象）
+    mark_request = copy.deepcopy(base_request)
+    mark_request['url_json_flag'] = False
+    mark_request['dt_and_ssrf_detect_flag'] = True if is_mark else False
 
-        if is_dynamic_url:
-            for par, val in request['params'].items():
-                if MARK_POINT not in val:
-                    continue
-                if get_content_type(val) == 'json':
-                    # xxx.php?foo={"a":"b[fuzz]","c":"d[fuzz]"}&bar={"aa":"bb"}
+    if is_dynamic_url:
+        for par, val in request['params'].items():
+            if (is_mark and MARK_POINT not in val) or (not is_mark and par in ignore_params):
+                continue
+            if get_content_type(val) == 'json':
+                # xxx.php?foo={"a":"b","c":"d[fuzz]"}&bar={"aa":"bb"}
+                val_dict = json.loads(val)
+                if type(val_dict) is dict:
                     mark_request['url_json_flag'] = True
-                    val_dict = json.loads(val)
-                    base_val_dict = json.loads(val.replace(MARK_POINT, ''))
+                    base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
                     for k, v in val_dict.items():
-                        # 忽略 json 里的 list 和 dict 等数据结构
-                        if type(v) is str and MARK_POINT in v:
-                            base_val_dict[k] = MARK_POINT
-                            mark_request['params'][par] = json.dumps(base_val_dict)
-                            requests.append(copy.deepcopy(mark_request))
-                            base_val_dict[k] = v.replace(MARK_POINT, '')
-                    mark_request['url_json_flag'] = False
-                else:
-                    mark_request['params'][par] = MARK_POINT
-                    requests.append(copy.deepcopy(mark_request))
-                mark_request['params'][par] = base_request['params'][par]
-            
-        for item in ['data', 'cookies']:
-            if not request[item]:
-                continue
-            if item == 'data' and content_type == 'xml':
-                if MARK_POINT in request['data']:
-                    # 全部标记点的位置
-                    all_mark_point_index = [mp.start() \
-                        for mp in re.finditer(MARK_POINT.replace('[', '\['), request['data'])]
-                    cursor_idx = 0
-                    for idx in all_mark_point_index:
-                        mark_xml = base_request['data'][:(idx-cursor_idx)] \
-                            + MARK_POINT \
-                            + base_request['data'][(idx-cursor_idx):]
-                        # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
-                        mark_request['data'] = re.sub(r'>[^<>]*{}<'.format(MARK_POINT.replace('[', '\[')), \
-                            '>{}<'.format(MARK_POINT), mark_xml)
-                        requests.append(copy.deepcopy(mark_request))
-                        cursor_idx += len(MARK_POINT)
-                    mark_request['data'] = base_request['data']
-            else:
-                for k, v in request[item].items():
-                    condition = type(v) is str and MARK_POINT in v
-                    if item == 'data' and content_type == 'form':
-                        # form 数据类型只支持常规形式标记
-                        # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
-                        condition = condition and get_content_type(v) is None
-                    if condition:
-                        mark_request[item][k] = MARK_POINT
-                        requests.append(copy.deepcopy(mark_request))
-                        mark_request[item][k] = v.replace(MARK_POINT, '')
-    else:
-        # 自动标记
-        base_request = request
-
-        # 在查询字符串、data 和 cookie 处自动标记
-        # 构造全部 request 对象（每个标记点对应一个对象）
-        mark_request = copy.deepcopy(base_request)
-        mark_request['url_json_flag'] = False
-        mark_request['dt_and_ssrf_detect_flag'] = False
-
-        if is_dynamic_url:
-            for par, val in base_request['params'].items():
-                if par in ignore_params:
-                    continue
-                if get_content_type(val) == 'json':
-                    # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
-                    val_dict = json.loads(val)
-                    if type(val_dict) is dict:
-                        mark_request['url_json_flag'] = True
-                        base_val_dict = copy.deepcopy(val_dict)
-                        for k, v in val_dict.items():
-                            # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
-                            if k in ignore_params or (type(v) is list or type(v) is dict):
-                                continue
-                            for detect_param in dt_and_ssrf_detect_params:
-                                if detect_param in k.lower():
-                                    mark_request['dt_and_ssrf_detect_flag'] = True
-                                    break
-                            base_val_dict[k] = MARK_POINT
-                            mark_request['params'][par] = json.dumps(base_val_dict)
-                            requests.append(copy.deepcopy(mark_request))
-                            base_val_dict[k] = v
-                            mark_request['dt_and_ssrf_detect_flag'] = False
-                        mark_request['url_json_flag'] = False
-                else:
-                    for detect_param in dt_and_ssrf_detect_params:
-                        if detect_param in par.lower():
+                        # 1、自动标记忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
+                        if (is_mark and not (type(v) is str and MARK_POINT in v)) \
+                            or (not is_mark and (k in ignore_params or (type(v) is list or type(v) is dict))):
+                            continue
+                        if not is_mark and any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                             mark_request['dt_and_ssrf_detect_flag'] = True
-                            break
-                    mark_request['params'][par] = MARK_POINT
-                    requests.append(copy.deepcopy(mark_request))
+                        
+                        base_val_dict[k] = MARK_POINT
+                        mark_request['params'][par] = json.dumps(base_val_dict)
+                        requests.append(copy.deepcopy(mark_request))
+                        base_val_dict[k] = v.replace(MARK_POINT, '') if is_mark else v
+                        if not is_mark:
+                            mark_request['dt_and_ssrf_detect_flag'] = False
+                    mark_request['url_json_flag'] = False
+            else:
+                if not is_mark and any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                    mark_request['dt_and_ssrf_detect_flag'] = True
+                mark_request['params'][par] = MARK_POINT
+                requests.append(copy.deepcopy(mark_request))
+                if not is_mark:
                     mark_request['dt_and_ssrf_detect_flag'] = False
-                mark_request['params'][par] = base_request['params'][par]
+            mark_request['params'][par] = base_request['params'][par]
 
-        for item in ['data', 'cookies']:
-            if not base_request[item]:
-                continue
-            if item == 'data' and content_type == 'xml':
+    for item in ['data', 'cookies']:
+        if not base_request[item]:
+            continue
+        if item == 'data' and content_type == 'xml':
+            if is_mark and MARK_POINT in request['data']:
+                # 全部标记点的位置
+                all_mark_point_index = [mp.start() \
+                    for mp in re.finditer(MARK_POINT.replace('[', '\['), request['data'])]
+                cursor_idx = 0
+                for idx in all_mark_point_index:
+                    mark_xml = base_request['data'][:(idx-cursor_idx)] \
+                        + MARK_POINT \
+                        + base_request['data'][(idx-cursor_idx):]
+                    # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
+                    mark_request['data'] = re.sub(r'>[^<>]*{}<'.format(MARK_POINT.replace('[', '\[')), \
+                        '>{}<'.format(MARK_POINT), mark_xml)
+                    requests.append(copy.deepcopy(mark_request))
+                    cursor_idx += len(MARK_POINT)
+                mark_request['data'] = base_request['data']
+            elif not is_mark:
                 # xml data
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
 
@@ -413,23 +361,25 @@ if __name__ == '__main__':
                         '<{}>{}</{}>'.format(elem_tag, MARK_POINT, elem_tag), base_request['data'])
                     requests.append(copy.deepcopy(mark_request))
                 mark_request['data'] = base_request['data']
-            else:
-                for k, v in base_request[item].items():
+        else:
+            for k, v in request[item].items():
+                if is_mark:
+                    condition = type(v) is str and MARK_POINT in v
+                else:
                     condition = k not in ignore_params
-                    if item == 'data':
-                        if content_type == 'json':
-                            condition = condition and (type(v) is not list and type(v) is not dict)
-                        elif content_type == 'form':
-                            # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
-                            condition = condition and get_content_type(v) is None
-                    if condition:
-                        for detect_param in dt_and_ssrf_detect_params:
-                            if detect_param in k.lower():
-                                mark_request['dt_and_ssrf_detect_flag'] = True
-                                break
-                        mark_request[item][k] = MARK_POINT
-                        requests.append(copy.deepcopy(mark_request))
-                        mark_request[item][k] = v
+                    if item == 'data' and content_type == 'json':
+                        condition = condition and (type(v) is not list and type(v) is not dict)
+                if item == 'data' and content_type == 'form':
+                    # form 数据类型只支持常规形式标记
+                    # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
+                    condition = condition and get_content_type(v) is None
+                if condition:
+                    if not is_mark and any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
+                    mark_request[item][k] = MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request[item][k] = v.replace(MARK_POINT, '') if is_mark else v
+                    if not is_mark:
                         mark_request['dt_and_ssrf_detect_flag'] = False
     
     # request 对象列表
