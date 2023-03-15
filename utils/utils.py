@@ -5,6 +5,7 @@ import random
 import requests
 import json
 import re
+import esprima
 from configparser import ConfigParser
 from utils.shared import Shared
 from difflib import SequenceMatcher
