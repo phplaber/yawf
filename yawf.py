@@ -285,6 +285,31 @@ if __name__ == '__main__':
             else:
                 base_request[item] = request[item] if MARK_POINT not in request[item] else request[item].replace(MARK_POINT, '')
 
+    # 初始化请求连接池
+    init_requests_pool(scheme)
+
+    # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
+    # 如果部署了 Waf，则中断检测。
+    if conf_dict['misc_enable_waf_detecter'].strip() == 'on':
+        detect_request = copy.deepcopy(base_request)
+        detect_payloads = [
+            '<img/src=1 onerror=alert(1)>',
+            '\' and \'a\'=\'a'
+        ]
+
+        for payload in detect_payloads:
+            detect_request['params']['ispayload'] = payload
+            what_waf = detect_waf(send_request(detect_request, True))
+            if what_waf:
+                print("[+] Found Waf: {}, Exit.".format(what_waf))
+                exit(0)
+
+    # 基准请求
+    Shared.base_response = send_request(base_request, True)
+    if Shared.base_response.get('status') != 200:
+        print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
+        exit(1)
+
     # 构造全部 request 对象（每个标记点对应一个对象）
     mark_request = copy.deepcopy(base_request)
     mark_request['url_json_flag'] = False
@@ -388,31 +413,6 @@ if __name__ == '__main__':
         exit(0)
     
     Shared.requests = requests
-
-    # 初始化请求连接池
-    init_requests_pool(scheme)
-
-    # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
-    # 如果部署了 Waf，则中断检测。
-    if conf_dict['misc_enable_waf_detecter'].strip() == 'on':
-        detect_request = copy.deepcopy(base_request)
-        detect_payloads = [
-            '<img/src=1 onerror=alert(1)>',
-            '\' and \'a\'=\'a'
-        ]
-
-        for payload in detect_payloads:
-            detect_request['params']['ispayload'] = payload
-            what_waf = detect_waf(send_request(detect_request, True))
-            if what_waf:
-                print("[+] Found Waf: {}, Exit.".format(what_waf))
-                exit(0)
-
-    # 基准请求
-    Shared.base_response = send_request(base_request, True)
-    if Shared.base_response.get('status') != 200:
-        print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
-        exit(1)
 
     # 获取探针配置
     if conf_dict['probe_customize']:
