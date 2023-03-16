@@ -1,6 +1,6 @@
 ## Yawf - Yet Another Web Fuzzer
 
-**Yawf** 是一个开源的 Web 漏洞自动化检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal 和 Log4Shell 等。
+**Yawf** 是一个开源的 Web 漏洞自动化检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal、Log4Shell 和 JSONP 敏感信息泄露等。
 
 ### 功能
 
@@ -25,6 +25,7 @@
 5.  **log4shell** - Log4Shell 探针
 6.  **xxe** - XXE 探针
 7.  **ssrf** - SSRF 探针
+8.  **jsonp** - JSONP 探针（内置，无需配置）
 
 #### 性能优化
 
@@ -103,15 +104,13 @@ Options:
 
 - 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
-- 在 **dt_and_ssrf_detect_flag** 项中配置名称包含这些关键词的参数，在自动标记模式下，才会去执行 dt 和 ssrf 探针；
-
 - 在 **id** 项中配置 ceye.io 平台分配的 Identifier；在 **token** 项中配置 ceye.io 平台分配的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容；
-
-- 在 **ignore_params** 项中配置自动标记忽略的参数名称，这些参数往往和会话相关，被修改可能影响正常请求，而且这些地方一般不太可能出现漏洞。当然，如果需要测试这些参数，可以手动标记或将其从配置项里移除；
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
 
 - 在 **enable_waf_detecter** 项中配置执行漏洞检测前是否开启 WAF 检测，默认是 on，表示开启。Yawf 支持检测的 WAF 有：阿里云盾、云加速、安全狗、加速乐和 CloudFlare，检测代码主要从 [WhatWaf](https://github.com/Ekultek/WhatWaf) 项目移植而来，做了略微修改。需要检测其它 WAF，可以参考使用 [WhatWaf](https://github.com/Ekultek/WhatWaf)。一旦 Yawf 检测到 WAF，将中断执行。
+
+**data** 目录下的 **ignore_params.txt** 和 **dt_and_ssrf_detect_params.txt** 分别为自动标记忽略的参数和 dt、ssrf 探针检测参数，可按需修改。**sens_info_keywords.txt** 为敏感信息关键词，用于检测 JSONP 敏感信息泄露漏洞。
 
 #### 标记
 
@@ -150,7 +149,7 @@ Upgrade-Insecure-Requests: 1
     -  `{"par1":"val1","par2":"val2[fuzz]"}`，json 编码数据格式，支持对 json 中的各值（不包含对象和数组）标记
     -  `<par1>val1[fuzz]</par1>`，xml 编码数据格式
 
-同时需注意，在自动标记模式下，参数是否被标记还受配置项 **ignore_params** 影响。
+同时需注意，在自动标记模式下，参数是否被标记还受 **ignore_params.txt** 影响。
 
 #### 运行脚本
 
