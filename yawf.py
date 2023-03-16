@@ -176,7 +176,8 @@ if __name__ == '__main__':
         o = urlparse(unquote(misc_list[1]))
         request['url'] = scheme + '://' + host_and_cookie['host'] + o._replace(fragment="")._replace(query="").geturl()
         request['method'] = misc_list[0].upper()
-        data = contents.split('\n\n')[1]
+        if request['method'] == 'POST':
+            data = contents.split('\n\n')[1]
         cookies = host_and_cookie.get('cookie')
 
     # 只支持检测 HTTP 服务
