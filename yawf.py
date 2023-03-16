@@ -317,7 +317,7 @@ if __name__ == '__main__':
         exit(1)
 
     # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
-    if is_jsonp and 'json' in Shared.base_response.get('headers').get('content-type'):
+    if is_jsonp and any(ct in Shared.base_response.get('headers').get('content-type') for ct in ['json', 'javascript']):
         sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
 
         # 空 referer 测试
