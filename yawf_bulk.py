@@ -224,8 +224,18 @@ if __name__ == '__main__':
             # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
             if is_jsonp and 'json' in Shared.base_response.get('headers').get('content-type'):
                 sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
+                
+                # 空 referer 测试
+                if not request.get('headers').get('referer'):
+                    jsonp = Shared.base_response.get('response')
+                else:
+                    empty_referer_request = copy.deepcopy(request)
+                    del empty_referer_request['headers']['referer']
+                    empty_referer_response = send_request(empty_referer_request)
+                    jsonp = empty_referer_response.get('response')
+                
                 # 语义分析，获取 jsonp 中所有的 Literal 和 Identifier key
-                jsonp_keys = get_jsonp_keys(Shared.base_response.get('response'))
+                jsonp_keys = get_jsonp_keys(jsonp)
                 if any(key in sens_info_keywords for key in jsonp_keys):
                     print("[+] Found JSONP information leakage!")
                     Shared.fuzz_results.append({
