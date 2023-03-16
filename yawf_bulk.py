@@ -80,7 +80,9 @@ if __name__ == '__main__':
     # 获取探针 payload
     payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
     for probe in Shared.probes:
-        Shared.probes_payload[probe] = read_file(os.path.join(payload_path, '{}.txt'.format(probe)))
+        payload_file = os.path.join(payload_path, '{}.txt'.format(probe))
+        if check_file(payload_file):
+            Shared.probes_payload[probe] = read_file(payload_file)
 
     # 初始化 dnslog 实例
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):

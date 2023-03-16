@@ -459,7 +459,9 @@ if __name__ == '__main__':
     # 获取探针 payload
     payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
     for probe in Shared.probes:
-        Shared.probes_payload[probe] = read_file(os.path.join(payload_path, '{}.txt'.format(probe)))
+        payload_file = os.path.join(payload_path, '{}.txt'.format(probe))
+        if check_file(payload_file):
+            Shared.probes_payload[probe] = read_file(payload_file)
 
     # 获取线程数
     conf_threads_num = int(conf_dict['misc_threads_num']) if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0 else THREADS_NUM
