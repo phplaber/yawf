@@ -31,7 +31,8 @@ class FuzzThread(Thread):
                     if hasattr(Probe, probe) and callable(getattr(Probe, probe)):
                         getattr(Probe, probe)(probe_ins)
                     else:
-                        print('[*] invalid probe: {}'.format(probe))
+                        if probe not in ['jsonp']:
+                            print('[*] invalid probe: {}'.format(probe))
 
         except KeyboardInterrupt:
             print("\nTerminated by user")
