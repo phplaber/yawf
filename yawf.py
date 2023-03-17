@@ -157,7 +157,7 @@ if __name__ == '__main__':
             print(errmsg('file_is_invalid'))
             exit(1)
         
-        with open(options.requestfile, "r") as f:
+        with open(options.requestfile, 'r', encoding='utf-8') as f:
             contents = f.read()
         misc, str_headers = contents.split('\n', 1)
         misc_list = misc.split(' ')
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         host_and_cookie = {}
         for k, v in dict(message.items()).items():
             kl = k.lower()
-            if kl not in ['host', 'cookie']:
+            if kl not in ['host', 'cookie', 'authorization']:
                 request['headers'][kl] = v
             else:
                 host_and_cookie[kl] = v
@@ -184,6 +184,16 @@ if __name__ == '__main__':
     if scheme not in ['http', 'https']:
         print(errmsg('scheme_is_invalid'))
         exit(1)
+
+    # 只支持 GET 和 POST 方法
+    if request['method'] not in ['GET', 'POST']:
+        print(errmsg('method_is_invalid'))
+        exit(1)
+
+    # POST 数据不能为空
+    if request['method'] == 'POST' and data is None:
+        print(errmsg('data_is_empty'))
+        exit(1)
     
     # 查询字符串
     qs = parse_qsl(o.query)
@@ -196,14 +206,6 @@ if __name__ == '__main__':
             request['params'][par]=val
             if not is_mark and MARK_POINT in val:
                 is_mark = True
-
-    if request['method'] not in ['GET', 'POST']:
-        print(errmsg('method_is_invalid'))
-        exit(1)
-
-    if request['method'] == 'POST' and data is None:
-        print(errmsg('data_is_empty'))
-        exit(1)
 
     # post data
     if data is not None:
@@ -247,9 +249,6 @@ if __name__ == '__main__':
                 exit(1)
             request['auth']['auth_type'] = options.auth_type
             request['auth']['auth_cred'] = options.auth_cred
-            # 删除认证请求头 Authorization
-            if 'authorization' in request['headers']:
-                del request['headers']['authorization']
 
     # 指定 User-Agent
     custom_ua = conf_dict['request_user_agent']
@@ -284,12 +283,9 @@ if __name__ == '__main__':
                 continue
             if type(request[item]) is not str:
                 for k, v in request[item].items():
-                    if type(v) is str and MARK_POINT in v:
-                        base_request[item][k] = v.replace(MARK_POINT, '')
-                    else:
-                        base_request[item][k] = v
+                    base_request[item][k] = v.replace(MARK_POINT, '') if type(v) is str and MARK_POINT in v else v
             else:
-                base_request[item] = request[item] if MARK_POINT not in request[item] else request[item].replace(MARK_POINT, '')
+                base_request[item] = request[item].replace(MARK_POINT, '') if MARK_POINT in request[item] else request[item]
 
     # 初始化请求连接池
     init_requests_pool(scheme)
@@ -311,18 +307,18 @@ if __name__ == '__main__':
                 exit(0)
 
     # 基准请求
-    Shared.base_response = send_request(base_request, True)
-    if Shared.base_response.get('status') != 200:
-        print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
+    Shared.base_http = send_request(base_request, True)
+    if Shared.base_http.get('status') != 200:
+        print(errmsg('base_request_failed').format(Shared.base_http.get('status')))
         exit(1)
 
     # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
-    if is_jsonp and any(ct in Shared.base_response.get('headers').get('content-type') for ct in ['json', 'javascript']):
+    if is_jsonp and any(ct in Shared.base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
         sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
 
         # 空 referer 测试
         if not base_request.get('headers').get('referer'):
-            jsonp = Shared.base_response.get('response')
+            jsonp = Shared.base_http.get('response')
         else:
             empty_referer_request = copy.deepcopy(base_request)
             del empty_referer_request['headers']['referer']
@@ -364,19 +360,21 @@ if __name__ == '__main__':
                         if (is_mark and not (type(v) is str and MARK_POINT in v)) \
                             or (not is_mark and (k in ignore_params or (type(v) is list or type(v) is dict))):
                             continue
+
                         if not is_mark and any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                             mark_request['dt_and_ssrf_detect_flag'] = True
                         
                         base_val_dict[k] = MARK_POINT
                         mark_request['params'][par] = json.dumps(base_val_dict)
                         requests.append(copy.deepcopy(mark_request))
-                        base_val_dict[k] = v.replace(MARK_POINT, '') if is_mark else v
+                        base_val_dict[k] = v.replace(MARK_POINT, '')
                         if not is_mark:
                             mark_request['dt_and_ssrf_detect_flag'] = False
                     mark_request['url_json_flag'] = False
             else:
                 if not is_mark and any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
                     mark_request['dt_and_ssrf_detect_flag'] = True
+                
                 mark_request['params'][par] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
                 if not is_mark:
@@ -437,7 +435,7 @@ if __name__ == '__main__':
                         mark_request['dt_and_ssrf_detect_flag'] = True
                     mark_request[item][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request[item][k] = v.replace(MARK_POINT, '') if is_mark else v
+                    mark_request[item][k] = v.replace(MARK_POINT, '')
                     if not is_mark:
                         mark_request['dt_and_ssrf_detect_flag'] = False
     
@@ -472,7 +470,7 @@ if __name__ == '__main__':
         Shared.dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
 
     # 初始化 webdriver（headless Chrome）实例
-    if any(p in 'xss' for p in Shared.probes):
+    if 'xss' in Shared.probes:
         Shared.web_driver = Webdriver().driver
 
     # 开始检测

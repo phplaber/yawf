@@ -95,11 +95,11 @@ class Probe:
                                 if not reserve_original_params:
                                     payload_request[k][kk] = payload
                                 else:
-                                    payload_request[k][kk] = str(Shared.base_response.get('request')[k][kk]) + payload
+                                    payload_request[k][kk] = str(Shared.base_http.get('request')[k][kk]) + payload
                             else:
                                 # 标记点在查询字符串 json 中
                                 val_dict = json.loads(payload_request[k][kk])
-                                base_val_dict = json.loads(Shared.base_response.get('request')[k][kk])
+                                base_val_dict = json.loads(Shared.base_http.get('request')[k][kk])
                                 for kkk, vvv in val_dict.items():
                                     if type(vvv) is str and MARK_POINT in vvv:
                                         if not reserve_original_params:
@@ -142,7 +142,7 @@ class Probe:
                 no_alert = False
                 alert_text = ''
                 # 使用 AngularJS payload，页面需使用 AngularJS 指令
-                if '{{' in payload and 'ng-app' not in Shared.base_response.get('response'):
+                if '{{' in payload and 'ng-app' not in Shared.base_http.get('response'):
                     continue
                 payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
                 
@@ -219,12 +219,12 @@ class Probe:
             return 
 
         # 如果响应体为 HTML，则比较文本内容，否则，直接比较
-        if 'text/html' in Shared.base_response.get('headers').get('content-type'):
-            base_rsp_body = BeautifulSoup(Shared.base_response.get('response'), "html.parser").get_text()
+        if 'text/html' in Shared.base_http.get('headers').get('content-type'):
+            base_rsp_body = BeautifulSoup(Shared.base_http.get('response'), "html.parser").get_text()
             test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
         else:
             is_html = False
-            base_rsp_body = Shared.base_response.get('response')
+            base_rsp_body = Shared.base_http.get('response')
             test_rsp_body = test_rsp.get('response')
 
         if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
@@ -247,7 +247,7 @@ class Probe:
                 if 'and' not in payload:
                     # 基于报错判断
                     for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, Shared.base_response.get('response'), re.I):
+                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, Shared.base_http.get('response'), re.I):
                             vulnerable = True
                             break
                 else:

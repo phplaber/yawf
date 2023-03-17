@@ -218,18 +218,18 @@ if __name__ == '__main__':
                         exit(0)
 
             # 基准请求
-            Shared.base_response = send_request(request, True)
-            if Shared.base_response.get('status') != 200:
-                print(errmsg('base_request_failed').format(Shared.base_response.get('status')))
+            Shared.base_http = send_request(request, True)
+            if Shared.base_http.get('status') != 200:
+                print(errmsg('base_request_failed').format(Shared.base_http.get('status')))
                 continue
 
             # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
-            if is_jsonp and any(ct in Shared.base_response.get('headers').get('content-type') for ct in ['json', 'javascript']):
+            if is_jsonp and any(ct in Shared.base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
                 sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
                 
                 # 空 referer 测试
                 if not request.get('headers').get('referer'):
-                    jsonp = Shared.base_response.get('response')
+                    jsonp = Shared.base_http.get('response')
                 else:
                     empty_referer_request = copy.deepcopy(request)
                     del empty_referer_request['headers']['referer']
@@ -271,10 +271,10 @@ if __name__ == '__main__':
                                 # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
                                 if k in ignore_params or (type(v) is list or type(v) is dict):
                                     continue
-                                for detect_param in dt_and_ssrf_detect_params:
-                                    if detect_param in k.lower():
-                                        mark_request['dt_and_ssrf_detect_flag'] = True
-                                        break
+
+                                if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
+                                    mark_request['dt_and_ssrf_detect_flag'] = True
+
                                 base_val_dict[k] = MARK_POINT
                                 mark_request['params'][par] = json.dumps(base_val_dict)
                                 requests.append(copy.deepcopy(mark_request))
@@ -282,10 +282,9 @@ if __name__ == '__main__':
                                 mark_request['dt_and_ssrf_detect_flag'] = False
                             mark_request['url_json_flag'] = False
                     else:
-                        for detect_param in dt_and_ssrf_detect_params:
-                            if detect_param in par.lower():
-                                mark_request['dt_and_ssrf_detect_flag'] = True
-                                break
+                        if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                            mark_request['dt_and_ssrf_detect_flag'] = True
+                        
                         mark_request['params'][par] = MARK_POINT
                         requests.append(copy.deepcopy(mark_request))
                         mark_request['dt_and_ssrf_detect_flag'] = False
@@ -302,7 +301,7 @@ if __name__ == '__main__':
             threads_num = len(Shared.requests) if len(Shared.requests) < conf_threads_num else conf_threads_num
 
             # 初始化 webdriver（headless Chrome）实例
-            if any(p in 'xss' for p in Shared.probes):
+            if 'xss' in Shared.probes:
                 Shared.web_driver = Webdriver().driver
 
             # 开始检测

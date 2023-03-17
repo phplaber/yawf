@@ -5,7 +5,7 @@ class Shared:
     全局共享数据（静态变量）
     """
 
-    base_response = None
+    base_http = None
     requests = []
     request_index = 0
 
