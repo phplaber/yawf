@@ -191,7 +191,7 @@ if __name__ == '__main__':
         is_dynamic_url = True
         for par, val in qs:
             # 初步判断是否是 JSONP
-            if not is_jsonp and request['method'] == 'GET' and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
+            if request['method'] == 'GET' and not is_jsonp and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
                 is_jsonp = True
             request['params'][par]=val
             if not is_mark and MARK_POINT in val:
