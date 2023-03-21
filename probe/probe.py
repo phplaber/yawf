@@ -3,6 +3,8 @@
 import re
 import copy
 import json
+import random
+import time
 import requests
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -162,6 +164,7 @@ class Probe:
                 
                 # 加载页面
                 web_driver.get(url)
+                time.sleep(random.random())
                 if '[UI]' not in payload:
                     # 不需要用户交互就能弹框
                     try:
@@ -240,6 +243,7 @@ class Probe:
             for payload in Shared.probes_payload['sqli']:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
+                time.sleep(random.random())
 
                 if not poc_rsp.get('response'):
                     continue
@@ -300,6 +304,7 @@ class Probe:
                 
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
+                time.sleep(random.random())
                 if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                     vulnerable = True
 
@@ -348,6 +353,7 @@ class Probe:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
+                time.sleep(random.random())
 
                 dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
@@ -381,6 +387,7 @@ class Probe:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
+                time.sleep(random.random())
 
                 dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
@@ -431,12 +438,14 @@ class Probe:
                 if 'http' not in payload:
                     # 有回显
                     poc_rsp = send_request(payload_request)
+                    time.sleep(random.random())
 
                     if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                         vulnerable = True
                 else:
                     # 无回显
                     _ = send_request(payload_request)
+                    time.sleep(random.random())
 
                     dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                     if dnslog_records and dnslog_domain in str(dnslog_records):
@@ -475,6 +484,7 @@ class Probe:
                 # 无回显
                 payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
                 _ = send_request(payload_request)
+                time.sleep(random.random())
 
                 dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
