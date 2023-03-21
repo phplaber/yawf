@@ -14,7 +14,7 @@
 8.  支持设置 HTTP 网络代理；
 9.  支持 dnslog.cn 和 ceye.io 两种带外服务；
 10. 高度可配置化，简单配置实现定制需求；
-11. 支持批量检测（目前只支持 GET 请求）。
+11. 支持批量检测。
 
 #### 探针
 
@@ -159,7 +159,46 @@ Upgrade-Insecure-Requests: 1
 
 #### 运行批量检测脚本
 
-如果已经收集了一批 URL（带查询字符串），则可以运行 ****yawf_bulk.py**** 脚本进行批量检测。最简单的，使用 **-l** 选项传入 URL 列表文件即可。批量检测脚本不支持手动标记。
+在使用浏览器爬虫工具（如：rad、crawlergo 等）爬取了一批完整请求对象并生成特定 json 文件后，运行 ****yawf_bulk.py**** 脚本进行批量检测。json 文件格式如下：
+
+```json
+[
+   {
+      "Method":"POST",
+      "URL":"http://testphp.vulnweb.com/search.php",
+      "Header":{
+         "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+         "Content-Type":"application/x-www-form-urlencoded",
+         "Cookie":"login=test%2Ftest",
+         "Origin":"http://testphp.vulnweb.com",
+         "Referer":"http://testphp.vulnweb.com/",
+         "Upgrade-Insecure-Requests":"1",
+         "User-Agent":"Rad v0.4 crawler"
+      },
+      "b64_body":"Z29CdXR0b249Z28mc2VhcmNoRm9yPTE="
+   },
+   {
+      "Method":"GET",
+      "URL":"http://testphp.vulnweb.com/artists.php?artist=1",
+      "Header":{
+         "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+         "Upgrade-Insecure-Requests":"1",
+         "User-Agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+      }
+   },
+   {
+      "Method":"GET",
+      "URL":"http://testphp.vulnweb.com/listproducts.php?artist=1",
+      "Header":{
+         "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+         "Upgrade-Insecure-Requests":"1",
+         "User-Agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+      }
+   }
+]
+```
+
+使用 -f 选项传入 json 文件路径，就可以批量检测漏洞了。批量检测不支持手动标记。
 
 ![bulk](./data/bulk_poc.jpeg "bulk scanning")
 
@@ -180,4 +219,3 @@ $ docker run -it --rm -v ~/Sec/scan/:/data yawf_env yawf.py -u "http://testphp.v
 ### 声明
 
 此工具仅用于企业安全人员评估自身企业资产的安全风险，或有合法授权的安全测试，请勿用于其他用途，如有，后果自负。
-
