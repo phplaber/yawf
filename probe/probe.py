@@ -29,6 +29,8 @@ class Webdriver:
         options.add_argument('--disable-dev-shm-usage')
         # 禁用扩展程序
         options.add_argument('--disable-extensions')
+        # 设置 user-agent
+        options.add_argument("user-agent={}".format(Shared.base_http['request']['headers']['user-agent']))
         # 忽略 DevTools 监听 ws 信息
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         self.driver = webdriver.Chrome(options=options)
