@@ -251,8 +251,8 @@ if __name__ == '__main__':
             request['auth']['auth_cred'] = options.auth_cred
 
     # 指定 User-Agent
-    custom_ua = conf_dict['request_user_agent']
-    request['headers']['user-agent'] = custom_ua if custom_ua else UA
+    user_agent = conf_dict['request_user_agent'] if conf_dict['request_user_agent'] else UA
+    request['headers']['user-agent'] = user_agent
     # 指定 Content-Type
     if request['method'] == 'POST':
         if content_type == 'json':
@@ -471,7 +471,7 @@ if __name__ == '__main__':
 
     # 初始化 webdriver（headless Chrome）实例
     if 'xss' in Shared.probes:
-        Shared.web_driver = Webdriver().driver
+        Shared.web_driver = Webdriver(proxies, user_agent).driver
 
     # 开始检测
     Fuzzer(threads_num)

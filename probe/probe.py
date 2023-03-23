@@ -17,7 +17,7 @@ from utils.utils import get_random_str, send_request, similar
 from bs4 import BeautifulSoup
 
 class Webdriver:
-    def __init__(self):
+    def __init__(self, proxies, user_agent):
         options = webdriver.ChromeOptions()
         # 以 headless 模式运行 Chrome
         options.add_argument('--headless')
@@ -30,10 +30,10 @@ class Webdriver:
         # 禁用扩展程序
         options.add_argument('--disable-extensions')
         # 设置 user-agent
-        options.add_argument('user-agent={}'.format(Shared.base_http['request']['headers']['user-agent']))
+        options.add_argument('user-agent={}'.format(user_agent))
         # 设置网络代理
-        if Shared.base_http['request']['proxies']:
-            options.add_argument('--proxy-server={}'.format(Shared.base_http['request']['proxies']['http']))
+        if proxies:
+            options.add_argument('--proxy-server={}'.format(proxies['http']))
         # 忽略 DevTools 监听 ws 信息
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         self.driver = webdriver.Chrome(options=options)

@@ -63,6 +63,8 @@ if __name__ == '__main__':
     timeout_conf = conf_dict['request_timeout']
     timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
 
+    user_agent = conf_dict['request_user_agent'] if conf_dict['request_user_agent'] else UA
+
     # 获取探针配置
     if conf_dict['probe_customize']:
         Shared.probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
@@ -190,8 +192,7 @@ if __name__ == '__main__':
                     continue
 
             # 指定 User-Agent
-            custom_ua = conf_dict['request_user_agent']
-            request['headers']['user-agent'] = custom_ua if custom_ua else UA
+            request['headers']['user-agent'] = user_agent
 
             # 初始化请求连接池
             scheme = o.scheme.lower()
@@ -340,7 +341,7 @@ if __name__ == '__main__':
 
             # 初始化 webdriver（headless Chrome）实例
             if 'xss' in Shared.probes:
-                Shared.web_driver = Webdriver().driver
+                Shared.web_driver = Webdriver(proxies, user_agent).driver
 
             # 开始检测
             Fuzzer(threads_num)
