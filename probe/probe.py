@@ -34,6 +34,9 @@ class Webdriver:
         # 设置网络代理
         if proxies:
             options.add_argument('--proxy-server={}'.format(proxies['http']))
+        # 忽略证书错误
+        options.add_argument('--ignore-ssl-errors=yes')
+        options.add_argument('--ignore-certificate-errors')
         # 忽略 DevTools 监听 ws 信息
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         self.driver = webdriver.Chrome(options=options)
