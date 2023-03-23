@@ -86,7 +86,6 @@ def send_request(request, require_response_header=False):
     json_data = None
     data_data = None
     auth = None
-    cookies = None
     if request['method'] == 'POST':
         if 'json' in request['headers']['content-type']:
             json_data = json.loads(request['data']) if type(request['data']) is str else request['data']
@@ -100,15 +99,11 @@ def send_request(request, require_response_header=False):
             auth = HTTPDigestAuth(cred[0], cred[1])
         elif request['auth']['auth_type'] == 'NTLM':
             auth = HttpNtlmAuth(cred[0], cred[1])
-    if Shared.cookiejar is not None:
-        cookies = Shared.cookiejar
-    else:
-        cookies = request['cookies']
     try:    
         rsp = Shared.req_pool.request(request['method'], request['url'], 
             params=request['params'],
             headers=request['headers'], 
-            cookies=cookies, 
+            cookies=request['cookies'], 
             proxies=request['proxies'], 
             data=data_data,
             json=json_data, 

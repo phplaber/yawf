@@ -160,10 +160,7 @@ class Probe:
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
                 
                 # 添加 cookie
-                if Shared.cookiejar is not None:
-                    # TODO 从 cookiejar 添加 cookie
-                    pass
-                elif payload_request['cookies']:
+                if payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
                         web_driver.add_cookie({'name': n, 'value': v})
 
