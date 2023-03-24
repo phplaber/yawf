@@ -34,9 +34,6 @@ token :
 # [[杂项]]
 [misc]
 
-# 线程数
-threads_num : 3
-
 # 测试目标运行平台 [linux|windows]
 platform : linux
 

@@ -13,10 +13,9 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, init_requests_pool, get_default_headers, get_jsonp_keys
-from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
-from utils.shared import Shared
-from probe.probe import Dnslog, Ceye, Webdriver
+from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
+from core.probe import Dnslog, Ceye, Browser
 
 banner = "\
 _____.___.  _____  __      _____________\n\
@@ -60,10 +59,11 @@ if __name__ == '__main__':
 
     # 显示可用的探针列表
     if options.probe_list:
-        files = next(os.walk(os.path.join(script_rel_dir, 'probe', 'payload')), (None, None, []))[2]
+        files = next(os.walk(os.path.join(script_rel_dir, 'data', 'payload')), (None, None, []))[2]
         s = 'List of available probes: \n'
         for f in files:
             s += ' - {}\n'.format(os.path.splitext(f)[0])
+        s += ' - jsonp\n'
         print(s.rstrip())
         exit(0)
 
@@ -258,9 +258,8 @@ if __name__ == '__main__':
         else:
             request['headers']['content-type'] = 'text/plain; charset=utf-8'
 
-    # 全局共享变量
-    Shared.content_type = content_type
-    Shared.platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
+    # 测试目标平台
+    platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
     
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
@@ -281,9 +280,6 @@ if __name__ == '__main__':
             else:
                 base_request[item] = request[item].replace(MARK_POINT, '') if MARK_POINT in request[item] else request[item]
 
-    # 初始化请求连接池
-    init_requests_pool(scheme)
-
     # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
     # 如果部署了 Waf，则中断检测。
     if conf_dict['misc_enable_waf_detecter'].strip() == 'on':
@@ -301,18 +297,19 @@ if __name__ == '__main__':
                 exit(0)
 
     # 基准请求
-    Shared.base_http = send_request(base_request, True)
-    if Shared.base_http.get('status') != 200:
-        print(errmsg('base_request_failed').format(Shared.base_http.get('status')))
-        exit(1)
+    base_http = send_request(base_request, True)
+    if base_http.get('status') != 200:
+        print(errmsg('base_request_failed').format(base_http.get('status')))
+        #exit(1)
 
+    fuzz_results = []
     # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
-    if is_jsonp and any(ct in Shared.base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
+    if is_jsonp and any(ct in base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
         sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
 
         # 空 referer 测试
         if not base_request.get('headers').get('referer'):
-            jsonp = Shared.base_http.get('response')
+            jsonp = base_http.get('response')
         else:
             empty_referer_request = copy.deepcopy(base_request)
             del empty_referer_request['headers']['referer']
@@ -323,7 +320,7 @@ if __name__ == '__main__':
         jsonp_keys = get_jsonp_keys(jsonp)
         if any(key in sens_info_keywords for key in jsonp_keys):
             print("[+] Found JSONP information leakage!")
-            Shared.fuzz_results.append({
+            fuzz_results.extend({
                 'request': base_request,
                 'payload': '',
                 'poc': '',
@@ -361,7 +358,7 @@ if __name__ == '__main__':
                         base_val_dict[k] = MARK_POINT
                         mark_request['params'][par] = json.dumps(base_val_dict)
                         requests.append(copy.deepcopy(mark_request))
-                        base_val_dict[k] = v.replace(MARK_POINT, '')
+                        base_val_dict[k] = str(v).replace(MARK_POINT, '')
                         if not is_mark:
                             mark_request['dt_and_ssrf_detect_flag'] = False
                     mark_request['url_json_flag'] = False
@@ -429,7 +426,7 @@ if __name__ == '__main__':
                         mark_request['dt_and_ssrf_detect_flag'] = True
                     mark_request[item][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request[item][k] = v.replace(MARK_POINT, '')
+                    mark_request[item][k] = str(v).replace(MARK_POINT, '')
                     if not is_mark:
                         mark_request['dt_and_ssrf_detect_flag'] = False
     
@@ -438,53 +435,53 @@ if __name__ == '__main__':
         print("[+] Not valid request object to fuzzing, Exit.")
         exit(0)
     
-    Shared.requests = requests
-
-    # 获取探针配置
+    # 获取探针
+    probes = []
     if conf_dict['probe_customize']:
-        Shared.probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
+        probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
     elif conf_dict['probe_default']:
-        Shared.probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
+        probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
     else:
-        Shared.probes.append(PROBE)
+        probes.append(PROBE)
 
     # 获取探针 payload
-    payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
-    for probe in Shared.probes:
+    probes_payload = {}
+    payload_path = os.path.join(script_rel_dir, 'data', 'payload')
+    for probe in probes:
         payload_file = os.path.join(payload_path, '{}.txt'.format(probe))
         if check_file(payload_file):
-            Shared.probes_payload[probe] = read_file(payload_file)
-
-    # 获取线程数
-    conf_threads_num = int(conf_dict['misc_threads_num']) if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0 else THREADS_NUM
-    threads_num = len(Shared.requests) if len(Shared.requests) < conf_threads_num else conf_threads_num
+            probes_payload[probe] = read_file(payload_file)
 
     # 初始化 dnslog 实例
-    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
-        Shared.dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
+    dnslog = None
+    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in probes):
+        dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
 
-    # 初始化 webdriver（headless Chrome）实例
-    if 'xss' in Shared.probes:
-        Shared.web_driver = Webdriver(proxies, user_agent).driver
+    """
+    
+    子进程使用 pickle 转储参数，因为 Chrome 实例（类selenium.webdriver.chrome.webdriver.WebDriver）包含本地对象 _createenviron.<locals>.encodekey，在 pickle.dump 时报错，所以只能在子进程中创建 Chrome 实例。
+
+    在批量检测中，多个子进程频繁的打开和关闭 Chrome，势必带来系统资源和时间消耗。最好是能在子进程中复用 Chrome，但目前只能先这样了。
+        
+    """
+
+    # 设置 Chrome 参数
+    browser = Browser(proxies, user_agent) if 'xss' in probes else None
 
     # 开始检测
-    Fuzzer(threads_num)
-
-    # 关闭 webdriver
-    if Shared.web_driver:
-        Shared.web_driver.quit()
+    fuzz_results.extend(Fuzzer(requests, content_type, platform, base_http, probes, probes_payload, dnslog, browser).run())
 
     # 记录漏洞
-    if Shared.fuzz_results:
+    if fuzz_results:
         outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
         if not os.path.exists(outputdir):
             os.makedirs(outputdir)
         outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
         with open(outputfile, 'w') as f:
-            for result in Shared.fuzz_results:
+            for result in fuzz_results:
                 f.write(json.dumps(result))
                 f.write('\n')
 
         print('[+] Fuzz results saved in: {}'.format(outputfile))
 
-    print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(Shared.request_index, int(time.time()) - start_time))
+    print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(len(requests), int(time.time()) - start_time))

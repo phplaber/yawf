@@ -7,7 +7,6 @@ import json
 import re
 import esprima
 from configparser import ConfigParser
-from utils.shared import Shared
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
 from requests.auth import HTTPDigestAuth
@@ -64,18 +63,6 @@ def get_default_headers():
 
     return normal_plain_dict
 
-def init_requests_pool(scheme):
-    """
-    初始化请求连接池
-    减少每次请求时建立 TCP 连接、TLS 握手等操作的开销，提高请求的效率
-    """
-
-    pool = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(max_retries=3)
-    pool.mount('{}://'.format(scheme), adapter)
-
-    Shared.req_pool = pool
-
 def send_request(request, require_response_header=False):
     """
     发送 HTTP 请求
@@ -100,7 +87,7 @@ def send_request(request, require_response_header=False):
         elif request['auth']['auth_type'] == 'NTLM':
             auth = HttpNtlmAuth(cred[0], cred[1])
     try:    
-        rsp = Shared.req_pool.request(request['method'], request['url'], 
+        rsp = requests.request(request['method'], request['url'], 
             params=request['params'],
             headers=request['headers'], 
             cookies=request['cookies'], 

@@ -12,10 +12,9 @@ import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, init_requests_pool, get_default_headers, get_jsonp_keys
-from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, THREADS_NUM, PLATFORM
-from utils.shared import Shared
-from probe.probe import Dnslog, Ceye, Webdriver
+from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, PLATFORM
+from core.probe import Dnslog, Ceye, Browser
 
 if __name__ == '__main__':
 
@@ -65,35 +64,38 @@ if __name__ == '__main__':
 
     user_agent = conf_dict['request_user_agent'] if conf_dict['request_user_agent'] else UA
 
-    # 获取探针配置
+    # 获取探针
+    probes = []
     if conf_dict['probe_customize']:
-        Shared.probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
+        probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
     elif conf_dict['probe_default']:
-        Shared.probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
+        probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
     else:
-        Shared.probes.append(PROBE)
+        probes.append(PROBE)
 
     # 获取探针 payload
-    payload_path = os.path.join(script_rel_dir, 'probe', 'payload')
-    for probe in Shared.probes:
+    probes_payload = {}
+    payload_path = os.path.join(script_rel_dir, 'data', 'payload')
+    for probe in probes:
         payload_file = os.path.join(payload_path, '{}.txt'.format(probe))
         if check_file(payload_file):
-            Shared.probes_payload[probe] = read_file(payload_file)
+            probes_payload[probe] = read_file(payload_file)
 
     # 初始化 dnslog 实例
-    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in Shared.probes):
-        Shared.dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
+    dnslog = None
+    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in probes):
+        dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
         
-    # 获取配置线程数
-    conf_threads_num = int(conf_dict['misc_threads_num']) if conf_dict['misc_threads_num'] and int(conf_dict['misc_threads_num']) > 0 else THREADS_NUM
-    
+    # 设置 Chrome 参数
+    browser = Browser(proxies, user_agent) if 'xss' in probes else None
+
     # 创建存储漏洞文件目录
     outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
 
-    # 全局共享变量
-    Shared.platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
+    # 测试目标平台
+    platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
 
     # 获取 requests 默认请求头
     default_headers = get_default_headers()
@@ -112,14 +114,15 @@ if __name__ == '__main__':
     }
 
     # 遍历检测 request
-    num = 0
+    # 计数
+    req_total = 0
     # 存储域名是否部署 waf 的字典
     # key 为域名，value 为 True（有 waf）、False（无 waf）
     domain_has_waf = {}
     with open(options.requests_file, 'r', encoding='utf-8') as f:
         orig_requests = json.load(f)
         for orig_request in orig_requests:
-            num += 1
+            req_total += 1
             method = orig_request.get('Method')
             url = orig_request.get('URL')
             print('[+] Start scanning url: {} {}'.format(method, url))
@@ -130,9 +133,7 @@ if __name__ == '__main__':
                 print("[+] Has waf")
                 continue
 
-            # 初始化
-            Shared.request_index = 0
-            Shared.fuzz_results = []
+            fuzz_results = []
 
             requests = []
             request = copy.deepcopy(init_request)
@@ -174,16 +175,19 @@ if __name__ == '__main__':
             content_type = None
             if request['method'] == 'POST' and orig_request.get('b64_body'):
                 data = base64.b64decode(orig_request.get('b64_body')).decode('utf-8')
-                content_type = request['headers']['content-type']
+                full_content_type = request['headers']['content-type']
 
-                if 'json' in content_type:
+                if 'json' in full_content_type:
                     # json data
+                    content_type = 'json'
                     request['data'] = json.loads(data)
-                elif 'xml' in content_type:
+                elif 'xml' in full_content_type:
                     # xml data
+                    content_type = 'xml'
                     request['data'] = data
-                elif 'form' in content_type:
+                elif 'form' in full_content_type:
                     # form data
+                    content_type = 'form'
                     for item in data.split('&'):
                         name, value = item.split('=', 1)
                         request['data'][name.strip()] = unquote(value)
@@ -193,10 +197,6 @@ if __name__ == '__main__':
 
             # 指定 User-Agent
             request['headers']['user-agent'] = user_agent
-
-            # 初始化请求连接池
-            scheme = o.scheme.lower()
-            init_requests_pool(scheme)
 
             # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
             # 如果部署了 Waf，则中断检测。
@@ -220,18 +220,18 @@ if __name__ == '__main__':
                     continue
 
             # 基准请求
-            Shared.base_http = send_request(request, True)
-            if Shared.base_http.get('status') != 200:
-                print(errmsg('base_request_failed').format(Shared.base_http.get('status')))
+            base_http = send_request(request, True)
+            if base_http.get('status') != 200:
+                print(errmsg('base_request_failed').format(base_http.get('status')))
                 continue
 
             # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
-            if is_jsonp and any(ct in Shared.base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
+            if is_jsonp and any(ct in base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
                 sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
                 
                 # 空 referer 测试
                 if not request.get('headers').get('referer'):
-                    jsonp = Shared.base_http.get('response')
+                    jsonp = base_http.get('response')
                 else:
                     empty_referer_request = copy.deepcopy(request)
                     del empty_referer_request['headers']['referer']
@@ -242,7 +242,7 @@ if __name__ == '__main__':
                 jsonp_keys = get_jsonp_keys(jsonp)
                 if any(key in sens_info_keywords for key in jsonp_keys):
                     print("[+] Found JSONP information leakage!")
-                    Shared.fuzz_results.append({
+                    fuzz_results.extend({
                         'request': request,
                         'payload': '',
                         'poc': '',
@@ -326,35 +326,22 @@ if __name__ == '__main__':
                                 mark_request['dt_and_ssrf_detect_flag'] = True
                             mark_request[item][k] = MARK_POINT
                             requests.append(copy.deepcopy(mark_request))
-                            mark_request[item][k] = v.replace(MARK_POINT, '')
+                            mark_request[item][k] = v
                             mark_request['dt_and_ssrf_detect_flag'] = False
             
             # request 对象列表
             if not requests:
                 print("[+] Not valid request object to fuzzing, Exit.")
                 continue
-            
-            Shared.requests = requests
-
-            # 获取实际线程数
-            threads_num = len(Shared.requests) if len(Shared.requests) < conf_threads_num else conf_threads_num
-
-            # 初始化 webdriver（headless Chrome）实例
-            if 'xss' in Shared.probes:
-                Shared.web_driver = Webdriver(proxies, user_agent).driver
 
             # 开始检测
-            Fuzzer(threads_num)
-
-            # 关闭 webdriver
-            if Shared.web_driver:
-                Shared.web_driver.quit()
+            fuzz_results.extend(Fuzzer(requests, content_type, platform, base_http, probes, probes_payload, dnslog, browser).run())
 
             # 记录漏洞
-            if Shared.fuzz_results:
+            if fuzz_results:
                 outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
                 with open(outputfile, 'w') as f:
-                    for result in Shared.fuzz_results:
+                    for result in fuzz_results:
                         f.write(json.dumps(result))
                         f.write('\n')
                 print('[+] Fuzz results saved in: {}'.format(outputfile))
@@ -363,4 +350,4 @@ if __name__ == '__main__':
 
             time.sleep(1)
 
-    print("\n\n[+] Fuzz finished, {} urls scanned in {} seconds.".format(num, int(time.time()) - start_time))
+    print("\n\n[+] Fuzz finished, {} urls scanned in {} seconds.".format(req_total, int(time.time()) - start_time))

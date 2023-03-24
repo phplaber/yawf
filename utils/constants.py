@@ -6,8 +6,6 @@ UA = 'Yawf ' + VERSION
 
 MARK_POINT = '[fuzz]'
 
-THREADS_NUM = 3
-
 DBMS_ERRORS = {
     "MySQL": (r"SQL syntax.*MySQL", r"Warning.*mysql_.*", r"valid MySQL result", r"MySqlClient\."),
     "PostgreSQL": (r"PostgreSQL.*ERROR", r"Warning.*\Wpg_.*", r"valid PostgreSQL result", r"Npgsql\."),

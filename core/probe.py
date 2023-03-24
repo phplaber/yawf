@@ -11,12 +11,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoAlertPresentException
-from utils.shared import Shared
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
 from bs4 import BeautifulSoup
 
-class Webdriver:
+class Browser:
     def __init__(self, proxies, user_agent):
         options = webdriver.ChromeOptions()
         # 以 headless 模式运行 Chrome
@@ -39,7 +38,11 @@ class Webdriver:
         options.add_argument('--ignore-certificate-errors')
         # 忽略 DevTools 监听 ws 信息
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
-        self.driver = webdriver.Chrome(options=options)
+
+        self.options = options
+
+    def run(self):
+        return webdriver.Chrome(options=self.options)
 
 class Dnslog:
     def __init__(self, proxies, timeout):
@@ -77,8 +80,16 @@ class Ceye:
         return req.json().get('data')
 
 class Probe:
-    def __init__(self, request):
+    def __init__(self, request, browser, content_type, platform, base_http, probes_payload, dnslog, fuzz_results, flag):
         self.request = request
+        self.browser = browser
+        self.content_type = content_type
+        self.platform = platform
+        self.base_http = base_http
+        self.probes_payload = probes_payload
+        self.dnslog = dnslog
+        self.fuzz_results = fuzz_results
+        self.direct_use_payload_flag = flag
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
@@ -105,11 +116,11 @@ class Probe:
                                 if not reserve_original_params:
                                     payload_request[k][kk] = payload
                                 else:
-                                    payload_request[k][kk] = str(Shared.base_http.get('request')[k][kk]) + payload
+                                    payload_request[k][kk] = str(self.base_http.get('request')[k][kk]) + payload
                             else:
                                 # 标记点在查询字符串 json 中
                                 val_dict = json.loads(payload_request[k][kk])
-                                base_val_dict = json.loads(Shared.base_http.get('request')[k][kk])
+                                base_val_dict = json.loads(self.base_http.get('request')[k][kk])
                                 for kkk, vvv in val_dict.items():
                                     if type(vvv) is str and MARK_POINT in vvv:
                                         if not reserve_original_params:
@@ -122,10 +133,10 @@ class Probe:
                             # 直接使用 payload 替代查询字符串参数值或 post body
                             if k == 'params':
                                 payload_request[k][kk] = payload
-                                Shared.direct_use_payload_flag[k][kk] = True
+                                self.direct_use_payload_flag[k][kk] = True
                             elif k == 'data':
                                 payload_request[k] = payload
-                                Shared.direct_use_payload_flag[k] = True
+                                self.direct_use_payload_flag[k] = True
                         flag = True
                         break
                 if flag:
@@ -146,13 +157,12 @@ class Probe:
             return 
         
         vulnerable = False
-        web_driver = Shared.web_driver
         try:
-            for payload in Shared.probes_payload['xss']:
+            for payload in self.probes_payload['xss']:
                 no_alert = False
                 alert_text = ''
                 # 使用 AngularJS payload，页面需使用 AngularJS 指令
-                if '{{' in payload and 'ng-app' not in Shared.base_http.get('response'):
+                if '{{' in payload and 'ng-app' not in self.base_http.get('response'):
                     continue
                 payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
                 
@@ -162,21 +172,21 @@ class Probe:
                 # 添加 cookie
                 if payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
-                        web_driver.add_cookie({'name': n, 'value': v})
+                        self.browser.add_cookie({'name': n, 'value': v})
 
                 # 添加额外的 header
-                web_driver.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
+                self.browser.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
                 
                 # 加载页面
-                web_driver.get(url)
+                self.browser.get(url)
                 time.sleep(random.random())
                 if '[UI]' not in payload:
                     # 不需要用户交互就能弹框
                     try:
                         # 在切换执行 alert 前，等待 3 秒
-                        WebDriverWait(web_driver, 3).until(EC.alert_is_present())
+                        WebDriverWait(self.browser, 3).until(EC.alert_is_present())
                         try:
-                            alert = web_driver.switch_to.alert
+                            alert = self.browser.switch_to.alert
                             alert_text = alert.text
                             alert.accept()
                         except NoAlertPresentException:
@@ -189,7 +199,7 @@ class Probe:
                 else:
                     # 需要用户交互才能弹框
                     try:
-                        links = web_driver.find_elements(By.TAG_NAME, "a")
+                        links = self.browser.find_elements(By.TAG_NAME, "a")
                         for link in links:
                             if link.get_attribute("href") == payload.replace('[UI]', ''):
                                 vulnerable = True
@@ -199,7 +209,7 @@ class Probe:
 
                 if vulnerable:
                     print("[+] Found XSS!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload.replace('[UI]', ''),
                         'poc': payload_request,
@@ -227,25 +237,25 @@ class Probe:
             return 
 
         # 如果响应体为 HTML，则比较文本内容，否则，直接比较
-        if 'text/html' in Shared.base_http.get('headers').get('content-type'):
-            base_rsp_body = BeautifulSoup(Shared.base_http.get('response'), "html.parser").get_text()
+        if 'text/html' in self.base_http.get('headers').get('content-type'):
+            base_rsp_body = BeautifulSoup(self.base_http.get('response'), "html.parser").get_text()
             test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
         else:
             is_html = False
-            base_rsp_body = Shared.base_http.get('response')
+            base_rsp_body = self.base_http.get('response')
             test_rsp_body = test_rsp.get('response')
 
         if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
             invalid_mark_point = True
 
         if invalid_mark_point \
-                or (Shared.content_type == 'xml' and MARK_POINT in self.request['data']):
+                or (self.content_type == 'xml' and MARK_POINT in self.request['data']):
             print("[*] SQLI detection skipped")
             return 
 
         vulnerable = False
         try:
-            for payload in Shared.probes_payload['sqli']:
+            for payload in self.probes_payload['sqli']:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
                 time.sleep(random.random())
@@ -256,7 +266,7 @@ class Probe:
                 if 'and' not in payload:
                     # 基于报错判断
                     for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
-                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, Shared.base_http.get('response'), re.I):
+                        if re.search(regex, poc_rsp.get('response'), re.I) and not re.search(regex, self.base_http.get('response'), re.I):
                             vulnerable = True
                             break
                 else:
@@ -275,7 +285,7 @@ class Probe:
 
                 if vulnerable:
                     print("[+] Found SQL Injection!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
@@ -294,17 +304,17 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if (Shared.content_type == 'xml' and MARK_POINT in self.request['data']) \
+        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
                 or not self.request['dt_and_ssrf_detect_flag']:
             print("[*] DT detection skipped")
             return 
 
         vulnerable = False
         try:
-            for payload in Shared.probes_payload['dt']:
+            for payload in self.probes_payload['dt']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/boot.ini') \
-                    if Shared.platform == 'windows' \
+                    if self.platform == 'windows' \
                     else payload.replace('filepath', '/etc/passwd')
                 
                 payload_request = self.gen_payload_request(payload)
@@ -315,7 +325,7 @@ class Probe:
 
                 if vulnerable:
                     print("[+] Found Directory Traversal!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
@@ -340,11 +350,11 @@ class Probe:
         is_run = False
         if self.request['url_json_flag']:
             for k, v in self.request['params'].items():
-                if MARK_POINT in v and not Shared.direct_use_payload_flag['params'].get(k):
+                if MARK_POINT in v and not self.direct_use_payload_flag['params'].get(k):
                     is_run = True
 
-        if Shared.content_type == 'json':
-            if MARK_POINT in str(self.request['data']) and not Shared.direct_use_payload_flag['data']:
+        if self.content_type == 'json':
+            if MARK_POINT in str(self.request['data']) and not self.direct_use_payload_flag['data']:
                 is_run = True
 
         if not is_run:
@@ -353,20 +363,20 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
-            for payload in Shared.probes_payload['fastjson']:
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            for payload in self.probes_payload['fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
                 _ = send_request(payload_request)
                 time.sleep(random.random())
 
-                dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
+                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
                 if vulnerable:
                     print("[+] Found Fastjson!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
@@ -387,20 +397,20 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
-            for payload in Shared.probes_payload['log4shell']:
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            for payload in self.probes_payload['log4shell']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
                 time.sleep(random.random())
 
-                dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
+                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
                 if vulnerable:
                     print("[+] Found Log4Shell!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
@@ -419,18 +429,18 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
-        if Shared.content_type != 'xml' \
-                or (Shared.content_type == 'xml' and MARK_POINT not in self.request['data']):
+        if self.content_type != 'xml' \
+                or (self.content_type == 'xml' and MARK_POINT not in self.request['data']):
             print("[*] XXE detection skipped")
             return 
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
-            for payload in Shared.probes_payload['xxe']:
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            for payload in self.probes_payload['xxe']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/c:/boot.ini') \
-                    if Shared.platform == 'windows' \
+                    if self.platform == 'windows' \
                     else payload.replace('filepath', '/etc/passwd')
                 # 将 payload 中的占位符 dnslog 替换为 dnslog 子域名
                 payload = payload.replace('dnslog', dnslog_domain)
@@ -452,13 +462,13 @@ class Probe:
                     _ = send_request(payload_request)
                     time.sleep(random.random())
 
-                    dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
+                    dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                     if dnslog_records and dnslog_domain in str(dnslog_records):
                         vulnerable = True
 
                 if vulnerable:
                     print("[+] Found XXE!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
@@ -477,27 +487,28 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/ssrf
         """
 
-        if (Shared.content_type == 'xml' and MARK_POINT in self.request['data']) \
+        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
                 or not self.request['dt_and_ssrf_detect_flag']:
             print("[*] SSRF detection skipped")
             return 
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), Shared.dnslog.domain)
-            for payload in Shared.probes_payload['ssrf']:
+            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            for payload in self.probes_payload['ssrf']:
                 # 无回显
-                payload_request = self.gen_payload_request(payload.replace('dnslog', dnslog_domain))
+                payload = payload.replace('dnslog', dnslog_domain)
+                payload_request = self.gen_payload_request(payload)
                 _ = send_request(payload_request)
                 time.sleep(random.random())
 
-                dnslog_records = Shared.dnslog.pull_logs(dnslog_domain[:-3])
+                dnslog_records = self.dnslog.pull_logs(dnslog_domain[:-3])
                 if dnslog_records and dnslog_domain in str(dnslog_records):
                     vulnerable = True
 
                 if vulnerable:
                     print("[+] Found SSRF!")
-                    Shared.fuzz_results.append({
+                    self.fuzz_results.put({
                         'request': self.request,
                         'payload': payload,
                         'poc': payload_request,
