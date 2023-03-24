@@ -8,7 +8,7 @@
 2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST Body；
 3.  支持 GET 和 POST 请求，以及 form、json 和 xml 数据类型；
 4.  支持 HTTP Basic/Digest/NTLM 认证；
-5.  支持多线程对测试目标进行检测，默认 3 个线程；
+5.  支持对测试目标进行并行（多进程）检测；
 6.  容易扩展，探针和 Payload 文件分离；
 7.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
 8.  支持设置 HTTP 网络代理；
@@ -31,8 +31,8 @@
 
 假设一次测试活动共有10个测试点，使用全部6个探针。
 
-1.  多线程同时检测测试点，一个测试点对应一个请求对象，每个请求对象间互不依赖，充分利用多核 CPU 提高检测效率；
-2.  在多线程执行探针前，提前获取已选择探针载荷内容，后续检测每个测试点时直接获取，文件 IO 从 **60** 次减少到 **6** 次；
+1.  并行检测测试点，一个测试点对应一个请求对象，充分利用多核 CPU 提高检测效率；
+2.  在执行探针前，提前获取已选择探针载荷内容，后续检测每个测试点时直接获取，文件 IO 从 **60** 次减少到 **6** 次；
 3.  读取一次配置文件后，将配置数据写入内存，后续使用直接从内存中读取，文件 IO 从 **9** 次减少到 **1** 次；
 4.  一次测试活动只获取一次 dnslog domain，通过随机字符串子域名加以区分每个探针使用的 payload，网络请求从 **10** 次减少到 **1** 次；
 5.  查询字符串和 POST Body 中 json 多值标记只执行一次 fastjson 探针，避免不必要的重复测试，减少网络请求；
@@ -73,8 +73,6 @@ Options:
   -m METHOD             HTTP method, default: GET (e.g. POST)
   -d DATA               Data string to be sent through POST (e.g. "id=1")
   -c COOKIES            HTTP Cookie header value (e.g. "PHPSESSID=a8d127e..")
-  --cookiejar=COOKIEJAR
-                        File containing cookies in Netscape format
   --headers=HEADERS     Extra headers (e.g. "Accept-Language: fr\nETag: 123")
   --auth-type=AUTH_TYPE
                         HTTP authentication type (Basic, Digest, NTLM)
