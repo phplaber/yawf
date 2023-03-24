@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*- 
 
-VERSION = 'v2.6'
+VERSION = 'v2.7'
 
 UA = 'Yawf ' + VERSION
 
