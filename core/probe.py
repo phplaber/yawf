@@ -158,6 +158,8 @@ class Probe:
         
         vulnerable = False
         try:
+            # 添加请求头（请求头不支持标记）
+            self.browser.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': self.request['headers']})
             for payload in self.probes_payload['xss']:
                 no_alert = False
                 alert_text = ''
@@ -173,9 +175,6 @@ class Probe:
                 if payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
                         self.browser.add_cookie({'name': n, 'value': v})
-
-                # 添加额外的 header
-                self.browser.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
 
                 # 加载页面
                 self.browser.get(url)
