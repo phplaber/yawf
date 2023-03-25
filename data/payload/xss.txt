@@ -10,7 +10,6 @@
 # XSS in HTML tag attributes
 "><svg onload=alert(1)>
 " autofocus onfocus=alert(1) x="
-[UI]javascript:alert(1)
 
 # XSS into JavaScript
 </script><img src=1 onerror=alert(1)>

@@ -164,7 +164,7 @@ class Probe:
                 # 使用 AngularJS payload，页面需使用 AngularJS 指令
                 if '{{' in payload and 'ng-app' not in self.base_http.get('response'):
                     continue
-                payload_request = self.gen_payload_request(payload.replace('[UI]', ''))
+                payload_request = self.gen_payload_request(payload)
                 
                 query_list = ['{}={}'.format(par, val) for par, val in payload_request['params'].items()] if payload_request['params'] else []
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
@@ -176,42 +176,30 @@ class Probe:
 
                 # 添加额外的 header
                 self.browser.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': payload_request['headers']})
-                
+
                 # 加载页面
                 self.browser.get(url)
                 time.sleep(random.random())
-                if '[UI]' not in payload:
-                    # 不需要用户交互就能弹框
+                try:
+                    # 在切换执行 alert 前，等待 3 秒
+                    WebDriverWait(self.browser, 3).until(EC.alert_is_present())
                     try:
-                        # 在切换执行 alert 前，等待 3 秒
-                        WebDriverWait(self.browser, 3).until(EC.alert_is_present())
-                        try:
-                            alert = self.browser.switch_to.alert
-                            alert_text = alert.text
-                            alert.accept()
-                        except NoAlertPresentException:
-                            no_alert = True
+                        alert = self.browser.switch_to.alert
+                        alert_text = alert.text
+                        alert.accept()
+                    except NoAlertPresentException:
+                        no_alert = True
                         
-                        if not no_alert and alert_text == '1':
-                            vulnerable = True
-                    except TimeoutException:
-                        pass
-                else:
-                    # 需要用户交互才能弹框
-                    try:
-                        links = self.browser.find_elements(By.TAG_NAME, "a")
-                        for link in links:
-                            if link.get_attribute("href") == payload.replace('[UI]', ''):
-                                vulnerable = True
-                                break
-                    except StaleElementReferenceException:
-                        pass
+                    if not no_alert and alert_text == '1':
+                        vulnerable = True
+                except TimeoutException:
+                    pass
 
                 if vulnerable:
                     print("[+] Found XSS!")
                     self.fuzz_results.put({
                         'request': self.request,
-                        'payload': payload.replace('[UI]', ''),
+                        'payload': payload,
                         'poc': payload_request,
                         'type': 'XSS'
                     })
