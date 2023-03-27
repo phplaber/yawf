@@ -3,6 +3,7 @@
 import queue
 from core.probe import Probe
 from multiprocessing import Process, Queue, Manager, cpu_count
+from urllib.parse import urlparse
 
 class Fuzzer:
     """
@@ -20,12 +21,13 @@ class Fuzzer:
         self.dnslog = dnslog
         self.browser = browser
         
-    def do_fuzz(self, requests, fuzz_results, flag):
+    def do_fuzz(self, requests, fuzz_results, flag, load_page):
         """
         进程执行目标
         requests: 请求对象队列
         fuzz_results: 漏洞详情队列
         flag: 控制 fastjson 探针智能化检测开关
+        load_page: headless chrome 着陆页
         """
 
         # 启动 Chrome 浏览器
@@ -48,7 +50,8 @@ class Fuzzer:
                     self.probes_payload, 
                     self.dnslog,
                     fuzz_results,
-                    flag
+                    flag,
+                    load_page
                 )
                 
                 for probe in self.probes:
@@ -79,6 +82,9 @@ class Fuzzer:
         flag = manager.dict()
         flag['params'] = manager.dict() # 注意这里不能使用常规的字典
         flag['data'] = False
+        # headless chrome 着陆页
+        o = urlparse(self.base_http['request']['url'])
+        load_page = '{}://{}/{}'.format(o.scheme, o.netloc, 'robots.txt')
 
         requests_num = 0
         for request in self.requests:
@@ -90,7 +96,7 @@ class Fuzzer:
         processes_num = requests_num if requests_num < cpus_num else cpus_num
         
         for _ in range(processes_num):
-            fuzz_worker = Process(target=self.do_fuzz, args=(requests, fuzz_results, flag,))
+            fuzz_worker = Process(target=self.do_fuzz, args=(requests, fuzz_results, flag, load_page,))
             fuzz_workers.append(fuzz_worker)
             fuzz_worker.start()
 

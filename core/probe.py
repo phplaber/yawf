@@ -13,6 +13,7 @@ from selenium.common.exceptions import TimeoutException, NoAlertPresentException
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
 from bs4 import BeautifulSoup
+from urllib.parse import quote
 
 class Browser:
     def __init__(self, proxies, user_agent):
@@ -79,7 +80,7 @@ class Ceye:
         return req.json().get('data')
 
 class Probe:
-    def __init__(self, request, browser, content_type, platform, base_http, probes_payload, dnslog, fuzz_results, flag):
+    def __init__(self, request, browser, content_type, platform, base_http, probes_payload, dnslog, fuzz_results, flag, load_page):
         self.request = request
         self.browser = browser
         self.content_type = content_type
@@ -89,6 +90,7 @@ class Probe:
         self.dnslog = dnslog
         self.fuzz_results = fuzz_results
         self.direct_use_payload_flag = flag
+        self.load_page = load_page
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
@@ -170,13 +172,13 @@ class Probe:
                 query_list = ['{}={}'.format(par, val) for par, val in payload_request['params'].items()] if payload_request['params'] else []
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
                 
-                # 添加 cookie
+                # 在添加 cookie 前，需导航到目标域名某个页面（不必存在），然后再加载目标页面
+                self.browser.get(self.load_page)
                 if payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
-                        self.browser.add_cookie({'name': n, 'value': v})
-
-                # 加载页面
+                        self.browser.add_cookie({'name': n, 'value': quote(v)})
                 self.browser.get(url)
+
                 time.sleep(random.random())
                 try:
                     # 在切换执行 alert 前，等待 3 秒
