@@ -9,8 +9,7 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoAlertPresentException
+from selenium.common.exceptions import TimeoutException, NoAlertPresentException
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
 from bs4 import BeautifulSoup
