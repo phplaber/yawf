@@ -231,7 +231,7 @@ if __name__ == '__main__':
     if cookies is not None:
         for item in cookies.split(";"):
             name, value = item.split("=", 1)
-            request['cookies'][name.strip()] = value
+            request['cookies'][name.strip()] = unquote(value)
             if not is_mark and MARK_POINT in value:
                 is_mark = True
 

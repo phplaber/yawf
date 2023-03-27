@@ -169,7 +169,7 @@ if __name__ == '__main__':
             if orig_request.get('Header').get('Cookie'):
                 for item in orig_request.get('Header').get('Cookie').split(';'):
                     name, value = item.split('=', 1)
-                    request['cookies'][name] = value
+                    request['cookies'][name] = unquote(value)
 
             # Data
             content_type = None
