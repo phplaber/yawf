@@ -36,6 +36,8 @@ class Browser:
         # 忽略证书错误
         options.add_argument('--ignore-ssl-errors=yes')
         options.add_argument('--ignore-certificate-errors')
+        # 禁用 xss auditor
+        options.add_argument('--disable-xss-auditor')
         # 忽略 DevTools 监听 ws 信息
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
