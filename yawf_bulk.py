@@ -162,7 +162,7 @@ if __name__ == '__main__':
             # 请求头
             if orig_request.get('Header'):
                 for name, value in orig_request.get('Header').items():
-                    if name not in ['Cookie']:
+                    if name not in ['Cookie', 'User-Agent']:
                         request['headers'][name.lower()] = value
 
             # Cookie
