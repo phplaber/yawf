@@ -329,7 +329,7 @@ if __name__ == '__main__':
         else:
             print("[-] Not Found JSONP information leakage.")
     else:
-        print("[-] Not Found JSONP.")
+        print("[*] JSONP detection skipped")
 
     # 构造全部 request 对象（每个标记点对应一个对象）
     mark_request = copy.deepcopy(base_request)
