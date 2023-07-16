@@ -31,6 +31,23 @@ id :
 # API Token
 token : 
 
+# [[Azure openai]]
+[azure]
+
+# 是否使用 azure openai 服务
+enabled : off
+
+# azure 部署名称
+deployment_name : 
+
+# Endpoint
+api_base : 
+
+api_version : 2023-05-15
+
+# 密钥
+api_key : 
+
 # [[杂项]]
 [misc]
 

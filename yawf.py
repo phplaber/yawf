@@ -13,7 +13,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys, chat_with_ai
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
@@ -85,8 +85,30 @@ if __name__ == '__main__':
         print(errmsg('config_is_invalid'))
         exit(1)
 
+    # Azure openai
+    azure_openai_config = {
+        'deployment_name': conf_dict['azure_deployment_name'],
+        'api_base': conf_dict['azure_api_base'],
+        'api_version': conf_dict['azure_api_version'],
+        'api_key': conf_dict['azure_api_key']
+    }
+
     # 自动标记忽略的参数列表
-    ignore_params = read_file(os.path.join(script_rel_dir, 'data', 'ignore_params.txt'))
+    ignore_params = []
+    if conf_dict['azure_enabled'] == 'on':
+        # 使用 GPT 模型动态获取忽略参数
+        prompt = """
+            In the HTTP session, some authentication parameters (such as: sessionid, auth_key, PHPSESSID, etc.) will not cause vulnerabilities in most cases, and can be selected when using vulnerability scanning tools to detect Ignore them to balance efficiency and coverage of the security testing process. Please output 100 real parameter names in the following specific format(concatenate with commas), without a dot at the end, without any additional information.
+            
+            Respond with only valid strings conforming to the following schema:
+            sessionid, auth_key, PHPSESSID
+        """
+        content = chat_with_ai(azure_openai_config, prompt)
+        if content != '':
+            ignore_params = content.split(', ')
+    if not ignore_params:
+        # 不使用 azure openai 或接口调用失败，使用默认的参数列表（使用 ChatGPT 获取）
+        ignore_params = read_file(os.path.join(script_rel_dir, 'data', 'ignore_params.txt'))
 
     # dt 和 ssrf 探针自动标记检测的参数列表（包含匹配）
     dt_and_ssrf_detect_params = read_file(os.path.join(script_rel_dir, 'data', 'dt_and_ssrf_detect_params.txt'))
@@ -476,11 +498,26 @@ if __name__ == '__main__':
         outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
         if not os.path.exists(outputdir):
             os.makedirs(outputdir)
-        outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
+        current_timestamp = time.strftime("%Y%m%d%H%M%S")
+        outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(current_timestamp))
+        fuzz_results_str = ''
         with open(outputfile, 'w') as f:
             for result in fuzz_results:
-                f.write(json.dumps(result))
+                result_str = json.dumps(result)
+                f.write(result_str)
                 f.write('\n')
+
+                fuzz_results_str += result_str + '\n'
+
+        # 使用 GPT 模型生成可读性更高的报告
+        if conf_dict['azure_enabled'] == 'on':
+            outputfile = os.path.join(outputdir, 'vuls_{}.html'.format(current_timestamp))
+
+            prompt = '"""{}"""\nInside the triple quotes is the scan result of the vulnerability scanner in JSON format. Make full use of this scan result to generate a detailed Chinese report in AWVS style, including: complete URL, parameters that generate the vulnerability, PoC payload, vulnerability introduction and repair suggestions, etc. And display it in HTML format. Give the content of the report directly, without any additional information.'.format(fuzz_results_str)
+            content = chat_with_ai(azure_openai_config, prompt)
+
+            with open(outputfile, 'w') as f:
+                f.write(content)
 
         print('[+] Fuzz results saved in: {}'.format(outputfile))
 

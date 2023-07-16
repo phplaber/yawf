@@ -6,6 +6,7 @@ import requests
 import json
 import re
 import esprima
+import openai
 from configparser import ConfigParser
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
@@ -309,3 +310,22 @@ def detect_waf(req_rsp):
         
     return 
 
+def chat_with_ai(azure_openai_config, prompt):
+    openai.api_type = "azure"
+    openai.api_base = azure_openai_config['api_base']
+    openai.api_version = azure_openai_config['api_version']
+    openai.api_key = azure_openai_config['api_key']
+    
+    response = openai.ChatCompletion.create(
+        engine = azure_openai_config['deployment_name'],
+        temperature = 0.0,
+        messages = [
+            {"role": "system", "content": "You are the AI Security Assistant, an artificial intelligence designed to assist in security testing."},
+            {"role": "user", "content": "{}".format(prompt)}
+        ]
+    )
+
+    if hasattr(response, "error"):
+        return ''
+
+    return response['choices'][0]['message']['content']
