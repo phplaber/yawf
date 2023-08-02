@@ -87,15 +87,15 @@ if __name__ == '__main__':
 
     # Azure openai
     azure_openai_config = {
-        'deployment_name': conf_dict['azure_deployment_name'],
-        'api_base': conf_dict['azure_api_base'],
-        'api_version': conf_dict['azure_api_version'],
-        'api_key': conf_dict['azure_api_key']
+        'deployment_name': conf_dict.get('azure_deployment_name'),
+        'api_base': conf_dict.get('azure_api_base'),
+        'api_version': conf_dict.get('azure_api_version'),
+        'api_key': conf_dict.get('azure_api_key')
     }
 
     # 自动标记忽略的参数列表
     ignore_params = []
-    if conf_dict['azure_enabled'] == 'on':
+    if conf_dict.get('azure_enabled') == 'on':
         # 使用 GPT 模型动态获取忽略参数
         prompt = """
             In the HTTP session, some authentication parameters (such as: sessionid, auth_key, PHPSESSID, etc.) will not cause vulnerabilities in most cases, and can be selected when using vulnerability scanning tools to detect Ignore them to balance efficiency and coverage of the security testing process. Please output 100 real parameter names in the following specific format(concatenate with commas), without a dot at the end, without any additional information.
@@ -510,7 +510,7 @@ if __name__ == '__main__':
                 fuzz_results_str += result_str + '\n'
 
         # 使用 GPT 模型生成可读性更高的报告
-        if conf_dict['azure_enabled'] == 'on':
+        if conf_dict.get('azure_enabled') == 'on':
             outputfile = os.path.join(outputdir, 'vuls_{}.html'.format(current_timestamp))
 
             prompt = '"""{}"""\nInside the triple quotes is the scan result of the vulnerability scanner in JSON format. Make full use of this scan result to generate a detailed Chinese report in AWVS style, including: complete URL, parameters that generate the vulnerability, PoC payload, vulnerability introduction and repair suggestions, etc. And display it in HTML format. Give the content of the report directly, without any additional information.'.format(fuzz_results_str)
