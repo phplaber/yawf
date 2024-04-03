@@ -2,7 +2,7 @@
 
 **Yawf** 是一个开源的 Web 漏洞自动化检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal、Log4Shell 和 JSONP 敏感信息泄露等。
 
-### 功能
+### 特性
 
 1.  支持检测动态 URL 和 HTTP Request 文件目标对象；
 2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST Body；
