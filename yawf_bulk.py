@@ -93,8 +93,8 @@ if __name__ == '__main__':
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
 
-    # 测试目标平台
-    platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
+    # 将测试目标平台存储在环境变量
+    os.environ['platform'] = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
 
     # 获取 requests 默认请求头
     default_headers = get_default_headers()
@@ -332,7 +332,7 @@ if __name__ == '__main__':
                 continue
 
             # 开始检测
-            fuzz_results.extend(Fuzzer(requests, content_type, platform, base_http, probes, probes_payload, dnslog, browser).run())
+            fuzz_results.extend(Fuzzer(requests, content_type, base_http, probes, probes_payload, dnslog, browser).run())
 
             # 记录漏洞
             if fuzz_results:

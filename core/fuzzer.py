@@ -8,11 +8,10 @@ class Fuzzer:
     模糊测试器
     """
 
-    def __init__(self, requests, content_type, platform, base_http, probes, probes_payload, dnslog, browser):
+    def __init__(self, requests, content_type, base_http, probes, probes_payload, dnslog, browser):
 
         self.requests = requests
         self.content_type = content_type
-        self.platform = platform
         self.base_http = base_http
         self.probes = probes
         self.probes_payload = probes_payload
@@ -43,7 +42,6 @@ class Fuzzer:
                     request, 
                     chrome, 
                     self.content_type, 
-                    self.platform, 
                     self.base_http, 
                     self.probes_payload, 
                     self.dnslog,

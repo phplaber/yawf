@@ -1,3 +1,4 @@
+import os
 import re
 import copy
 import json
@@ -80,11 +81,10 @@ class Ceye:
         return req.json().get('data')
 
 class Probe:
-    def __init__(self, request, browser, content_type, platform, base_http, probes_payload, dnslog, fuzz_results, flag, load_page):
+    def __init__(self, request, browser, content_type, base_http, probes_payload, dnslog, fuzz_results, flag, load_page):
         self.request = request
         self.browser = browser
         self.content_type = content_type
-        self.platform = platform
         self.base_http = base_http
         self.probes_payload = probes_payload
         self.dnslog = dnslog
@@ -300,7 +300,7 @@ class Probe:
             for payload in self.probes_payload['dt']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/boot.ini') \
-                    if self.platform == 'windows' \
+                    if os.environ['platform'] == 'windows' \
                     else payload.replace('filepath', '/etc/passwd')
                 
                 payload_request = self.gen_payload_request(payload)
@@ -425,7 +425,7 @@ class Probe:
             for payload in self.probes_payload['xxe']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/c:/boot.ini') \
-                    if self.platform == 'windows' \
+                    if os.environ['platform'] == 'windows' \
                     else payload.replace('filepath', '/etc/passwd')
                 # 将 payload 中的占位符 dnslog 替换为 dnslog 子域名
                 payload = payload.replace('dnslog', dnslog_domain)

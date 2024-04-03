@@ -257,8 +257,8 @@ if __name__ == '__main__':
         else:
             request['headers']['content-type'] = 'text/plain; charset=utf-8'
 
-    # 测试目标平台
-    platform = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
+    # 将测试目标平台存储在环境变量
+    os.environ['platform'] = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
     
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
@@ -468,7 +468,7 @@ if __name__ == '__main__':
     browser = Browser(proxies, user_agent) if 'xss' in probes else None
 
     # 开始检测
-    fuzz_results.extend(Fuzzer(requests, content_type, platform, base_http, probes, probes_payload, dnslog, browser).run())
+    fuzz_results.extend(Fuzzer(requests, content_type, base_http, probes, probes_payload, dnslog, browser).run())
 
     # 记录漏洞
     if fuzz_results:
