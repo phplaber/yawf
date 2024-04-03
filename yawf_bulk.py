@@ -11,7 +11,7 @@ import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # 校验 dnslog 服务
     dnslog_provider = options.dnslog_provider.lower()
     if dnslog_provider not in ['dnslog', 'ceye']:
-        print(errmsg('dnslog_is_invalid'))
+        print('[*] Only support dnslog and ceye provider')
         exit(1)
 
     # 脚本相对目录
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # 解析配置文件
     conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if not conf_dict:
-        print(errmsg('config_is_invalid'))
+        print('[*] parse config file error')
         exit(1)
 
     # 自动标记忽略的参数列表
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     probes_payload = {}
     payload_path = os.path.join(script_rel_dir, 'data', 'payload')
     for probe in probes:
-        payload_file = os.path.join(payload_path, '{}.txt'.format(probe))
+        payload_file = os.path.join(payload_path, f'{probe}.txt')
         if check_file(payload_file):
             probes_payload[probe] = read_file(payload_file)
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
             req_total += 1
             method = orig_request.get('Method')
             url = orig_request.get('URL')
-            print('[+] Start scanning url: {} {}'.format(method, url))
+            print(f'[+] Start scanning url: {method} {url}')
 
             o = urlparse(unquote(url))
             hostname = o.hostname
@@ -191,7 +191,7 @@ if __name__ == '__main__':
                         name, value = item.split('=', 1)
                         request['data'][name.strip()] = unquote(value)
                 else:
-                    print(errmsg('data_is_invalid'))
+                    print('[*] post data is invalid, support form/json/xml data type')
                     continue
 
             # 指定 User-Agent
@@ -211,7 +211,7 @@ if __name__ == '__main__':
                     detect_request['params']['ispayload'] = payload
                     what_waf = detect_waf(send_request(detect_request, True))
                     if what_waf:
-                        print("[+] Found waf: {}, continue.".format(what_waf))
+                        print(f"[+] Found waf: {what_waf}, continue.")
                         domain_has_waf[hostname] = True
                         break
 
@@ -221,7 +221,7 @@ if __name__ == '__main__':
             # 基准请求
             base_http = send_request(request, True)
             if base_http.get('status') != 200:
-                print(errmsg('base_request_failed').format(base_http.get('status')))
+                print(f"[*] base request failed, status code is: {base_http.get('status')}")
                 continue
 
             # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
@@ -298,17 +298,15 @@ if __name__ == '__main__':
                     xmlTree = ET.ElementTree(ET.fromstring(request['data']))
 
                     tagList = [elem.tag \
-                        if re.search(r'<{}>[^<>]*</{}>'.format(elem.tag, elem.tag), request['data']) \
+                        if re.search(fr'<{elem.tag}>[^<>]*</{elem.tag}>', request['data']) \
                         else None \
                         for elem in xmlTree.iter()]
                     # 移除重复元素 tag 和 None 值
-                    # 【优化点】也会移除不同父节点下具有相同 tag 名称的子节点，可能漏掉一些检测点
                     tagList = list(set(list(filter(None, tagList))))
                     tagList.sort()
 
                     for elem_tag in tagList:
-                        mark_request['data'] = re.sub(r'<{}>[^<>]*</{}>'.format(elem_tag, elem_tag), \
-                            '<{}>{}</{}>'.format(elem_tag, MARK_POINT, elem_tag), request['data'])
+                        mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', request['data'])
                         requests.append(copy.deepcopy(mark_request))
                     mark_request['data'] = request['data']
                 else:
@@ -338,15 +336,15 @@ if __name__ == '__main__':
 
             # 记录漏洞
             if fuzz_results:
-                outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
+                outputfile = os.path.join(outputdir, f'vuls_{time.strftime("%Y%m%d%H%M%S")}.txt')
                 with open(outputfile, 'w') as f:
                     for result in fuzz_results:
                         f.write(json.dumps(result))
                         f.write('\n')
-                print('[+] Fuzz results saved in: {}'.format(outputfile))
+                print(f'[+] Fuzz results saved in: {outputfile}')
 
             print('\n -------------------------------------------- \n')
 
             time.sleep(1)
 
-    print("\n\n[+] Fuzz finished, {} urls scanned in {} seconds.".format(req_total, int(time.time()) - start_time))
+    print(f"\n\n[+] Fuzz finished, {req_total} urls scanned in {int(time.time()) - start_time} seconds.")

@@ -12,11 +12,11 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import errmsg, check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
-banner = "\
+banner = f"\
 _____.___.  _____  __      _____________\n\
 \__  |   | /  _  \/  \    /  \_   _____/\n\
  /   |   |/  /_\  \   \/\/   /|    __)  \n\
@@ -25,10 +25,9 @@ _____.___.  _____  __      _____________\n\
  \/              \/      \/       \/    \n\
                                         \n\
 Automated Web Vulnerability Fuzzer      \n\
-{version}                               \n\
+{VERSION}                               \n\
 Created by yns0ng (@phplaber)           \n\
-\
-".format(version=VERSION)
+"
 
 if __name__ == '__main__':
 
@@ -61,7 +60,8 @@ if __name__ == '__main__':
         files = next(os.walk(os.path.join(script_rel_dir, 'data', 'payload')), (None, None, []))[2]
         s = 'List of available probes: \n'
         for f in files:
-            s += ' - {}\n'.format(os.path.splitext(f)[0])
+            s += f' - {os.path.splitext(f)[0]}\n'
+        # 内置 jsonp 探针
         s += ' - jsonp\n'
         print(s.rstrip())
         exit(0)
@@ -75,13 +75,13 @@ if __name__ == '__main__':
     # 校验 dnslog 服务
     dnslog_provider = options.dnslog_provider.lower()
     if dnslog_provider not in ['dnslog', 'ceye']:
-        print(errmsg('dnslog_is_invalid'))
+        print('[*] Only support dnslog and ceye provider')
         exit(1)
 
     # 解析配置文件
     conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if not conf_dict:
-        print(errmsg('config_is_invalid'))
+        print('[*] parse config file error')
         exit(1)
 
     # 自动标记忽略的参数列表
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     else:
         # HTTP 请求文件
         if not check_file(options.requestfile):
-            print(errmsg('file_is_invalid'))
+            print('[*] the specified HTTP request file does not exist or unable to read')
             exit(1)
         
         with open(options.requestfile, 'r', encoding='utf-8') as f:
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         scheme = scheme_conf.lower() if scheme_conf else REQ_SCHEME
         
         o = urlparse(unquote(misc_list[1]))
-        request['url'] = scheme + '://' + host_and_cookie['host'] + o._replace(fragment="")._replace(query="").geturl()
+        request['url'] = f"{scheme}://{host_and_cookie['host']}{o._replace(fragment='')._replace(query='').geturl()}"
         request['method'] = misc_list[0].upper()
         if request['method'] == 'POST':
             data = contents.split('\n\n')[1]
@@ -175,17 +175,17 @@ if __name__ == '__main__':
 
     # 只支持检测 HTTP 服务
     if scheme not in ['http', 'https']:
-        print(errmsg('scheme_is_invalid'))
+        print('[*] Only support http(s) scheme')
         exit(1)
 
     # 只支持 GET 和 POST 方法
     if request['method'] not in ['GET', 'POST']:
-        print(errmsg('method_is_invalid'))
+        print('[*] Only support GET and POST method')
         exit(1)
 
     # POST 数据不能为空
     if request['method'] == 'POST' and data is None:
-        print(errmsg('data_is_empty'))
+        print('[*] HTTP post data is empty')
         exit(1)
     
     # 查询字符串
@@ -223,7 +223,7 @@ if __name__ == '__main__':
                 if not is_mark and MARK_POINT in value:
                     is_mark = True
         else:
-            print(errmsg('data_is_invalid'))
+            print('[*] post data is invalid, support form/json/xml data type')
             exit(1)
 
     # cookies
@@ -238,7 +238,7 @@ if __name__ == '__main__':
     if options.auth_type and options.auth_cred:
         if options.auth_type in ['Basic', 'Digest', 'NTLM'] and ':' in options.auth_cred:
             if options.auth_type == 'NTLM' and re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred) is None:
-                print(errmsg('cred_is_invalid'))
+                print('[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"')
                 exit(1)
             request['auth']['auth_type'] = options.auth_type
             request['auth']['auth_cred'] = options.auth_cred
@@ -262,7 +262,7 @@ if __name__ == '__main__':
     
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
-        print(errmsg('url_is_invalid'))
+        print('[*] URL does not appear to be dynamic')
         exit(1)
 
     # 获取原始请求
@@ -292,13 +292,13 @@ if __name__ == '__main__':
             detect_request['params']['ispayload'] = payload
             what_waf = detect_waf(send_request(detect_request, True))
             if what_waf:
-                print("[+] Found Waf: {}, Exit.".format(what_waf))
+                print(f"[+] Found Waf: {what_waf}, Exit.")
                 exit(0)
 
     # 基准请求
     base_http = send_request(base_request, True)
     if base_http.get('status') != 200:
-        print(errmsg('base_request_failed').format(base_http.get('status')))
+        print("[*] base request failed, status code is: {base_http.get('status')}")
         exit(1)
 
     fuzz_results = []
@@ -385,8 +385,8 @@ if __name__ == '__main__':
                         + MARK_POINT \
                         + base_request['data'][(idx-cursor_idx):]
                     # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
-                    mark_request['data'] = re.sub(r'>[^<>]*{}<'.format(MARK_POINT.replace('[', '\[')), \
-                        '>{}<'.format(MARK_POINT), mark_xml)
+                    # f-string 表达式不能包含反斜线，故此处使用 format 函数格式化字符串
+                    mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\[')), f'>{MARK_POINT}<', mark_xml)
                     requests.append(copy.deepcopy(mark_request))
                     cursor_idx += len(MARK_POINT)
                 mark_request['data'] = base_request['data']
@@ -395,17 +395,15 @@ if __name__ == '__main__':
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
 
                 tagList = [elem.tag \
-                    if re.search(r'<{}>[^<>]*</{}>'.format(elem.tag, elem.tag), base_request['data']) \
+                    if re.search(fr'<{elem.tag}>[^<>]*</{elem.tag}>', base_request['data']) \
                     else None \
                     for elem in xmlTree.iter()]
                 # 移除重复元素 tag 和 None 值
-                # 【优化点】也会移除不同父节点下具有相同 tag 名称的子节点，可能漏掉一些检测点
                 tagList = list(set(list(filter(None, tagList))))
                 tagList.sort()
 
                 for elem_tag in tagList:
-                    mark_request['data'] = re.sub(r'<{}>[^<>]*</{}>'.format(elem_tag, elem_tag), \
-                        '<{}>{}</{}>'.format(elem_tag, MARK_POINT, elem_tag), base_request['data'])
+                    mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', base_request['data'])
                     requests.append(copy.deepcopy(mark_request))
                 mark_request['data'] = base_request['data']
         else:
@@ -447,7 +445,7 @@ if __name__ == '__main__':
     probes_payload = {}
     payload_path = os.path.join(script_rel_dir, 'data', 'payload')
     for probe in probes:
-        payload_file = os.path.join(payload_path, '{}.txt'.format(probe))
+        payload_file = os.path.join(payload_path, f'{probe}.txt')
         if check_file(payload_file):
             probes_payload[probe] = read_file(payload_file)
 
@@ -458,9 +456,11 @@ if __name__ == '__main__':
 
     """
     
-    子进程使用 pickle 转储参数，因为 Chrome 实例（类selenium.webdriver.chrome.webdriver.WebDriver）包含本地对象 _createenviron.<locals>.encodekey，在 pickle.dump 时报错，所以只能在子进程中创建 Chrome 实例。
+    子进程使用 pickle 转储参数，因为 Chrome 实例（类selenium.webdriver.chrome.webdriver.WebDriver）包含本地对象 _createenviron.<locals>.encodekey，
+    在 pickle.dump 时报错，所以只能在子进程中创建 Chrome 实例。
 
-    在批量检测中，多个子进程频繁的打开和关闭 Chrome，势必带来系统资源和时间消耗。最好是能在子进程中复用 Chrome，但目前只能先这样了。
+    在批量检测中，多个子进程频繁的打开和关闭 Chrome，势必带来系统资源和时间消耗。
+    最好是能在子进程中复用 Chrome，但目前只能先这样了。
         
     """
 
@@ -475,11 +475,11 @@ if __name__ == '__main__':
         outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
         if not os.path.exists(outputdir):
             os.makedirs(outputdir)
-        outputfile = os.path.join(outputdir, 'vuls_{}.txt'.format(time.strftime("%Y%m%d%H%M%S")))
+        outputfile = os.path.join(outputdir, f'vuls_{time.strftime("%Y%m%d%H%M%S")}.txt')
         with open(outputfile, 'w') as f:
             for result in fuzz_results:
                 f.write(json.dumps(result))
 
-        print('[+] Fuzz results saved in: {}'.format(outputfile))
+        print(f'[+] Fuzz results saved in: {outputfile}')
 
-    print("\n\n[+] Fuzz finished, {} request(s) scanned in {} seconds.".format(len(requests), int(time.time()) - start_time))
+    print(f"\n\n[+] Fuzz finished, {len(requests)} request(s) scanned in {int(time.time()) - start_time} seconds.")

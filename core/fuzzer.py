@@ -57,7 +57,7 @@ class Fuzzer:
                         getattr(Probe, probe)(probe_ins)
                     else:
                         if probe not in ['jsonp']:
-                            print('[*] invalid probe: {}'.format(probe))
+                            print(f'[*] invalid probe: {probe}')
                 
         # 关闭 Chrome 浏览器
         if chrome is not None:
@@ -82,7 +82,7 @@ class Fuzzer:
         flag['data'] = False
         # headless chrome 着陆页
         o = urlparse(self.base_http['request']['url'])
-        load_page = '{}://{}/{}'.format(o.scheme, o.netloc, 'robots.txt')
+        load_page = f'{o.scheme}://{o.netloc}/robots.txt'
 
         requests_num = 0
         for request in self.requests:

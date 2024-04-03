@@ -17,27 +17,6 @@ try:
 except Exception:
     pass
 
-
-def errmsg(token):
-    """
-    错误消息
-    """
-    
-    msg = {
-        'url_is_invalid': '[*] URL does not appear to be dynamic',
-        'file_is_invalid': '[*] the specified HTTP request file does not exist or unable to read',
-        'data_is_empty': '[*] HTTP post data is empty',
-        'config_is_invalid': '[*] parse config file error',
-        'base_request_failed': '[*] base request failed, status code is: {}',
-        'data_is_invalid': '[*] post data is invalid, support form/json/xml data type',
-        'method_is_invalid': '[*] Only support GET and POST method',
-        'cred_is_invalid': '[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"',
-        'scheme_is_invalid': '[*] Only support http(s) scheme',
-        'dnslog_is_invalid': '[*] Only support dnslog and ceye provider',
-    }
-
-    return msg.get(token, '')
-
 def check_file(filename):
     """
     检查文件是否存在和可读
@@ -101,7 +80,7 @@ def send_request(request, require_response_header=False):
         status = rsp.status_code
 
     except requests.exceptions.RequestException as e:
-        print('[*] WARN : request error : {}'.format(str(e)))
+        print(f'[*] WARN : request error : {str(e)}')
 
     return {
         'request': request,
@@ -123,7 +102,7 @@ def parse_conf(file):
         conf.read(file, encoding='utf-8')
         for section in conf.sections():
             for option in conf.options(section):
-                conf_dict['{}_{}'.format(section, option)] = conf.get(section, option)
+                conf_dict[f'{section}_{option}'] = conf.get(section, option)
     except Exception:
         pass
 

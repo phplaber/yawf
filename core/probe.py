@@ -27,10 +27,10 @@ class Browser:
         # 禁用扩展程序
         options.add_argument('--disable-extensions')
         # 设置 user-agent
-        options.add_argument('user-agent={}'.format(user_agent))
+        options.add_argument(f'user-agent={user_agent}')
         # 设置网络代理
         if proxies:
-            options.add_argument('--proxy-server={}'.format(proxies['http']))
+            options.add_argument(f"--proxy-server={proxies['http']}")
         # 忽略证书错误
         options.add_argument('--ignore-ssl-errors=yes')
         options.add_argument('--ignore-certificate-errors')
@@ -72,7 +72,7 @@ class Ceye:
         self.token  = token
 
     def pull_logs(self, filter):
-        req = requests.get("http://api.ceye.io/v1/records?token={}&type=dns&filter={}".format(self.token, filter), 
+        req = requests.get(f"http://api.ceye.io/v1/records?token={self.token}&type=dns&filter={filter}", 
             proxies=self.proxies, 
             timeout=self.timeout
         )
@@ -169,7 +169,7 @@ class Probe:
                     continue
                 payload_request = self.gen_payload_request(payload)
                 
-                query_list = ['{}={}'.format(par, val) for par, val in payload_request['params'].items()] if payload_request['params'] else []
+                query_list = [f'{par}={val}' for par, val in payload_request['params'].items()] if payload_request['params'] else []
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
                 
                 # 在添加 cookie 前，需导航到目标域名某个页面（不必存在），然后再加载目标页面
@@ -208,7 +208,7 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found XSS.")
         except Exception as e:
-            print("[*] (probe:xss) {}".format(e))
+            print(f"[*] (probe:xss) {e}")
 
     def sqli(self):
         """
@@ -284,7 +284,7 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found SQL Injection.")
         except Exception as e:
-            print("[*] (probe:sqli) {}".format(e))
+            print(f"[*] (probe:sqli) {e}")
 
     def dt(self):
         """
@@ -324,7 +324,7 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found Directory Traversal.")
         except Exception as e:
-            print("[*] (probe:dt) {}".format(e))
+            print(f"[*] (probe:dt) {e}")
 
     def fastjson(self):
         """
@@ -351,7 +351,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = f"{get_random_str(6)}.{self.dnslog.domain}"
             for payload in self.probes_payload['fastjson']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload, False, True)
@@ -375,7 +375,7 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found Fastjson.")
         except Exception as e:
-            print("[*] (probe:fastjson) {}".format(e))
+            print(f"[*] (probe:fastjson) {e}")
     
     def log4shell(self):
         """
@@ -385,7 +385,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = f"{get_random_str(6)}.{self.dnslog.domain}"
             for payload in self.probes_payload['log4shell']:
                 payload = payload.replace('dnslog', dnslog_domain)
                 payload_request = self.gen_payload_request(payload)
@@ -409,7 +409,7 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found Log4Shell.")
         except Exception as e:
-            print("[*] (probe:log4shell) {}".format(e))
+            print(f"[*] (probe:log4shell) {e}")
 
     def xxe(self):
         """
@@ -424,7 +424,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = f"{get_random_str(6)}.{self.dnslog.domain}"
             for payload in self.probes_payload['xxe']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
                 payload = payload.replace('filepath', '/c:/boot.ini') \
@@ -435,7 +435,7 @@ class Probe:
 
                 payload_request = self.gen_payload_request('&xxe;')
                 if '?>' in payload_request['data']:
-                    payload_request['data'] = payload_request['data'].replace('?>', '?>'+payload)
+                    payload_request['data'] = payload_request['data'].replace('?>', f'?>{payload}')
                 else:
                     payload_request['data'] = payload + payload_request['data']
                 if 'http' not in payload:
@@ -467,7 +467,7 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found XXE.")
         except Exception as e:
-            print("[*] (probe:xxe) {}".format(e))
+            print(f"[*] (probe:xxe) {e}")
 
     def ssrf(self):
         """
@@ -482,7 +482,7 @@ class Probe:
         
         vulnerable = False
         try:
-            dnslog_domain = "{}.{}".format(get_random_str(6), self.dnslog.domain)
+            dnslog_domain = f"{get_random_str(6)}.{self.dnslog.domain}"
             for payload in self.probes_payload['ssrf']:
                 # 无回显
                 payload = payload.replace('dnslog', dnslog_domain)
@@ -507,4 +507,4 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found SSRF.")
         except Exception as e:
-            print("[*] (probe:ssrf) {}".format(e))
+            print(f"[*] (probe:ssrf) {e}")
