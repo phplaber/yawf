@@ -179,7 +179,6 @@ class Probe:
                         self.browser.add_cookie({'name': n, 'value': quote(v)})
                 self.browser.get(url)
 
-                time.sleep(random.random())
                 try:
                     # 在切换执行 alert 前，等待 3 秒
                     WebDriverWait(self.browser, 3).until(EC.alert_is_present())
@@ -246,7 +245,6 @@ class Probe:
             for payload in self.probes_payload['sqli']:
                 payload_request = self.gen_payload_request(payload, True)
                 poc_rsp = send_request(payload_request)
-                time.sleep(random.random())
 
                 if not poc_rsp.get('response'):
                     continue
@@ -307,7 +305,6 @@ class Probe:
                 
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
-                time.sleep(random.random())
                 if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                     vulnerable = True
 
@@ -441,7 +438,6 @@ class Probe:
                 if 'http' not in payload:
                     # 有回显
                     poc_rsp = send_request(payload_request)
-                    time.sleep(random.random())
 
                     if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
                         vulnerable = True
