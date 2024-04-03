@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import queue
 from core.probe import Probe
 from multiprocessing import Process, Queue, Manager, cpu_count
