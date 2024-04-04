@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import copy
 import json
 import random
@@ -207,7 +208,8 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found XSS.")
         except Exception as e:
-            print(f"[*] (probe:xss) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:xss) {e}:{exc_tb.tb_lineno}")
 
     def sqli(self):
         """
@@ -282,7 +284,8 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found SQL Injection.")
         except Exception as e:
-            print(f"[*] (probe:sqli) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:sqli) {e}:{exc_tb.tb_lineno}")
 
     def dt(self):
         """
@@ -321,7 +324,8 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found Directory Traversal.")
         except Exception as e:
-            print(f"[*] (probe:dt) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:dt) {e}:{exc_tb.tb_lineno}")
 
     def fastjson(self):
         """
@@ -372,7 +376,8 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found Fastjson.")
         except Exception as e:
-            print(f"[*] (probe:fastjson) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:fastjson) {e}:{exc_tb.tb_lineno}")
     
     def log4shell(self):
         """
@@ -406,7 +411,8 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found Log4Shell.")
         except Exception as e:
-            print(f"[*] (probe:log4shell) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:log4shell) {e}:{exc_tb.tb_lineno}")
 
     def xxe(self):
         """
@@ -463,7 +469,8 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found XXE.")
         except Exception as e:
-            print(f"[*] (probe:xxe) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:xxe) {e}:{exc_tb.tb_lineno}")
 
     def ssrf(self):
         """
@@ -503,4 +510,5 @@ class Probe:
             if not vulnerable:
                 print("[-] Not Found SSRF.")
         except Exception as e:
-            print(f"[*] (probe:ssrf) {e}")
+            _, _, exc_tb = sys.exc_info()
+            print(f"[*] (probe:ssrf) {e}:{exc_tb.tb_lineno}")
