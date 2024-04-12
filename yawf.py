@@ -64,25 +64,21 @@ if __name__ == '__main__':
         # 内置 jsonp 探针
         s += ' - jsonp\n'
         print(s.rstrip())
-        exit(0)
+        sys.exit()
 
     # -u 和 -f 选项二选一
     if not options.url and not options.requestfile:
-        parser.print_help()
-        print('\n\n[*] option -u or -f must be set')
-        exit(1)
+        parser.error('option -u or -f must be set')
 
     # 校验 dnslog 服务
     dnslog_provider = options.dnslog_provider.lower()
     if dnslog_provider not in ['dnslog', 'ceye']:
-        print('[*] Only support dnslog and ceye provider')
-        exit(1)
+        sys.exit('[*] Only support dnslog and ceye provider')
 
     # 解析配置文件
     conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if not conf_dict:
-        print('[*] parse config file error')
-        exit(1)
+        sys.exit('[*] parse config file error')
 
     # 自动标记忽略的参数列表
     ignore_params = read_file(os.path.join(script_rel_dir, 'data', 'ignore_params.txt'))
@@ -147,8 +143,7 @@ if __name__ == '__main__':
     else:
         # HTTP 请求文件
         if not check_file(options.requestfile):
-            print('[*] the specified HTTP request file does not exist or unable to read')
-            exit(1)
+            sys.exit('[*] the specified HTTP request file does not exist or unable to read')
         
         with open(options.requestfile, 'r', encoding='utf-8') as f:
             contents = f.read()
@@ -175,18 +170,15 @@ if __name__ == '__main__':
 
     # 只支持检测 HTTP 服务
     if scheme not in ['http', 'https']:
-        print('[*] Only support http(s) scheme')
-        exit(1)
+        sys.exit('[*] Only support http(s) scheme')
 
     # 只支持 GET 和 POST 方法
     if request['method'] not in ['GET', 'POST']:
-        print('[*] Only support GET and POST method')
-        exit(1)
+        sys.exit('[*] Only support GET and POST method')
 
     # POST 数据不能为空
     if request['method'] == 'POST' and data is None:
-        print('[*] HTTP post data is empty')
-        exit(1)
+        sys.exit('[*] HTTP post data is empty')
     
     # 查询字符串
     qs = parse_qsl(o.query)
@@ -223,8 +215,7 @@ if __name__ == '__main__':
                 if not is_mark and MARK_POINT in value:
                     is_mark = True
         else:
-            print('[*] post data is invalid, support form/json/xml data type')
-            exit(1)
+            sys.exit('[*] post data is invalid, support form/json/xml data type')
 
     # cookies
     if cookies is not None:
@@ -238,8 +229,7 @@ if __name__ == '__main__':
     if options.auth_type and options.auth_cred:
         if options.auth_type in ['Basic', 'Digest', 'NTLM'] and ':' in options.auth_cred:
             if options.auth_type == 'NTLM' and re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred) is None:
-                print('[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"')
-                exit(1)
+                sys.exit('[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"')
             request['auth']['auth_type'] = options.auth_type
             request['auth']['auth_cred'] = options.auth_cred
 
@@ -262,8 +252,7 @@ if __name__ == '__main__':
     
     # 未手动标记且不具备自动标记的条件
     if not is_mark and not is_dynamic_url and not request['data'] and not request['cookies']:
-        print('[*] URL does not appear to be dynamic')
-        exit(1)
+        sys.exit('[*] URL does not appear to be dynamic')
 
     # 获取原始请求
     base_request = copy.deepcopy(request)
@@ -293,13 +282,12 @@ if __name__ == '__main__':
             what_waf = detect_waf(send_request(detect_request, True))
             if what_waf:
                 print(f"[+] Found Waf: {what_waf}, Exit.")
-                exit(0)
+                sys.exit()
 
     # 基准请求
     base_http = send_request(base_request, True)
     if base_http.get('status') != 200:
-        print("[*] base request failed, status code is: {base_http.get('status')}")
-        exit(1)
+        sys.exit("[*] base request failed, status code is: {base_http.get('status')}")
 
     fuzz_results = []
     # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
@@ -430,7 +418,7 @@ if __name__ == '__main__':
     # request 对象列表
     if not requests:
         print("[+] Not valid request object to fuzzing, Exit.")
-        exit(0)
+        sys.exit()
     
     # 获取探针
     probes = []

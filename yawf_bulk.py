@@ -28,15 +28,12 @@ if __name__ == '__main__':
 
     # 必需 -f 选项
     if not options.requests_file or not check_file(options.requests_file):
-        parser.print_help()
-        print('\n\n[*] option -f must be set and readable')
-        exit(1)
+        parser.error('option -f must be set and readable')
 
     # 校验 dnslog 服务
     dnslog_provider = options.dnslog_provider.lower()
     if dnslog_provider not in ['dnslog', 'ceye']:
-        print('[*] Only support dnslog and ceye provider')
-        exit(1)
+        sys.exit('[*] Only support dnslog and ceye provider')
 
     # 脚本相对目录
     script_rel_dir = os.path.dirname(sys.argv[0])
@@ -44,8 +41,7 @@ if __name__ == '__main__':
     # 解析配置文件
     conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if not conf_dict:
-        print('[*] parse config file error')
-        exit(1)
+        sys.exit('[*] parse config file error')
 
     # 自动标记忽略的参数列表
     ignore_params = read_file(os.path.join(script_rel_dir, 'data', 'ignore_params.txt'))
