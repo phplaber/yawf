@@ -10,7 +10,7 @@
 4.  支持 HTTP Basic/Digest/NTLM 认证；
 5.  支持对测试目标进行并行（多进程）检测；
 6.  容易扩展，探针和 Payload 文件分离；
-7.  支持检测目标对象前是否部署 WAF，以及是哪种 WAF；
+7.  支持信息收集功能；
 8.  支持设置 HTTP 网络代理；
 9.  支持 dnslog.cn 和 ceye.io 两种带外服务；
 10. 高度可配置化，简单配置实现定制需求；
@@ -29,17 +29,36 @@
 
 ### 安装
 
-需使用 Python 3.6+ 运行。
+需使用 Python 3.6+ 运行。首先，下载项目代码，然后安装依赖包。
+
+```console
+$ git clone https://github.com/phplaber/yawf.git
+$ cd yawf
+$ pip3 install -r requirements.txt
+```
+
+在正式使用前，建议先执行信息收集脚本，获取目标信息，如：是否 Web 站点、是否部署 Waf、Web Server、框架/脚本语言、SSL 证书信息和 DNS 记录等，以制定扫描策略。
+
+```console
+$ python3 getinfo.py -h
+
+Usage: getinfo.py [options]
+
++ Get infomation of target +
+
+Options:
+  -h, --help         show this help message and exit
+  -u URL, --url=URL  Target URL(e.g. "http://www.target.com")
+```
+
+![getinfo](./data/info.jpg "get info")
 
 由于 Yawf 在检测 XSS 漏洞时，使用了 headless Chrome，所以需预先安装 Chrome 环境。
 首先，安装驱动程序 [ChromeDriver](https://sites.google.com/chromium.org/driver/)，并将可执行文件放置在 PATH 目录下；其次，安装 Chrome 可执行程序。在 Windows 和 Mac 平台上运行，如果已安装 Chrome 应用，则无需安装；在 Linux 平台上运行，需安装 google-chrome 可执行程序，并将其放置在 PATH 目录下。
 如果执行 Yawf 时，报浏览器相关错误，请重点检查 ChromeDriver 和 Chrome 是否正确放置在 PATH 目录下。
 
 ```console
-$ git clone https://github.com/phplaber/yawf.git
-$ cd yawf
 $ cp yawf.conf.sample yawf.conf
-$ pip3 install -r requirements.txt
 $ python3 yawf.py -h
 
 _____.___.  _____  __      _____________
