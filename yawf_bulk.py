@@ -11,7 +11,7 @@ import optparse
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, get_default_headers, get_jsonp_keys
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
@@ -111,9 +111,6 @@ if __name__ == '__main__':
     # 遍历检测 request
     # 计数
     req_total = 0
-    # 存储域名是否部署 waf 的字典
-    # key 为域名，value 为 True（有 waf）、False（无 waf）
-    domain_has_waf = {}
     with open(options.requests_file, 'r', encoding='utf-8') as f:
         orig_requests = json.load(f)
         for orig_request in orig_requests:
@@ -121,12 +118,6 @@ if __name__ == '__main__':
             method = orig_request.get('Method')
             url = orig_request.get('URL')
             print(f'[+] Start scanning url: {method} {url}')
-
-            o = urlparse(unquote(url))
-            hostname = o.hostname
-            if domain_has_waf.get(hostname):
-                print("[+] Has waf")
-                continue
 
             fuzz_results = []
 
@@ -142,6 +133,7 @@ if __name__ == '__main__':
             request['method'] = method
             
             # URL
+            o = urlparse(unquote(url))
             request['url'] = o._replace(fragment="")._replace(query="").geturl()
 
             # 查询字符串
@@ -192,27 +184,6 @@ if __name__ == '__main__':
 
             # 指定 User-Agent
             request['headers']['user-agent'] = user_agent
-
-            # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
-            # 如果部署了 Waf，则中断检测。
-            if conf_dict['misc_enable_waf_detecter'].strip() == 'on' and domain_has_waf.get(hostname) is None:
-                domain_has_waf[hostname] = False
-                detect_request = copy.deepcopy(request)
-                detect_payloads = [
-                    '<img/src=1 onerror=alert(1)>',
-                    '\' and \'a\'=\'a'
-                ]
-
-                for payload in detect_payloads:
-                    detect_request['params']['ispayload'] = payload
-                    what_waf = detect_waf(send_request(detect_request, True))
-                    if what_waf:
-                        print(f"[+] Found waf: {what_waf}, continue.")
-                        domain_has_waf[hostname] = True
-                        break
-
-                if domain_has_waf.get(hostname):
-                    continue
 
             # 基准请求
             base_http = send_request(request, True)

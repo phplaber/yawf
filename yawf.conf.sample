@@ -36,6 +36,3 @@ token :
 
 # 测试目标运行平台 [linux|windows]
 platform : linux
-
-# 是否检测 waf [on|off]
-enable_waf_detecter : on

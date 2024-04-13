@@ -114,8 +114,6 @@ Options:
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
 
-- 在 **enable_waf_detecter** 项中配置执行漏洞检测前是否开启 WAF 检测，默认是 on，表示开启。Yawf 支持检测的 WAF 有：阿里云盾、云加速、安全狗、加速乐和 CloudFlare，检测代码主要从 [WhatWaf](https://github.com/Ekultek/WhatWaf) 项目移植而来，做了略微修改。需要检测其它 WAF，可以参考使用 [WhatWaf](https://github.com/Ekultek/WhatWaf)。一旦 Yawf 检测到 WAF，将中断执行。
-
 **data** 目录下的 **ignore_params.txt** 和 **dt_and_ssrf_detect_params.txt** 分别为自动标记忽略的参数和 dt、ssrf 探针检测参数，可按需修改。**sens_info_keywords.txt** 为敏感信息关键词，用于检测 JSONP 敏感信息泄露漏洞。
 
 #### 标记

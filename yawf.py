@@ -12,7 +12,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, detect_waf, get_default_headers, get_jsonp_keys
+from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, get_default_headers, get_jsonp_keys
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
@@ -267,22 +267,6 @@ if __name__ == '__main__':
                     base_request[item][k] = v.replace(MARK_POINT, '') if type(v) is str and MARK_POINT in v else v
             else:
                 base_request[item] = request[item].replace(MARK_POINT, '') if MARK_POINT in request[item] else request[item]
-
-    # 如果配置开启 Waf 检测，先判断测试目标前面是否部署了 Waf。
-    # 如果部署了 Waf，则中断检测。
-    if conf_dict['misc_enable_waf_detecter'].strip() == 'on':
-        detect_request = copy.deepcopy(base_request)
-        detect_payloads = [
-            '<img/src=1 onerror=alert(1)>',
-            '\' and \'a\'=\'a'
-        ]
-
-        for payload in detect_payloads:
-            detect_request['params']['ispayload'] = payload
-            what_waf = detect_waf(send_request(detect_request, True))
-            if what_waf:
-                print(f"[+] Found Waf: {what_waf}, Exit.")
-                sys.exit()
 
     # 基准请求
     base_http = send_request(base_request, True)
