@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     # 基本信息
     # 是否 Web 站点、Web Server 和框架/脚本语言等
-    print(f'{"-"*10} 基本信息 {"-"*10}')
+    print(f'\n{"-"*10} 基本信息 {"-"*10}')
     is_server_up, is_website = (True,)*2
     web_server, framework, waf = ('未知',)*3
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -195,8 +195,7 @@ Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
     print(basic_info)
 
     # 端口信息
-    print(f'{"-"*10} 端口信息 {"-"*10}')
-    print('\n')
+    print(f'{"-"*10} 端口信息 {"-"*10}\n')
     ports_info = []
     nm = nmap.PortScanner()
     nm.scan(domain)
@@ -213,10 +212,9 @@ Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
                 ports_info.append([f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
     
     print(tabulate(ports_info, headers=['端口', '状态', '服务', '版本'], tablefmt='simple_grid'))
-    print('\n')
 
     # SSL 证书信息
-    print(f'{"-"*10} SSL 证书信息 {"-"*10}')
+    print(f'\n{"-"*10} SSL 证书信息 {"-"*10}')
     if scheme == 'https':
         ctx = ssl.create_default_context()
         with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
@@ -251,8 +249,8 @@ Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
     print(ssl_info)
 
     # DNS 记录
-    print(f'{"-"*10} DNS 记录信息 {"-"*10}')
-    dns_records = {}
+    print(f'{"-"*10} DNS 记录信息 {"-"*10}\n')
+    dns_records_info = []
     my_resolver = dns.resolver.Resolver()
     my_resolver.nameservers = ['114.114.114.114']
 
@@ -260,13 +258,10 @@ Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
         try:
             answers = my_resolver.resolve(domain, rtype)
             for rdata in answers:
-                dns_records = {rtype: rdata.to_text()}
+                dns_records_info.append([rtype, rdata.to_text()])
         except dns.exception.DNSException as e:
             pass
 
-    dns_records_info = f'\n{"类型":<10}记录值\n'
-    for rtype, record in dns_records.items():
-        dns_records_info += f'{rtype:<10}{record}\n'
-    print(dns_records_info)
+    print(tabulate(dns_records_info, headers=['类型', '记录值'], tablefmt='simple_grid'))
 
-    print(f"[+] 信息收集完成，总耗时：{time.time() - start_time:.2f}秒")
+    print(f"\n[+] 信息收集完成，总耗时：{time.time() - start_time:.2f}秒")
