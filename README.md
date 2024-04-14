@@ -37,7 +37,7 @@ $ cd yawf
 $ pip3 install -r requirements.txt
 ```
 
-在正式使用前，建议先执行信息收集脚本，获取目标信息，如：是否 Web 站点、是否部署 Waf、Web Server、框架/脚本语言、SSL 证书信息和 DNS 记录等，以制定扫描策略。
+在正式使用前，建议先执行信息收集脚本，获取目标信息，如：是否 Web 站点、是否部署 Waf、Web Server、框架/脚本语言、端口信息、SSL 证书信息和 DNS 记录等，以制定扫描策略。
 
 ```console
 $ python3 getinfo.py -h
