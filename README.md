@@ -55,7 +55,7 @@ Options:
 
 由于 Yawf 在检测 XSS 漏洞时，使用了 headless Chrome，所以需预先安装 Chrome 环境。
 首先，安装驱动程序 [ChromeDriver](https://sites.google.com/chromium.org/driver/)，并将可执行文件放置在 PATH 目录下；其次，安装 Chrome 可执行程序。在 Windows 和 Mac 平台上运行，如果已安装 Chrome 应用，则无需安装；在 Linux 平台上运行，需安装 google-chrome 可执行程序，并将其放置在 PATH 目录下。
-如果执行 Yawf 时，报浏览器相关错误，请重点检查 ChromeDriver 和 Chrome 是否正确放置在 PATH 目录下。
+如果执行 Yawf 时，报浏览器相关错误，请重点检查 ChromeDriver 和 Chrome 是否正确放置在 PATH 目录下。此外，也需关注 ChromeDriver 和 Chrome 的版本是否匹配。
 
 ```console
 $ cp yawf.conf.sample yawf.conf

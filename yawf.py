@@ -271,7 +271,7 @@ if __name__ == '__main__':
     # 基准请求
     base_http = send_request(base_request, True)
     if base_http.get('status') != 200:
-        sys.exit("[*] base request failed, status code is: {base_http.get('status')}")
+        sys.exit(f"[*] base request failed, status code is: {base_http.get('status')}")
 
     fuzz_results = []
     # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
