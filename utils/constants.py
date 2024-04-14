@@ -1,4 +1,4 @@
-VERSION = 'v2.7'
+VERSION = 'v2.8'
 
 UA = 'Yawf ' + VERSION
 
