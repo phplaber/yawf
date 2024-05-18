@@ -115,8 +115,8 @@ if __name__ == '__main__':
         orig_requests = json.load(f)
         for orig_request in orig_requests:
             req_total += 1
-            method = orig_request.get('Method')
-            url = orig_request.get('URL')
+            method = orig_request.get('method')
+            url = orig_request.get('url')
             print(f'[+] Start scanning url: {method} {url}')
 
             fuzz_results = []
@@ -147,21 +147,21 @@ if __name__ == '__main__':
                     request['params'][par]=val
 
             # 请求头
-            if orig_request.get('Header'):
-                for name, value in orig_request.get('Header').items():
+            if orig_request.get('headers'):
+                for name, value in orig_request.get('headers').items():
                     if name not in ['Cookie', 'User-Agent']:
                         request['headers'][name.lower()] = value
 
             # Cookie
-            if orig_request.get('Header').get('Cookie'):
-                for item in orig_request.get('Header').get('Cookie').split(';'):
+            if orig_request.get('headers').get('Cookie'):
+                for item in orig_request.get('headers').get('Cookie').split(';'):
                     name, value = item.split('=', 1)
                     request['cookies'][name.strip()] = unquote(value)
 
             # Data
             content_type = None
-            if request['method'] == 'POST' and orig_request.get('b64_body'):
-                data = base64.b64decode(orig_request.get('b64_body')).decode('utf-8')
+            if request['method'] == 'POST' and orig_request.get('data'):
+                data = base64.b64decode(orig_request.get('data')).decode('utf-8')
                 full_content_type = request['headers']['content-type']
 
                 if 'json' in full_content_type:

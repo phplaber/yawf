@@ -163,14 +163,14 @@ Upgrade-Insecure-Requests: 1
 
 #### 运行批量检测脚本
 
-在使用浏览器爬虫工具（如：rad、crawlergo 等）爬取了一批完整请求对象并生成特定 json 文件后，运行 ****yawf_bulk.py**** 脚本进行批量检测。json 文件格式如下：
+在使用浏览器爬虫工具（如：[flamingo](https://github.com/phplaber/flamingo) 等）爬取了一批完整请求对象并生成特定 json 文件后，运行 ****yawf_bulk.py**** 脚本进行批量检测。json 文件格式如下：
 
 ```json
 [
    {
-      "Method":"POST",
-      "URL":"http://testphp.vulnweb.com/search.php",
-      "Header":{
+      "method":"POST",
+      "url":"http://testphp.vulnweb.com/search.php",
+      "headers":{
          "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
          "Content-Type":"application/x-www-form-urlencoded",
          "Cookie":"login=test%2Ftest",
@@ -179,25 +179,27 @@ Upgrade-Insecure-Requests: 1
          "Upgrade-Insecure-Requests":"1",
          "User-Agent":"Rad v0.4 crawler"
       },
-      "b64_body":"Z29CdXR0b249Z28mc2VhcmNoRm9yPTE="
+      "data":"Z29CdXR0b249Z28mc2VhcmNoRm9yPTE="
    },
    {
-      "Method":"GET",
-      "URL":"http://testphp.vulnweb.com/artists.php?artist=1",
-      "Header":{
+      "method":"GET",
+      "url":"http://testphp.vulnweb.com/artists.php?artist=1",
+      "headers":{
          "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
          "Upgrade-Insecure-Requests":"1",
          "User-Agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-      }
+      },
+      "data":""
    },
    {
-      "Method":"GET",
-      "URL":"http://testphp.vulnweb.com/listproducts.php?artist=1",
-      "Header":{
+      "method":"GET",
+      "url":"http://testphp.vulnweb.com/listproducts.php?artist=1",
+      "headers":{
          "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
          "Upgrade-Insecure-Requests":"1",
          "User-Agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-      }
+      },
+      "data":""
    }
 ]
 ```
