@@ -306,8 +306,7 @@ if __name__ == '__main__':
                 outputfile = os.path.join(outputdir, f'vuls_{time.strftime("%Y%m%d%H%M%S")}.txt')
                 with open(outputfile, 'w') as f:
                     for result in fuzz_results:
-                        f.write(json.dumps(result))
-                        f.write('\n')
+                        f.write(json.dumps(result)+'\n')
                 print(f'[+] Fuzz results saved in: {outputfile}')
 
             print('\n -------------------------------------------- \n')
