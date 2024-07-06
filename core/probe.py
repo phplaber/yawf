@@ -102,7 +102,7 @@ class Probe:
 
         payload_request = copy.deepcopy(self.request)
         for k, v in payload_request.items():
-            if k not in ['params', 'data', 'cookies']:
+            if k not in ['params', 'data', 'cookies', 'headers']:
                 continue
             if type(v) is str:
                 # data 为 xml 编码数据
