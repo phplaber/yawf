@@ -119,8 +119,6 @@ if __name__ == '__main__':
             url = orig_request.get('url')
             print(f'[+] Start scanning url: {method} {url}')
 
-            fuzz_results = []
-
             requests = []
             request = copy.deepcopy(init_request)
             
@@ -190,34 +188,6 @@ if __name__ == '__main__':
             if base_http.get('status') != 200:
                 print(f"[*] base request failed, status code is: {base_http.get('status')}")
                 continue
-
-            # 最终判断是否是 JSONP，如果是则检测是否包含敏感信息
-            if is_jsonp and any(ct in base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
-                sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
-                
-                # 空 referer 测试
-                if not request.get('headers').get('referer'):
-                    jsonp = base_http.get('response')
-                else:
-                    empty_referer_request = copy.deepcopy(request)
-                    del empty_referer_request['headers']['referer']
-                    empty_referer_response = send_request(empty_referer_request)
-                    jsonp = empty_referer_response.get('response')
-                
-                # 语义分析，获取 jsonp 中所有的 Literal 和 Identifier key
-                jsonp_keys = get_jsonp_keys(jsonp)
-                if any(key in sens_info_keywords for key in jsonp_keys):
-                    print("[+] Found JSONP information leakage!")
-                    fuzz_results.extend({
-                        'request': request,
-                        'payload': '',
-                        'poc': '',
-                        'type': 'JSONP'
-                    })
-                else:
-                    print("[-] Not Found JSONP information leakage.")
-            else:
-                print("[*] JSONP detection skipped")
 
             # 构造全部 request 对象（每个标记点对应一个对象）
             mark_request = copy.deepcopy(request)
@@ -293,12 +263,51 @@ if __name__ == '__main__':
                             mark_request[item][k] = v
                             mark_request['dt_and_ssrf_detect_flag'] = False
             
+            # 支持检测 referer 处的 log4shell
+            if 'log4shell' in probes:
+                referer_request = copy.deepcopy(request)
+                referer_request['url_json_flag'] = False
+                referer_request['dt_and_ssrf_detect_flag'] = False
+
+                referer_request['headers']['referer'] = MARK_POINT
+                requests.append(referer_request)
+
             # request 对象列表
             if not requests:
                 print("[+] Not valid request object to fuzzing, Exit.")
                 continue
 
             # 开始检测
+            fuzz_results = []
+            # 内置 jsonp 探针检测
+            if is_jsonp and any(ct in base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
+                sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
+                
+                # 空 referer 测试
+                if not request.get('headers').get('referer'):
+                    jsonp = base_http.get('response')
+                else:
+                    empty_referer_request = copy.deepcopy(request)
+                    del empty_referer_request['headers']['referer']
+                    empty_referer_response = send_request(empty_referer_request)
+                    jsonp = empty_referer_response.get('response')
+                
+                # 语义分析，获取 jsonp 中所有的 Literal 和 Identifier key
+                jsonp_keys = get_jsonp_keys(jsonp)
+                if any(key in sens_info_keywords for key in jsonp_keys):
+                    print("[+] Found JSONP information leakage!")
+                    fuzz_results.extend({
+                        'request': request,
+                        'payload': '',
+                        'poc': '',
+                        'type': 'JSONP'
+                    })
+                else:
+                    print("[-] Not Found JSONP information leakage.")
+            else:
+                print("[*] JSONP detection skipped")
+
+            # 其它探针检测
             fuzz_results.extend(Fuzzer(requests, content_type, base_http, probes, probes_payload, dnslog, browser).run())
 
             # 记录漏洞
