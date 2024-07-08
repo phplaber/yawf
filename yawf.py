@@ -376,7 +376,7 @@ if __name__ == '__main__':
         probes.append(PROBE)
 
     # 支持检测 referer 处的 log4shell
-    if 'log4shell' in ':'.join(probes):
+    if 'log4shell' in probes:
         referer_request = copy.deepcopy(base_request)
         referer_request['url_json_flag'] = False
         referer_request['dt_and_ssrf_detect_flag'] = False
