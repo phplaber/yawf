@@ -131,6 +131,7 @@ if __name__ == '__main__':
 
     parser = optparse.OptionParser(description='+ Get infomation of target +')
     parser.add_option("-u", "--url", dest="url", help='Target URL(e.g. "http://www.target.com")')
+    parser.add_option("-t", "--timeout", dest="timeout", type="float", default=30.0, help="Port scan timeout (s)")
     options, _ = parser.parse_args()
 
     if not options.url:
@@ -197,21 +198,24 @@ Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
     # 端口信息
     print(f'{"-"*10} 端口信息 {"-"*10}\n')
     ports_info = []
-    nm = nmap.PortScanner()
-    nm.scan(domain)
-    for host in nm.all_hosts():
-        print(f'主机 IP：{host}')
-        #print(f'状态：{nm[host].state()}')
-        for proto in nm[host].all_protocols():
-            if proto not in ["tcp", "udp"]:
-                continue
+    try:
+        nm = nmap.PortScanner()
+        nm.scan(domain, timeout=options.timeout)
+        for host in nm.all_hosts():
+            print(f'主机 IP：{host}')
+            #print(f'状态：{nm[host].state()}')
+            for proto in nm[host].all_protocols():
+                if proto not in ["tcp", "udp"]:
+                    continue
 
-            lport = list(nm[host][proto].keys())
-            lport.sort()
-            for pt in lport:
-                ports_info.append([f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
-    
-    print(tabulate(ports_info, headers=['端口', '状态', '服务', '版本'], tablefmt='simple_grid'))
+                lport = list(nm[host][proto].keys())
+                lport.sort()
+                for pt in lport:
+                    ports_info.append([f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
+        
+        print(tabulate(ports_info, headers=['端口', '状态', '服务', '版本'], tablefmt='simple_grid'))
+    except nmap.nmap.PortScannerTimeout:
+        print(f'\n{bcolors.WARNING}端口扫描超时{bcolors.ENDC}\n')
 
     # SSL 证书信息
     print(f'\n{"-"*10} SSL 证书信息 {"-"*10}')
