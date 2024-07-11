@@ -11,6 +11,7 @@ import nmap
 import dns.resolver
 from tabulate import tabulate
 from urllib.parse import urlparse, unquote
+from concurrent.futures import ThreadPoolExecutor
 
 # 忽略 SSL 告警信息
 try:
@@ -42,7 +43,7 @@ def detect_waf(req_rsp):
 
     # 请求失败，直接返回
     if status is None:
-        return '未知'
+        return 'unknown'
 
     # 阿里云盾
     if status == 405:
@@ -62,8 +63,9 @@ def detect_waf(req_rsp):
             return 'AliYunDun'
 
     # 腾讯云 waf
-    elif status == 202:
-        if 'waf' in headers.get('Set-Cookie'):
+    elif status == 202 or status == 403:
+        detection = re.compile(r"[0-9a-z]{32}-[0-9a-z]{32}", re.I)
+        if 'waf' in headers.get('Set-Cookie', '') or detection.search(response):
             return 'T-Sec-Waf'
 
     # 云加速
@@ -122,7 +124,14 @@ def detect_waf(req_rsp):
                 or detection.search(expect_ct):
             return 'CloudFlare'
         
-    return '未知'
+    return 'unknown'
+
+def resolve_dns(domain, rtype):
+    try:
+        answers = my_resolver.resolve(domain, rtype)
+        return [(rtype, rdata.to_text()) for rdata in answers]
+    except dns.exception.DNSException:
+        return []
 
 if __name__ == '__main__':
 
@@ -153,7 +162,7 @@ if __name__ == '__main__':
     # 是否 Web 站点、Web Server 和框架/脚本语言等
     print(f'\n{"-"*10} 基本信息 {"-"*10}')
     is_server_up, is_website = (True,)*2
-    web_server, framework, waf = ('未知',)*3
+    web_server, framework, waf = ('unknown',)*3
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = sock.connect_ex((domain, port))
     if result:
@@ -162,36 +171,31 @@ if __name__ == '__main__':
 
     if is_server_up:
         # 判断是否部署了 Waf
-        for payload in ['<img/src=1 onerror=alert(1)>', "' and 'a'='a"]:
-            url = f'{options.url}&ispayload={payload}' \
-                if '?' in options.url                  \
-                else f'{options.url}?ispayload={payload}'
-            r = requests.get(url, verify=False)
-            r_obj = {
-                'status': r.status_code,
-                'headers': r.headers,
-                'response': r.text
-            }
-            waf = detect_waf(r_obj)
-            if waf != '未知': break
+        payload = "xss=<img/src=1 onerror=alert(1)>&sqli=' and 'a'='a"
+        url = f"{options.url}&{payload}" if '?' in options.url else f"{options.url}?{payload}"
+        r = requests.get(url, verify=False)
+        r_obj = {
+            'status': r.status_code,
+            'headers': r.headers,
+            'response': r.text
+        }
+        waf = detect_waf(r_obj)
         
-        if waf == '未知':
+        if waf == 'unknown':
             # 是否 Web 站点
-            r = requests.get(options.url, verify=False)
             if r.status_code not in [200, 403, 404]:
                 is_website = False
 
             # Web Server 和框架/脚本语言
-            headers = r.headers
-            web_server = headers.get('Server', '未知')
-            framework = headers.get('X-Powered-By', '未知')
+            web_server = r.headers.get('Server', 'unknown')
+            framework = r.headers.get('X-Powered-By', 'unknown')
 
     basic_info = f"""
-服务状态：{bcolors.OKGREEN + "运行" if is_server_up else bcolors.FAIL + "停止"}{bcolors.ENDC}
-是否 Web 站点：{bcolors.OKGREEN + "是" if is_website else bcolors.FAIL + "否"}{bcolors.ENDC}
-WAF：{bcolors.BOLD + waf + bcolors.ENDC}
-Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
-框架/脚本语言：{bcolors.BOLD + framework + bcolors.ENDC}
+服务状态：{bcolors.OKGREEN + "running" if is_server_up else bcolors.FAIL + "down"}{bcolors.ENDC}
+是否 Web 站点：{bcolors.OKGREEN + "yes" if is_website else bcolors.FAIL + "no"}{bcolors.ENDC}
+WAF：{bcolors.OKGREEN + waf + bcolors.ENDC}
+Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
+框架/脚本语言：{bcolors.OKGREEN + framework + bcolors.ENDC}
     """
     print(basic_info)
 
@@ -256,16 +260,12 @@ Web 服务软件：{bcolors.BOLD + web_server + bcolors.ENDC}
     print(f'{"-"*10} DNS 记录信息 {"-"*10}\n')
     dns_records_info = []
     my_resolver = dns.resolver.Resolver()
-    my_resolver.nameservers = ['114.114.114.114']
-
-    for rtype in ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SOA', 'SRV', 'PTR']:
-        try:
-            answers = my_resolver.resolve(domain, rtype)
-            for rdata in answers:
-                dns_records_info.append([rtype, rdata.to_text()])
-        except dns.exception.DNSException as e:
-            pass
-
+    my_resolver.nameservers = ['114.114.114.114', '8.8.8.8']
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(resolve_dns, domain, rtype) for rtype in ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SOA', 'SRV', 'PTR']]
+        for future in futures:
+            dns_records_info.extend(future.result())
+    
     print(tabulate(dns_records_info, headers=['类型', '记录值'], tablefmt='simple_grid'))
 
     print(f"\n[+] 信息收集完成，总耗时：{time.time() - start_time:.2f}秒")
