@@ -12,6 +12,8 @@ import dns.resolver
 from tabulate import tabulate
 from urllib.parse import urlparse, unquote
 from concurrent.futures import ThreadPoolExecutor
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 
 # 忽略 SSL 告警信息
 try:
@@ -229,6 +231,7 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
         with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
             s.connect((domain, port))
             cert = s.getpeercert()
+            sign_algorithm = x509.load_der_x509_certificate(s.getpeercert(True), default_backend()).signature_algorithm_oid._name
 
         subject = dict(x[0] for x in cert.get('subject'))
         issuer = dict(x[0] for x in cert.get('issuer'))
@@ -252,6 +255,8 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
     截止日期：{valid_period.get('end')}
 颁发对象替代名称：
     DNS：{subject_altname}
+证书签名算法：
+    {sign_algorithm}
         """
     else:
         ssl_info = f'\n{bcolors.WARNING}未检测到 SSL 证书，可能是 HTTP 站点{bcolors.ENDC}\n'
