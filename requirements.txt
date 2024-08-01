@@ -1,6 +1,6 @@
 beautifulsoup4==4.11.2
 esprima==4.0.1
-requests==2.31.0
+requests==2.32.0
 requests_ntlm2==6.5.2
 selenium==4.8.2
 dnspython==2.6.1
