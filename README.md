@@ -114,13 +114,13 @@ Options:
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
 
-**data** 目录下的 **ignore_params.txt** 和 **dt_and_ssrf_detect_params.txt** 分别为自动标记忽略的参数和 dt、ssrf 探针检测参数，可按需修改。**sens_info_keywords.txt** 为敏感信息关键词，用于检测 JSONP 敏感信息泄露漏洞。
+此外，**data** 目录下的 **ignore_params.txt**、**dt_and_ssrf_detect_params.txt** 和 **sens_info_keywords.txt** 文件中分别预置了自动标记忽略的参数、 dt 和 ssrf 探针检测参数以及敏感信息关键词，用于检测 JSONP 敏感信息泄露漏洞。上述三个文件中的内容都可以按需修改。通过这种处理方式，可以减少很多无效请求，大大提高检测效率。
 
 #### 标记
 
 Yawf 支持手动和自动标记测试点，支持查询字符串、Cookie 和 POST Body 处标记。
 
-当需要测试某个单独的输入点时，仅需在参数值后手动标记 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数。
+当需要测试某个单独的输入点时，仅需在参数值后手动标记 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数值。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数值。
 
 ```
 http://test.sqlilab.local/Less-1/?id=3[fuzz]
@@ -157,9 +157,72 @@ Upgrade-Insecure-Requests: 1
 
 #### 运行脚本
 
-设置必要的参数，运行 **yawf.py** 脚本，等待脚本运行结束。一旦 Yawf 发现疑似漏洞，如果选项 **--output-dir** 传入目录路径，则将详情写入该目录下按时间戳命名的文件里，否则，写入和脚本同级的 output 目录下文件，文件同样按时间戳命名。如果目录不存在，Yawf 会安全的创建。
+设置必要的参数，运行 **yawf.py** 脚本，等待脚本运行结束。一旦 Yawf 发现疑似漏洞，如果选项 **--output-dir** 传入目录路径，则将漏洞详情写入该目录下按时间戳命名的文件里，否则，写入和脚本同级的 output 目录下文件，文件同样按时间戳命名。如果目录不存在，Yawf 会安全的创建。
 
-详情包括标记过的 request 对象、payload、触发漏洞的 request 对象以及漏洞类型。
+漏洞详情包括标记过的 request 对象、payload、触发漏洞的 request 对象以及漏洞类型。
+
+```json
+{
+  "request": {
+    "url": "http://testphp.vulnweb.com/listproducts.php",
+    "method": "GET",
+    "params": {
+      "cat": "[fuzz]"
+    },
+    "proxies": {
+      
+    },
+    "cookies": {
+      
+    },
+    "headers": {
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+      "accept-encoding": "gzip, deflate",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "data": {
+      
+    },
+    "auth": {
+      
+    },
+    "timeout": 30.0,
+    "url_json_flag": false,
+    "dt_and_ssrf_detect_flag": false
+  },
+  "payload": "<script>alert(1)</script>",
+  "poc": {
+    "url": "http://testphp.vulnweb.com/listproducts.php",
+    "method": "GET",
+    "params": {
+      "cat": "<script>alert(1)</script>"
+    },
+    "proxies": {
+      
+    },
+    "cookies": {
+      
+    },
+    "headers": {
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+      "accept-encoding": "gzip, deflate",
+      "accept": "*/*",
+      "connection": "keep-alive"
+    },
+    "data": {
+      
+    },
+    "auth": {
+      
+    },
+    "timeout": 30.0,
+    "url_json_flag": false,
+    "dt_and_ssrf_detect_flag": false
+  },
+  "type": "XSS"
+}
+```
 
 #### 运行批量检测脚本
 
