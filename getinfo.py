@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     parser = optparse.OptionParser(description='+ Get infomation of target +')
     parser.add_option("-u", "--url", dest="url", help='Target URL(e.g. "http://www.target.com")')
-    parser.add_option("-t", "--timeout", dest="timeout", type="float", default=30.0, help="Port scan timeout (s)")
+    parser.add_option("-t", "--timeout", dest="timeout", type="float", default=60.0, help="Port scan timeout (s)")
     options, _ = parser.parse_args()
 
     if not options.url:
@@ -167,13 +167,14 @@ if __name__ == '__main__':
     result = sock.connect_ex((domain, port))
     if result:
         is_server_up = False
+        is_website = False
     sock.close()
 
     if is_server_up:
         # 判断是否部署了 Waf
         payload = "xss=<img/src=1 onerror=alert(1)>&sqli=' and 'a'='a"
         url = f"{options.url}&{payload}" if '?' in options.url else f"{options.url}?{payload}"
-        r = requests.get(url, verify=False)
+        r = requests.get(url, timeout=3, verify=False)
         r_obj = {
             'status': r.status_code,
             'headers': r.headers,
@@ -185,10 +186,10 @@ if __name__ == '__main__':
             # 是否 Web 站点
             if r.status_code not in [200, 403, 404]:
                 is_website = False
-
-            # Web Server 和框架/脚本语言
-            web_server = r.headers.get('Server', 'unknown')
-            framework = r.headers.get('X-Powered-By', 'unknown')
+            else:
+                # Web Server 和框架/脚本语言
+                web_server = r.headers.get('Server', 'unknown')
+                framework = r.headers.get('X-Powered-By', 'unknown')
 
     basic_info = f"""
 服务状态：{bcolors.OKGREEN + "running" if is_server_up else bcolors.FAIL + "down"}{bcolors.ENDC}
@@ -201,10 +202,10 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
 
     # 端口信息
     print(f'{"-"*10} 端口信息 {"-"*10}\n')
-    ports_info = []
     try:
         nm = nmap.PortScanner()
         nm.scan(domain, timeout=options.timeout)
+        ports_info = []
         for host in nm.all_hosts():
             print(f'主机 IP：{host}')
             #print(f'状态：{nm[host].state()}')
