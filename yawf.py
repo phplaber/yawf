@@ -248,15 +248,9 @@ if __name__ == '__main__':
     base_request = copy.deepcopy(request)
     if is_mark:
         # 获取原始请求对象（不包含标记点）
-        for item in ['params', 'data', 'cookies']:
-            base_request[item] = {}
-            if not request[item]:
-                continue
-            if type(request[item]) is not str:
-                for k, v in request[item].items():
-                    base_request[item][k] = v.replace(MARK_POINT, '') if type(v) is str and MARK_POINT in v else v
-            else:
-                base_request[item] = request[item].replace(MARK_POINT, '') if MARK_POINT in request[item] else request[item]
+        base_str = json.dumps(base_request)
+        base_str = base_str.replace(MARK_POINT, '')
+        base_request = json.loads(base_str)
 
     # 基准请求
     base_http = send_request(base_request, True)
