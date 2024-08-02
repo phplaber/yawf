@@ -45,11 +45,7 @@ def send_request(request, require_response_header=False):
     发送 HTTP 请求
     """
 
-    response = headers = status = None
-    
-    json_data = None
-    data_data = None
-    auth = None
+    response, headers, status, json_data, data_data, auth = (None,)*6
     if request['method'] == 'POST':
         if 'json' in request['headers']['content-type']:
             json_data = json.loads(request['data']) if type(request['data']) is str else request['data']

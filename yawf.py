@@ -110,23 +110,14 @@ if __name__ == '__main__':
         'auth': {},
         'timeout': timeout
     }
-    # 手动标记状态位
-    is_mark = False
-    # 动态 url 状态位
-    is_dynamic_url = False
-    # JSONP 标记位
-    is_jsonp = False
-    # POST Body 内容类型
-    content_type = None
-    
-    data = None
-    cookies = None
+    # 手动标记状态位、动态 url 状态位、JSONP 标记位
+    is_mark, is_dynamic_url, is_jsonp = (False,)*3
+    content_type, data, cookies = (None,)*3
     if options.url:
         # URL
         o = urlparse(unquote(options.url))
         scheme = o.scheme.lower()
         request['url'] = o._replace(fragment="")._replace(query="").geturl()
-
         request['method'] = options.method.upper()
 
         if options.data:
@@ -138,8 +129,11 @@ if __name__ == '__main__':
 
         if options.headers:
             for item in options.headers.split("\\n"):
-                name, value = item.split(":", 1)
-                request['headers'][name.strip().lower()] = value.strip()
+                try:
+                    name, value = item.split(":", 1)
+                    request['headers'][name.strip().lower()] = value.strip()
+                except ValueError:
+                    pass
     else:
         # HTTP 请求文件
         if not check_file(options.requestfile):
@@ -186,14 +180,14 @@ if __name__ == '__main__':
         is_dynamic_url = True
         for par, val in qs:
             # 初步判断是否是 JSONP
-            if request['method'] == 'GET' and not is_jsonp and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
+            if not is_jsonp and request['method'] == 'GET' and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
                 is_jsonp = True
             request['params'][par]=val
             if not is_mark and MARK_POINT in val:
                 is_mark = True
 
     # post data
-    if data is not None:
+    if data:
         content_type = get_content_type(data)
 
         if content_type == 'json':
@@ -218,7 +212,7 @@ if __name__ == '__main__':
             sys.exit('[*] post data is invalid, support form/json/xml data type')
 
     # cookies
-    if cookies is not None:
+    if cookies:
         for item in cookies.split(";"):
             name, value = item.split("=", 1)
             request['cookies'][name.strip()] = unquote(value)

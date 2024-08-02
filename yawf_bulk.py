@@ -122,10 +122,8 @@ if __name__ == '__main__':
             requests = []
             request = copy.deepcopy(init_request)
             
-            # 动态 url 状态位
-            is_dynamic_url = False
-            # JSONP 标记位
-            is_jsonp = False
+            # 动态 url 状态位、JSONP 标记位
+            is_dynamic_url, is_jsonp = (False,)*2
 
             # 方法
             request['method'] = method
@@ -140,7 +138,7 @@ if __name__ == '__main__':
                 is_dynamic_url = True
                 for par, val in qs:
                     # 初步判断是否是 JSONP
-                    if request['method'] == 'GET' and not is_jsonp and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
+                    if not is_jsonp and request['method'] == 'GET' and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
                         is_jsonp = True
                     request['params'][par]=val
 
