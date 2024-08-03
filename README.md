@@ -144,13 +144,13 @@ Upgrade-Insecure-Requests: 1
 
 1.  **查询字符串**
     -  `?par1=val1&par2=val2[fuzz]`，常规查询字符串数据格式
-    -  `?par1={"foo":"bar[fuzz]"}`，参数值为 json 编码数据格式，支持对 json 中的各值（不包含对象和数组）标记
+    -  `?par1={"foo":"bar[fuzz]"}`，参数值为 json 编码数据格式，支持对 json 中的字符串值标记
     -  `?par1={"foo":"bar[fuzz]"}&par2=val2[fuzz]`，组合形式
 2.  **Cookie**
     -  `k1=v1[fuzz]; k2=v2[fuzz]`，常规键值对数据格式
 3.  **POST Body**
     -  `par1=val1&par2=val2[fuzz]`，常规 form 编码数据格式
-    -  `{"par1":"val1","par2":"val2[fuzz]"}`，json 编码数据格式，支持对 json 中的各值（不包含对象和数组）标记
+    -  `{"par1":"val1","par2":"val2[fuzz]"}`，json 编码数据格式，支持对 json 中的字符串值标记
     -  `<par1>val1[fuzz]</par1>`，xml 编码数据格式
 
 同时需注意，在自动标记模式下，参数是否被标记还受 **ignore_params.txt** 影响。

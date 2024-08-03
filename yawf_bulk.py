@@ -203,8 +203,8 @@ if __name__ == '__main__':
                             mark_request['url_json_flag'] = True
                             base_val_dict = copy.deepcopy(val_dict)
                             for k, v in val_dict.items():
-                                # 1、忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
-                                if k in ignore_params or (type(v) is list or type(v) is dict):
+                                # 1、忽略白名单参数；2、忽略 json 里的非字符串数据结构
+                                if type(v) is not str or k in ignore_params:
                                     continue
 
                                 if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
@@ -246,14 +246,7 @@ if __name__ == '__main__':
                     mark_request['data'] = request['data']
                 else:
                     for k, v in request[item].items():
-                        condition = k not in ignore_params
-                        if item == 'data' and content_type == 'json':
-                            condition = condition and (type(v) is not list and type(v) is not dict)
-                        if item == 'data' and content_type == 'form':
-                            # form 数据类型只支持常规形式标记
-                            # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
-                            condition = condition and get_content_type(v) is None
-                        if condition:
+                        if type(v) is str and (k not in ignore_params):
                             if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                                 mark_request['dt_and_ssrf_detect_flag'] = True
                             mark_request[item][k] = MARK_POINT

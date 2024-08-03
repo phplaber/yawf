@@ -260,7 +260,7 @@ if __name__ == '__main__':
     # 构造全部 request 对象（每个标记点对应一个对象）
     mark_request = copy.deepcopy(base_request)
     mark_request['url_json_flag'] = False
-    mark_request['dt_and_ssrf_detect_flag'] = True if is_mark else False
+    mark_request['dt_and_ssrf_detect_flag'] = False
 
     if is_dynamic_url:
         for par, val in request['params'].items():
@@ -273,29 +273,32 @@ if __name__ == '__main__':
                     mark_request['url_json_flag'] = True
                     base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
                     for k, v in val_dict.items():
-                        # 1、自动标记忽略白名单参数；2、忽略 json 里的 list 和 dict 数据结构
-                        if (is_mark and not (type(v) is str and MARK_POINT in v)) \
-                            or (not is_mark and (k in ignore_params or (type(v) is list or type(v) is dict))):
+                        # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构
+                        if type(v) is not str \
+                            or (is_mark and MARK_POINT not in v) \
+                            or (not is_mark and k in ignore_params):
                             continue
 
-                        if not is_mark and any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
+                        if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                             mark_request['dt_and_ssrf_detect_flag'] = True
                         
                         base_val_dict[k] = MARK_POINT
                         mark_request['params'][par] = json.dumps(base_val_dict)
                         requests.append(copy.deepcopy(mark_request))
-                        base_val_dict[k] = str(v).replace(MARK_POINT, '')
-                        if not is_mark:
-                            mark_request['dt_and_ssrf_detect_flag'] = False
+                        base_val_dict[k] = v.replace(MARK_POINT, '')
+                        # 重置 dt_and_ssrf_detect_flag
+                        mark_request['dt_and_ssrf_detect_flag'] = False
+                    # 重置 url_json_flag
                     mark_request['url_json_flag'] = False
             else:
-                if not is_mark and any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
                     mark_request['dt_and_ssrf_detect_flag'] = True
                 
                 mark_request['params'][par] = MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
-                if not is_mark:
-                    mark_request['dt_and_ssrf_detect_flag'] = False
+                # 重置 dt_and_ssrf_detect_flag
+                mark_request['dt_and_ssrf_detect_flag'] = False
+            # 重置查询参数
             mark_request['params'][par] = base_request['params'][par]
 
     for item in ['data', 'cookies']:
@@ -335,24 +338,18 @@ if __name__ == '__main__':
                 mark_request['data'] = base_request['data']
         else:
             for k, v in request[item].items():
+                condition = type(v) is str
                 if is_mark:
-                    condition = type(v) is str and MARK_POINT in v
+                    condition = condition and (MARK_POINT in v)
                 else:
-                    condition = k not in ignore_params
-                    if item == 'data' and content_type == 'json':
-                        condition = condition and (type(v) is not list and type(v) is not dict)
-                if item == 'data' and content_type == 'form':
-                    # form 数据类型只支持常规形式标记
-                    # TODO 支持对 form 数据类型形如 foo={"id":100} 中 json 的标记
-                    condition = condition and get_content_type(v) is None
+                    condition = condition and (k not in ignore_params)
                 if condition:
-                    if not is_mark and any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
+                    if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                         mark_request['dt_and_ssrf_detect_flag'] = True
                     mark_request[item][k] = MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request[item][k] = str(v).replace(MARK_POINT, '')
-                    if not is_mark:
-                        mark_request['dt_and_ssrf_detect_flag'] = False
+                    mark_request[item][k] = v.replace(MARK_POINT, '')
+                    mark_request['dt_and_ssrf_detect_flag'] = False
     
     # 获取探针
     probes = []
