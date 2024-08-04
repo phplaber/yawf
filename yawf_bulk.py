@@ -75,6 +75,8 @@ if __name__ == '__main__':
         payload_file = os.path.join(payload_path, f'{probe}.txt')
         if check_file(payload_file):
             probes_payload[probe] = read_file(payload_file)
+        elif probe not in ['jsonp']:
+            print(f'[*] invalid probe: {probe}')
 
     # 初始化 dnslog 实例
     dnslog = None

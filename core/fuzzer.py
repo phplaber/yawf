@@ -53,9 +53,6 @@ class Fuzzer:
                 for probe in self.probes:
                     if hasattr(Probe, probe) and callable(getattr(Probe, probe)):
                         getattr(Probe, probe)(probe_ins)
-                    else:
-                        if probe not in ['jsonp']:
-                            print(f'[*] invalid probe: {probe}')
                 
         # 关闭 Chrome 浏览器
         if chrome is not None:
