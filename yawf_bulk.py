@@ -285,7 +285,7 @@ if __name__ == '__main__':
                 
                 # 语义分析，获取 jsonp 中所有的 Literal 和 Identifier key
                 jsonp_keys = get_jsonp_keys(jsonp)
-                if any(key in sens_info_keywords for key in jsonp_keys):
+                if any(key.lower() in sens_info_keywords for key in jsonp_keys):
                     print("[+] Found JSONP information leakage!")
                     fuzz_results.extend({
                         'request': request,
