@@ -96,7 +96,7 @@ class Probe:
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
         生成带 payload 的 request 对象
-        reserve_original_params：是否保留原始参数值，默认 False。用于 sqli 探针
+        reserve_original_params：保留原始参数值，默认 False。用于 sqli 探针
         direct_use_payload：直接使用 payload，默认 False。用于 fastjson 探针，减少重复测试
         """
 
@@ -118,7 +118,7 @@ class Probe:
                                 if not reserve_original_params:
                                     payload_request[k][kk] = payload
                                 else:
-                                    payload_request[k][kk] = str(self.base_http.get('request')[k][kk]) + payload
+                                    payload_request[k][kk] = self.base_http.get('request')[k][kk] + payload
                             else:
                                 # 标记点在查询字符串 json 中
                                 val_dict = json.loads(payload_request[k][kk])
@@ -128,7 +128,7 @@ class Probe:
                                         if not reserve_original_params:
                                             base_val_dict[kkk] = payload
                                         else:
-                                            base_val_dict[kkk] = str(base_val_dict[kkk]) + payload
+                                            base_val_dict[kkk] += payload
                                         payload_request[k][kk] = json.dumps(base_val_dict)
                                         break
                         else:
@@ -222,20 +222,18 @@ class Probe:
         is_html = True
         invalid_mark_point = False
         test_rsp = send_request(self.gen_payload_request(get_random_str(10)))
-        if test_rsp.get('response') is None:
-            return 
+        if test_rsp.get('response'):
+            # 如果响应体为 HTML，则比较文本内容，否则，直接比较
+            if 'text/html' in self.base_http.get('headers').get('content-type'):
+                base_rsp_body = BeautifulSoup(self.base_http.get('response'), "html.parser").get_text()
+                test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
+            else:
+                is_html = False
+                base_rsp_body = self.base_http.get('response')
+                test_rsp_body = test_rsp.get('response')
 
-        # 如果响应体为 HTML，则比较文本内容，否则，直接比较
-        if 'text/html' in self.base_http.get('headers').get('content-type'):
-            base_rsp_body = BeautifulSoup(self.base_http.get('response'), "html.parser").get_text()
-            test_rsp_body = BeautifulSoup(test_rsp.get('response'), "html.parser").get_text()
-        else:
-            is_html = False
-            base_rsp_body = self.base_http.get('response')
-            test_rsp_body = test_rsp.get('response')
-
-        if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
-            invalid_mark_point = True
+            if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
+                invalid_mark_point = True
 
         if invalid_mark_point \
                 or (self.content_type == 'xml' and MARK_POINT in self.request['data']):
@@ -341,6 +339,7 @@ class Probe:
             for k, v in self.request['params'].items():
                 if MARK_POINT in v and not self.direct_use_payload_flag['params'].get(k):
                     is_run = True
+                    break
 
         if self.content_type == 'json':
             if MARK_POINT in str(self.request['data']) and not self.direct_use_payload_flag['data']:
