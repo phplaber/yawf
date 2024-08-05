@@ -81,7 +81,12 @@ if __name__ == '__main__':
     # 初始化 dnslog 实例
     dnslog = None
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in probes):
-        dnslog = Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token']) if dnslog_provider == 'ceye' else Dnslog(proxies, timeout)
+        if dnslog_provider == 'ceye':
+            if not conf_dict['ceye_id'] or not conf_dict['ceye_token']:
+                sys.exit("[*] When using the ceye out-of-band service, you must configure the id and token")
+            dnslog = Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
+        else:
+            dnslog = Dnslog(proxies, timeout)
         
     # 设置 Chrome 参数
     browser = Browser(proxies, user_agent) if 'xss' in probes else None
