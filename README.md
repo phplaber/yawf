@@ -12,7 +12,7 @@
 6.  容易扩展，探针和 Payload 文件分离；
 7.  支持信息收集功能；
 8.  支持设置 HTTP 网络代理；
-9.  支持 dnslog.cn 和 ceye.io 两种带外服务；
+9.  支持 ceye 和 dnslog 两种带外服务；
 10. 高度可配置化，简单配置实现定制需求；
 11. 支持批量检测。
 
@@ -91,7 +91,7 @@ Options:
                         Custom output directory path
   --probe-list          List of available probes
   --dnslog-provider=DNSLOG_PROVIDER
-                        Dnslog service provider, default: dnslog (e.g. ceye)
+                        Dnslog service provider, default: ceye (e.g. dnslog)
 ```
 
 ### 使用
@@ -110,7 +110,7 @@ Options:
 
 - 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
-- 在 **id** 项中配置 ceye.io 平台分配的 Identifier；在 **token** 项中配置 ceye.io 平台分配的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容；
+- 在 **id** 项中配置 ceye.io 平台分配的 Identifier；在 **token** 项中配置 ceye.io 平台分配的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容。默认使用 ceye 带外服务，获得更稳定的服务；
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
 

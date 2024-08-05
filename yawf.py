@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("--output-dir", dest="output_dir", help="Custom output directory path")
     parser.add_option("--probe-list", action="store_true", dest="probe_list", help="List of available probes")
-    parser.add_option("--dnslog-provider", dest="dnslog_provider", default="dnslog", help="Dnslog service provider, default: dnslog (e.g. ceye)")
+    parser.add_option("--dnslog-provider", dest="dnslog_provider", default="ceye", help="Dnslog service provider, default: ceye (e.g. dnslog)")
     options, _ = parser.parse_args()
 
     # 脚本相对目录
@@ -387,7 +387,7 @@ if __name__ == '__main__':
     # 初始化 dnslog 实例
     dnslog = None
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in probes):
-        dnslog = Dnslog(proxies, timeout) if dnslog_provider == 'dnslog' else Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
+        dnslog = Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token']) if dnslog_provider == 'ceye' else Dnslog(proxies, timeout)
 
     """
     
