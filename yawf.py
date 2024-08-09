@@ -16,17 +16,18 @@ from utils.utils import check_file, send_request, parse_conf, read_file, get_con
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
-banner = f"\
-_____.___.  _____  __      _____________\n\
-\__  |   | /  _  \/  \    /  \_   _____/\n\
- /   |   |/  /_\  \   \/\/   /|    __)  \n\
- \____   /    |    \        / |     \   \n\
- / ______\____|__  /\__/\  /  \___  /   \n\
- \/              \/      \/       \/    \n\
-                                        \n\
-Automated Web Vulnerability Fuzzer      \n\
-{VERSION}                               \n\
-Created by yns0ng (@phplaber)           \n"
+banner = fr"""
+_____.___.  _____  __      _____________
+\__  |   | /  _  \/  \    /  \_   _____/
+ /   |   |/  /_\  \   \/\/   /|    __)  
+ \____   /    |    \        / |     \   
+ / ______\____|__  /\__/\  /  \___  /   
+ \/              \/      \/       \/    
+                                        
+Automated Web Vulnerability Fuzzer      
+{VERSION}                               
+Created by yns0ng (@phplaber)           
+"""
 
 if __name__ == '__main__':
 
