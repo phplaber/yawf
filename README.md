@@ -280,7 +280,7 @@ $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
 $ cp yawf.conf.sample yawf.conf
 $ docker build --no-cache -t yawf_env .
-$ docker run -it --rm -v ~/Sec/scan/:/data --user $(id -u):$(id -g) yawf_env yawf.py -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --output-dir=/data
+$ docker run -it --rm --ulimit nofile=256:256 -v ~/Sec/scan/:/data --user $(id -u):$(id -g) yawf_env yawf.py -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --output-dir=/data
 ```
 
 至此，Yawf 的使用就结束了。后续就是人工介入，确认漏洞是否存在、等级，然后进入漏洞处置流程。
