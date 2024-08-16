@@ -231,6 +231,23 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
     # SSL 证书信息
     print(f'\n{"-"*10} SSL 证书信息 {"-"*10}')
     if scheme == 'https':
+        # SSL/TLS 版本
+        tls_versions = []
+        try:
+            nm = nmap.PortScanner()
+            nm.scan(domain, arguments=f'--script ssl-enum-ciphers -p {port}', timeout=options.timeout)
+            for host in nm.all_hosts():
+                if 'tcp' in nm[host] and port in nm[host]['tcp']:
+                    if 'script' in nm[host]['tcp'][port]:
+                        script_output = nm[host]['tcp'][port]['script']
+                        if 'ssl-enum-ciphers' in script_output:
+                            lines = script_output['ssl-enum-ciphers'].split('\n')
+                            tls_versions = [line.replace(' ', '').replace(':', '') for line in lines if 'TLSv' in line or 'SSLv' in line]
+        except Exception as e:
+            tls_versions.append(str(e).strip("'"))
+        print(f'\nSSL/TLS 版本：{", ".join(tls_versions)}\n')
+
+        # 证书信息
         ctx = ssl.create_default_context()
         with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
             s.connect((domain, port))
