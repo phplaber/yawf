@@ -193,9 +193,10 @@ if __name__ == '__main__':
         if content_type == 'json':
             # json data
             request['data'] = json.loads(data)
-            for k, v in request['data'].items():
-                if not is_mark and type(v) is str and MARK_POINT in v:
-                    is_mark = True
+            if type(request['data']) is dict:
+                for k, v in request['data'].items():
+                    if not is_mark and type(v) is str and MARK_POINT in v:
+                        is_mark = True
         elif content_type == 'xml':
             # xml data
             request['data'] = data

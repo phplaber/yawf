@@ -137,17 +137,17 @@ def get_content_type(content):
 
     type = None
     
-    if not content.replace('.','',1).isdigit() and content not in ['true', 'false']:
+    try:
+        # 整数、浮点数和布尔值都是有效 json 格式，应用时按需判断
+        json.loads(content)
+        type = 'json'
+    except ValueError:
         try:
-            json.loads(content)
-            type = 'json'
-        except ValueError:
-            try:
-                ET.fromstring(content)
-                type = 'xml'
-            except ET.ParseError:
-                if re.search(r"^[A-Za-z0-9_]+=[^=]+", content):
-                    type = 'form'
+            ET.fromstring(content)
+            type = 'xml'
+        except ET.ParseError:
+            if re.search(r"^[A-Za-z0-9_]+=[^=]+", content):
+                type = 'form'
 
     return type
 
