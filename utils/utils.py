@@ -154,13 +154,14 @@ def get_content_type(content):
 
 def is_base64(string):
     """
-    【废弃】校验字符串是否为 Base64 编码
-    不可能真正校验字符串是否为 Base64 编码，只能判断字符串是否符合 Base64 数据格式
+    校验字符串是否为 Base64 编码
+    不可能真正校验字符串是否为 Base64 编码，只能根据字符串是否符合 Base64 数据格式和长度大致猜测
     """
 
     is_b64 = False
 
-    if re.search("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$", string):
+    regex = r"^([A-Za-z0-9\-_]{4})*([A-Za-z0-9\-_]{3}=|[A-Za-z0-9\-_]{2}==)?$"
+    if re.search(regex, string) and len(string) > 20:
         is_b64 = True
 
     return is_b64

@@ -12,7 +12,7 @@ from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 from core.fuzzer import Fuzzer
-from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, get_default_headers, get_jsonp_keys
+from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, get_default_headers, get_jsonp_keys, is_base64
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
 from core.probe import Dnslog, Ceye, Browser
 
@@ -272,10 +272,11 @@ if __name__ == '__main__':
                 mark_request['url_json_flag'] = True
                 base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
                 for k, v in val_dict.items():
-                    # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构
+                    # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
                     if type(v) is not str \
                         or (is_mark and MARK_POINT not in v) \
-                        or (not is_mark and k in ignore_params):
+                        or (not is_mark and k in ignore_params) \
+                        or is_base64(v):
                         continue
 
                     if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
@@ -290,13 +291,14 @@ if __name__ == '__main__':
                 # 重置 url_json_flag
                 mark_request['url_json_flag'] = False
             else:
-                if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
-                    mark_request['dt_and_ssrf_detect_flag'] = True
-                
-                mark_request['params'][par] = MARK_POINT
-                requests.append(copy.deepcopy(mark_request))
-                # 重置 dt_and_ssrf_detect_flag
-                mark_request['dt_and_ssrf_detect_flag'] = False
+                if not is_base64(val):
+                    if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
+                    
+                    mark_request['params'][par] = MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    # 重置 dt_and_ssrf_detect_flag
+                    mark_request['dt_and_ssrf_detect_flag'] = False
             # 重置查询参数
             mark_request['params'][par] = base_request['params'][par]
 
@@ -337,7 +339,7 @@ if __name__ == '__main__':
                 mark_request['data'] = base_request['data']
         else:
             for k, v in request[item].items():
-                condition = type(v) is str
+                condition = type(v) is str and (not is_base64(v))
                 if is_mark:
                     condition = condition and (MARK_POINT in v)
                 else:
