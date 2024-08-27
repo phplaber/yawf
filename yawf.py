@@ -193,10 +193,9 @@ if __name__ == '__main__':
         if content_type == 'json':
             # json data
             request['data'] = json.loads(data)
-            if type(request['data']) is dict:
-                for k, v in request['data'].items():
-                    if not is_mark and type(v) is str and MARK_POINT in v:
-                        is_mark = True
+            for k, v in request['data'].items():
+                if not is_mark and type(v) is str and MARK_POINT in v:
+                    is_mark = True
         elif content_type == 'xml':
             # xml data
             request['data'] = data
@@ -270,27 +269,26 @@ if __name__ == '__main__':
             if get_content_type(val) == 'json':
                 # xxx.php?foo={"a":"b","c":"d[fuzz]"}&bar={"aa":"bb"}
                 val_dict = json.loads(val)
-                if type(val_dict) is dict:
-                    mark_request['url_json_flag'] = True
-                    base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
-                    for k, v in val_dict.items():
-                        # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构
-                        if type(v) is not str \
-                            or (is_mark and MARK_POINT not in v) \
-                            or (not is_mark and k in ignore_params):
-                            continue
+                mark_request['url_json_flag'] = True
+                base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
+                for k, v in val_dict.items():
+                    # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构
+                    if type(v) is not str \
+                        or (is_mark and MARK_POINT not in v) \
+                        or (not is_mark and k in ignore_params):
+                        continue
 
-                        if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
-                            mark_request['dt_and_ssrf_detect_flag'] = True
+                    if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
                         
-                        base_val_dict[k] = MARK_POINT
-                        mark_request['params'][par] = json.dumps(base_val_dict)
-                        requests.append(copy.deepcopy(mark_request))
-                        base_val_dict[k] = v.replace(MARK_POINT, '')
-                        # 重置 dt_and_ssrf_detect_flag
-                        mark_request['dt_and_ssrf_detect_flag'] = False
-                    # 重置 url_json_flag
-                    mark_request['url_json_flag'] = False
+                    base_val_dict[k] = MARK_POINT
+                    mark_request['params'][par] = json.dumps(base_val_dict)
+                    requests.append(copy.deepcopy(mark_request))
+                    base_val_dict[k] = v.replace(MARK_POINT, '')
+                    # 重置 dt_and_ssrf_detect_flag
+                    mark_request['dt_and_ssrf_detect_flag'] = False
+                # 重置 url_json_flag
+                mark_request['url_json_flag'] = False
             else:
                 if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
                     mark_request['dt_and_ssrf_detect_flag'] = True
