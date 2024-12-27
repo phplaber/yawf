@@ -232,14 +232,12 @@ if __name__ == '__main__':
     request['headers']['user-agent'] = user_agent
     # 指定 Content-Type
     if request['method'] == 'POST':
-        if content_type == 'json':
-            request['headers']['content-type'] = 'application/json; charset=utf-8'
-        elif content_type == 'xml':
-            request['headers']['content-type'] = 'application/xml; charset=utf-8'
-        elif content_type == 'form':
-            request['headers']['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8'
-        else:
-            request['headers']['content-type'] = 'text/plain; charset=utf-8'
+        content_types = {
+            'json': 'application/json; charset=utf-8',
+            'xml': 'application/xml; charset=utf-8',
+            'form': 'application/x-www-form-urlencoded; charset=utf-8'
+        }
+        request['headers']['content-type'] = content_types.get(content_type, 'text/plain; charset=utf-8')
 
     # 将测试目标平台存储在环境变量
     os.environ['platform'] = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
