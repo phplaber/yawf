@@ -4,6 +4,8 @@ import re
 import os
 import ssl
 import time
+import sys
+import signal
 import socket
 import optparse
 import requests
@@ -14,6 +16,8 @@ from urllib.parse import urlparse, unquote
 from concurrent.futures import ThreadPoolExecutor
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from utils.constants import REQ_SCHEME
+from utils.utils import Spinner
 
 # 忽略 SSL 告警信息
 try:
@@ -23,19 +27,17 @@ except Exception:
     pass
 
 if os.name == 'posix':
-    class bcolors:
-        HEADER = '\033[95m'
-        OKBLUE = '\033[94m'
-        OKCYAN = '\033[96m'
-        OKGREEN = '\033[92m'
-        WARNING = '\033[93m'
-        FAIL = '\033[91m'
-        ENDC = '\033[0m'
-        BOLD = '\033[1m'
-        UNDERLINE = '\033[4m'
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 else:
-    class bcolors:
-        HEADER, OKBLUE, OKCYAN, OKGREEN, WARNING, FAIL, ENDC, BOLD, UNDERLINE = ('',)*9
+    HEADER, OKBLUE, OKCYAN, OKGREEN, WARNING, FAIL, ENDC, BOLD, UNDERLINE = ('',)*9
 
 def detect_waf(req_rsp):
     """
@@ -47,18 +49,14 @@ def detect_waf(req_rsp):
     headers = req_rsp.get('headers')
     status = req_rsp.get('status')
 
-    # 请求失败，直接返回
-    if status is None:
-        return 'unknown'
-
     # 阿里云盾
     if status == 405:
         # 阻断
-        detection_schema = (
+        detection_schemas = (
             re.compile(r"error(s)?.aliyun(dun)?.(com|net)", re.I),
             re.compile(r"http(s)?://(www.)?aliyun.(com|net)", re.I)
         )
-        for detection in detection_schema:
+        for detection in detection_schemas:
             if detection.search(response):
                 return 'AliYunDun'
         
@@ -75,31 +73,31 @@ def detect_waf(req_rsp):
             return 'T-Sec-Waf'
 
     # 云加速
-    detection_schema = (
+    detection_schemas = (
         re.compile(r"fh(l)?", re.I),
         re.compile(r"yunjiasu.nginx", re.I)
     )
-    for detection in detection_schema:
+    for detection in detection_schemas:
         if detection.search(headers.get('x-server', '')) or detection.search(headers.get('server', '')):
             return 'Yunjiasu'
 
     # 安全狗
-    detection_schema = (
+    detection_schemas = (
         re.compile(r"(http(s)?)?(://)?(www|404|bbs|\w+)?.safedog.\w", re.I),
         re.compile(r"waf(.?\d+.?\d+)", re.I),
     )
-    for detection in detection_schema:
+    for detection in detection_schemas:
         if detection.search(response) or detection.search(headers.get('x-powered-by', '')):
             return 'SafeDog'
 
     # 加速乐
-    detection_schema = (
+    detection_schemas = (
         re.compile(r"^jsl(_)?tracking", re.I),
         re.compile(r"(__)?jsluid(=)?", re.I),
         re.compile(r"notice.jiasule", re.I),
         re.compile(r"(static|www|dynamic).jiasule.(com|net)", re.I)
     )
-    for detection in detection_schema:
+    for detection in detection_schemas:
         set_cookie = headers.get('set-cookie', '')
         server = headers.get('server', '')
         if any(detection.search(item) for item in [set_cookie, server]) or detection.search(response):
@@ -138,6 +136,13 @@ def resolve_dns(domain, rtype):
         return [(rtype, rdata.to_text()) for rdata in answers]
     except dns.exception.DNSException:
         return []
+    
+def signal_handler(sig, frame):
+    print(f'{WARNING}终止程序 Byebye{ENDC}')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 
 if __name__ == '__main__':
 
@@ -154,26 +159,29 @@ if __name__ == '__main__':
 
     # URL 解析
     o = urlparse(unquote(options.url))
-    scheme = o.scheme.lower() if o.scheme else 'http'
+    scheme = o.scheme.lower() if o.scheme else REQ_SCHEME
     domain = o.hostname
     port = o.port if o.port else (443 if scheme == 'https' else 80)
 
     """
     信息收集
 
-    1、基本信息；2、端口信息；3、SSL 证书；4、DNS 记录；5、杂项
+    1、基本信息
+    2、SSL 证书
+    3、DNS 记录
+    4、端口信息
+    5、杂项
     """
 
     # 基本信息
-    # 是否 Web 站点、Web Server 和框架/脚本语言等
-    print(f'\n{"-"*10} 基本信息 {"-"*10}')
-    is_server_up, is_website = (True,)*2
+    # 服务状态、Web Server 和框架/脚本语言等
+    print(f'\n{"-"*10} 基本信息 {"-"*10}\n')
+    is_server_up = True
     web_server, framework, waf = ('unknown',)*3
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = sock.connect_ex((domain, port))
     if result:
         is_server_up = False
-        is_website = False
     sock.close()
 
     if is_server_up:
@@ -181,55 +189,23 @@ if __name__ == '__main__':
         payload = "xss=<img/src=1 onerror=alert(1)>&sqli=' and 'a'='a"
         url = f"{options.url}&{payload}" if '?' in options.url else f"{options.url}?{payload}"
         r = requests.get(url, timeout=3, verify=False)
-        r_obj = {
-            'status': r.status_code,
-            'headers': r.headers,
-            'response': r.text
-        }
-        waf = detect_waf(r_obj)
+        waf = detect_waf({'status': r.status_code, 'headers': r.headers, 'response': r.text})
         
-        if waf == 'unknown':
-            # 是否 Web 站点
-            if r.status_code not in [200, 403, 404]:
-                is_website = False
-            else:
-                # Web Server 和框架/脚本语言
-                web_server = r.headers.get('Server', 'unknown')
-                framework = r.headers.get('X-Powered-By', 'unknown')
+        # Web Server 和框架/脚本语言
+        r = requests.get(options.url, timeout=3, verify=False)
+        web_server = r.headers.get('Server', 'unknown')
+        framework = r.headers.get('X-Powered-By', 'unknown')
 
     basic_info = f"""
-服务状态：{bcolors.OKGREEN + "running" if is_server_up else bcolors.FAIL + "down"}{bcolors.ENDC}
-是否 Web 站点：{bcolors.OKGREEN + "yes" if is_website else bcolors.FAIL + "no"}{bcolors.ENDC}
-WAF：{bcolors.OKGREEN + waf + bcolors.ENDC}
-Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
-框架/脚本语言：{bcolors.OKGREEN + framework + bcolors.ENDC}
+服务状态：{OKGREEN + "running" if is_server_up else FAIL + "down"}{ENDC}
+WAF：{OKGREEN + waf + ENDC}
+Web 服务软件：{OKGREEN + web_server + ENDC}
+框架/脚本语言：{OKGREEN + framework + ENDC}
     """
     print(basic_info)
 
-    # 端口信息
-    print(f'{"-"*10} 端口信息 {"-"*10}\n')
-    try:
-        nm = nmap.PortScanner()
-        nm.scan(domain, timeout=options.timeout)
-        ports_info = []
-        for host in nm.all_hosts():
-            print(f'主机 IP：{host}')
-            #print(f'状态：{nm[host].state()}')
-            for proto in nm[host].all_protocols():
-                if proto not in ["tcp", "udp"]:
-                    continue
-
-                lport = list(nm[host][proto].keys())
-                lport.sort()
-                for pt in lport:
-                    ports_info.append([f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
-        
-        print(tabulate(ports_info, headers=['端口', '状态', '服务', '版本'], tablefmt='simple_grid'))
-    except nmap.nmap.PortScannerTimeout:
-        print(f'\n{bcolors.WARNING}端口扫描超时{bcolors.ENDC}\n')
-
     # SSL 证书信息
-    print(f'\n{"-"*10} SSL 证书信息 {"-"*10}')
+    print(f'\n{"-"*10} SSL 证书信息 {"-"*10}\n')
     if scheme == 'https':
         # SSL/TLS 版本
         tls_versions = []
@@ -245,7 +221,7 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
                             tls_versions = [line.replace(' ', '').replace(':', '') for line in lines if 'TLSv' in line or 'SSLv' in line]
         except Exception as e:
             tls_versions.append(str(e).strip("'"))
-        print(f'\nSSL/TLS 版本：{", ".join(tls_versions)}\n')
+        print(f'SSL/TLS 版本：{", ".join(tls_versions)}')
 
         # 证书信息
         ctx = ssl.create_default_context()
@@ -280,11 +256,11 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
     {sign_algorithm}
         """
     else:
-        ssl_info = f'\n{bcolors.WARNING}未检测到 SSL 证书，可能是 HTTP 站点{bcolors.ENDC}\n'
+        ssl_info = f'{WARNING}目标站点为 HTTP 协议，跳过证书检测{ENDC}'
     print(ssl_info)
 
     # DNS 记录
-    print(f'{"-"*10} DNS 记录信息 {"-"*10}\n')
+    print(f'\n{"-"*10} DNS 记录信息 {"-"*10}\n')
     dns_records_info = []
     my_resolver = dns.resolver.Resolver()
     my_resolver.nameservers = ['114.114.114.114', '8.8.8.8']
@@ -294,5 +270,28 @@ Web 服务软件：{bcolors.OKGREEN + web_server + bcolors.ENDC}
             dns_records_info.extend(future.result())
     
     print(tabulate(dns_records_info, headers=['类型', '记录值'], tablefmt='simple_grid'))
+
+    # 端口信息
+    print(f'\n{"-"*10} 端口信息 {"-"*10}\n')
+    try:
+        spinner = Spinner('正在扫描，请稍候...')
+        spinner.start()
+        nm = nmap.PortScanner()
+        nm.scan(domain, timeout=options.timeout)
+        ports_info = []
+        for host in nm.all_hosts():
+            for proto in nm[host].all_protocols():
+                if proto not in ["tcp", "udp"]:
+                    continue
+
+                lport = list(nm[host][proto].keys())
+                lport.sort()
+                for pt in lport:
+                    ports_info.append([host, f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
+        spinner.stop()
+        print(tabulate(ports_info, headers=['主机', '端口', '状态', '服务', '版本'], tablefmt='simple_grid'))
+    except nmap.nmap.PortScannerTimeout:
+        spinner.stop()
+        print(f'{WARNING}端口扫描{options.timeout}秒超时，请适当延长超时时间{ENDC}')
 
     print(f"\n[+] 信息收集完成，总耗时：{time.time() - start_time:.2f}秒")

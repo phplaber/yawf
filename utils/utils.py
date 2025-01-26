@@ -3,7 +3,11 @@ import random
 import requests
 import json
 import re
+import sys
+import time
 import esprima
+import threading
+import itertools
 from configparser import ConfigParser
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
@@ -16,6 +20,31 @@ try:
     urllib3.disable_warnings()
 except Exception:
     pass
+
+class Spinner:
+    def __init__(self, msg):
+        self.msg = msg
+        self.spinner = itertools.cycle(['-', '\\', '|', '/'])
+        self.running = False
+        self.spinner_thread = None
+
+    def spin(self):
+        while self.running:
+            sys.stdout.write(self.msg + ' ' + next(self.spinner))
+            sys.stdout.flush()
+            time.sleep(0.1)
+            # 提示词为中文的情况。一个中文输出到终端等于三个字符长度
+            sys.stdout.write('\b'*(len(self.msg)*3+2))
+
+    def start(self):
+        self.running = True
+        self.spinner_thread = threading.Thread(target=self.spin)
+        self.spinner_thread.daemon = True
+        self.spinner_thread.start()
+
+    def stop(self):
+        self.running = False
+        self.spinner_thread.join()
 
 def check_file(filename):
     """
