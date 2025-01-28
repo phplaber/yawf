@@ -190,7 +190,7 @@ Upgrade-Insecure-Requests: 1
       
     },
     "timeout": 30.0,
-    "url_json_flag": false,
+    "fastjson_detect_flag": false,
     "dt_and_ssrf_detect_flag": false
   },
   "payload": "<script>alert(1)</script>",
@@ -219,7 +219,7 @@ Upgrade-Insecure-Requests: 1
       
     },
     "timeout": 30.0,
-    "url_json_flag": false,
+    "fastjson_detect_flag": false,
     "dt_and_ssrf_detect_flag": false
   },
   "type": "XSS"

@@ -164,7 +164,7 @@ def get_content_type(content):
     获取字符串内容类型，支持 x-www-form-urlencoded、json 和 xml 三种类型
     """
 
-    ct = None
+    ct = ''
     
     try:
         # 整数、浮点数和布尔值都是有效 json 格式，这里只处理由键值对组成的 json

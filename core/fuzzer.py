@@ -8,10 +8,9 @@ class Fuzzer:
     模糊测试器
     """
 
-    def __init__(self, requests, content_type, base_http, probes, probes_payload, dnslog, browser):
+    def __init__(self, requests, base_http, probes, probes_payload, dnslog, browser):
 
         self.requests = requests
-        self.content_type = content_type
         self.base_http = base_http
         self.probes = probes
         self.probes_payload = probes_payload
@@ -28,7 +27,7 @@ class Fuzzer:
         """
 
         # 启动 Chrome 浏览器
-        chrome = self.browser.run() if self.browser is not None else None
+        chrome = self.browser.run() if self.browser else None
 
         while True:
             try:
@@ -41,7 +40,6 @@ class Fuzzer:
                 probe_ins = Probe(
                     request, 
                     chrome, 
-                    self.content_type, 
                     self.base_http, 
                     self.probes_payload, 
                     self.dnslog,
@@ -55,10 +53,8 @@ class Fuzzer:
                         getattr(Probe, probe)(probe_ins)
                 
         # 关闭 Chrome 浏览器
-        if chrome is not None:
+        if chrome:
             chrome.quit()
-
-        return True
 
     def run(self):
         """
@@ -72,8 +68,10 @@ class Fuzzer:
         fuzz_results = Queue()
         # 用于 fastjson 探针，减少重复测试
         manager = Manager()
+        # 创建可在多进程间共享的字典
         flag = manager.dict()
-        flag['params'] = manager.dict() # 注意这里不能使用常规的字典
+        # 注意这里不能使用常规的字典
+        flag['params'] = manager.dict()
         flag['data'] = False
         # headless chrome 着陆页
         o = urlparse(self.base_http['request']['url'])

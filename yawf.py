@@ -62,8 +62,8 @@ if __name__ == '__main__':
         for f in files:
             s += f' - {os.path.splitext(f)[0]}\n'
         # 内置 jsonp 探针
-        s += ' - jsonp\n'
-        print(s.rstrip())
+        s += ' - jsonp'
+        print(s)
         sys.exit()
 
     # -u 和 -f 选项二选一
@@ -97,10 +97,9 @@ if __name__ == '__main__':
     # 获取 requests 默认请求头
     default_headers = get_default_headers()
 
-    requests = []
     # 基础请求对象
     request = {
-        'url': None,
+        'url': '',
         'method': 'GET',
         'params': {},
         'proxies': proxies,
@@ -112,11 +111,13 @@ if __name__ == '__main__':
     }
     # 手动标记状态位、动态 url 状态位、JSONP 标记位
     is_mark, is_dynamic_url, is_jsonp = (False,)*3
-    content_type, data, cookies = (None,)*3
+    content_type, data, cookies = ('',)*3
     if options.url:
         # URL
         o = urlparse(unquote(options.url))
         scheme = o.scheme.lower()
+        if not scheme:
+            sys.exit('[*] The full target URL is required')
         request['url'] = o._replace(fragment="")._replace(query="").geturl()
         request['method'] = options.method.upper()
 
@@ -171,7 +172,7 @@ if __name__ == '__main__':
         sys.exit('[*] Only support GET and POST method')
 
     # POST 数据不能为空
-    if request['method'] == 'POST' and data is None:
+    if request['method'] == 'POST' and not data:
         sys.exit('[*] HTTP post data is empty')
     
     # 查询字符串
@@ -183,8 +184,6 @@ if __name__ == '__main__':
             if not is_jsonp and request['method'] == 'GET' and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
                 is_jsonp = True
             request['params'][par]=val
-            if not is_mark and MARK_POINT in val:
-                is_mark = True
 
     # post data
     if data:
@@ -193,21 +192,14 @@ if __name__ == '__main__':
         if content_type == 'json':
             # json data
             request['data'] = json.loads(data)
-            for k, v in request['data'].items():
-                if not is_mark and type(v) is str and MARK_POINT in v:
-                    is_mark = True
         elif content_type == 'xml':
             # xml data
             request['data'] = data
-            if not is_mark and MARK_POINT in data:
-                is_mark = True
         elif content_type == 'form':
             # form data
             for item in data.split('&'):
                 name, value = item.split('=', 1)
                 request['data'][name.strip()] = unquote(value)
-                if not is_mark and MARK_POINT in value:
-                    is_mark = True
         else:
             sys.exit('[*] post data is invalid, support form/json/xml data type')
 
@@ -216,13 +208,11 @@ if __name__ == '__main__':
         for item in cookies.split(";"):
             name, value = item.split("=", 1)
             request['cookies'][name.strip()] = unquote(value)
-            if not is_mark and MARK_POINT in value:
-                is_mark = True
 
     # HTTP 认证
     if options.auth_type and options.auth_cred:
         if options.auth_type in ['Basic', 'Digest', 'NTLM'] and ':' in options.auth_cred:
-            if options.auth_type == 'NTLM' and re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred) is None:
+            if options.auth_type == 'NTLM' and not re.search(r'^(.*\\\\.*):(.*?)$', options.auth_cred):
                 sys.exit('[*] HTTP NTLM authentication credentials value must be in format "DOMAIN\\username:password"')
             request['auth']['auth_type'] = options.auth_type
             request['auth']['auth_cred'] = options.auth_cred
@@ -230,25 +220,25 @@ if __name__ == '__main__':
     # 指定 User-Agent
     user_agent = conf_dict['request_user_agent'] if conf_dict['request_user_agent'] else UA
     request['headers']['user-agent'] = user_agent
+
     # 指定 Content-Type
     if request['method'] == 'POST':
-        content_types = {
+        request['headers']['content-type'] = {
             'json': 'application/json; charset=utf-8',
             'xml': 'application/xml; charset=utf-8',
             'form': 'application/x-www-form-urlencoded; charset=utf-8'
-        }
-        request['headers']['content-type'] = content_types.get(content_type, 'text/plain; charset=utf-8')
+        }.get(content_type, 'text/plain; charset=utf-8')
 
     # 将测试目标平台存储在环境变量
     os.environ['platform'] = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM
 
-    # 获取原始请求
-    base_request = copy.deepcopy(request)
-    if is_mark:
-        # 获取原始请求对象（不包含标记点）
-        base_str = json.dumps(base_request)
-        base_str = base_str.replace(MARK_POINT, '')
-        base_request = json.loads(base_str)
+    request_str = json.dumps(request)
+    # 判断是否手动标记
+    is_mark = MARK_POINT in request_str
+
+    # 获取原始请求对象（不包含标记点）
+    base_str = request_str.replace(MARK_POINT, '') if is_mark else request_str
+    base_request = json.loads(base_str)
 
     # 基准请求
     base_http = send_request(base_request, True)
@@ -256,8 +246,9 @@ if __name__ == '__main__':
         sys.exit(f"[*] base request failed, status code is: {base_http.get('status')}")
 
     # 构造全部 request 对象（每个标记点对应一个对象）
+    requests = []
     mark_request = copy.deepcopy(base_request)
-    mark_request['url_json_flag'] = False
+    mark_request['fastjson_detect_flag'] = False
     mark_request['dt_and_ssrf_detect_flag'] = False
 
     if is_dynamic_url:
@@ -267,7 +258,7 @@ if __name__ == '__main__':
             if get_content_type(val) == 'json':
                 # xxx.php?foo={"a":"b","c":"d[fuzz]"}&bar={"aa":"bb"}
                 val_dict = json.loads(val)
-                mark_request['url_json_flag'] = True
+                mark_request['fastjson_detect_flag'] = True
                 base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
                 for k, v in val_dict.items():
                     # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
@@ -280,20 +271,20 @@ if __name__ == '__main__':
                     if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                         mark_request['dt_and_ssrf_detect_flag'] = True
                         
-                    base_val_dict[k] = MARK_POINT
+                    base_val_dict[k] = v if MARK_POINT in v else (v + MARK_POINT)
                     mark_request['params'][par] = json.dumps(base_val_dict)
                     requests.append(copy.deepcopy(mark_request))
                     base_val_dict[k] = v.replace(MARK_POINT, '')
                     # 重置 dt_and_ssrf_detect_flag
                     mark_request['dt_and_ssrf_detect_flag'] = False
-                # 重置 url_json_flag
-                mark_request['url_json_flag'] = False
+                # 重置 fastjson_detect_flag
+                mark_request['fastjson_detect_flag'] = False
             else:
                 if not is_base64(val):
                     if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
                         mark_request['dt_and_ssrf_detect_flag'] = True
                     
-                    mark_request['params'][par] = MARK_POINT
+                    mark_request['params'][par] = val if MARK_POINT in val else (val + MARK_POINT)
                     requests.append(copy.deepcopy(mark_request))
                     # 重置 dt_and_ssrf_detect_flag
                     mark_request['dt_and_ssrf_detect_flag'] = False
@@ -318,7 +309,6 @@ if __name__ == '__main__':
                     mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\\[')), f'>{MARK_POINT}<', mark_xml)
                     requests.append(copy.deepcopy(mark_request))
                     cursor_idx += len(MARK_POINT)
-                mark_request['data'] = base_request['data']
             elif not is_mark:
                 # xml data
                 xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
@@ -334,18 +324,13 @@ if __name__ == '__main__':
                 for elem_tag in tagList:
                     mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', base_request['data'])
                     requests.append(copy.deepcopy(mark_request))
-                mark_request['data'] = base_request['data']
+            mark_request['data'] = base_request['data']
         else:
             for k, v in request[item].items():
-                condition = type(v) is str and (not is_base64(v))
-                if is_mark:
-                    condition = condition and (MARK_POINT in v)
-                else:
-                    condition = condition and (k not in ignore_params)
-                if condition:
+                if type(v) is str and (not is_base64(v)) and (MARK_POINT in v if is_mark else k not in ignore_params):
                     if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                         mark_request['dt_and_ssrf_detect_flag'] = True
-                    mark_request[item][k] = MARK_POINT
+                    mark_request[item][k] = v if MARK_POINT in v else (v + MARK_POINT)
                     requests.append(copy.deepcopy(mark_request))
                     mark_request[item][k] = v.replace(MARK_POINT, '')
                     mark_request['dt_and_ssrf_detect_flag'] = False
@@ -361,12 +346,9 @@ if __name__ == '__main__':
 
     # 支持检测 referer 处的 log4shell
     if 'log4shell' in probes:
-        referer_request = copy.deepcopy(base_request)
-        referer_request['url_json_flag'] = False
-        referer_request['dt_and_ssrf_detect_flag'] = False
-
-        referer_request['headers']['referer'] = MARK_POINT
-        requests.append(referer_request)
+        mark_request['headers']['referer'] = MARK_POINT
+        requests.append(copy.deepcopy(mark_request))
+        mark_request['headers'] = base_request['headers']
 
     # request 对象列表
     if not requests:
@@ -391,16 +373,6 @@ if __name__ == '__main__':
             dnslog = Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
         else:
             dnslog = Dnslog(proxies, timeout)
-
-    """
-    
-    子进程使用 pickle 转储参数，因为 Chrome 实例（类selenium.webdriver.chrome.webdriver.WebDriver）包含本地对象 _createenviron.<locals>.encodekey，
-    在 pickle.dump 时报错，所以只能在子进程中创建 Chrome 实例。
-
-    在批量检测中，多个子进程频繁的打开和关闭 Chrome，势必带来系统资源和时间消耗。
-    最好是能在子进程中复用 Chrome，但目前只能先这样了。
-        
-    """
 
     # 设置 Chrome 参数
     browser = Browser(proxies, user_agent) if 'xss' in probes else None
@@ -436,7 +408,7 @@ if __name__ == '__main__':
         print("[*] JSONP detection skipped")
     
     # 其它探针检测
-    fuzz_results.extend(Fuzzer(requests, content_type, base_http, probes, probes_payload, dnslog, browser).run())
+    fuzz_results.extend(Fuzzer(requests, base_http, probes, probes_payload, dnslog, browser).run())
 
     # 记录漏洞
     if fuzz_results:

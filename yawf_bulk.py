@@ -104,8 +104,8 @@ if __name__ == '__main__':
 
     # 初始请求对象
     init_request = {
-        'url': None,
-        'method': None,
+        'url': '',
+        'method': '',
         'params': {},
         'proxies': proxies,
         'cookies': {},
@@ -126,7 +126,6 @@ if __name__ == '__main__':
             url = orig_request.get('url')
             print(f'[+] Start scanning url: {method} {url}')
 
-            requests = []
             request = copy.deepcopy(init_request)
             
             # 动态 url 状态位、JSONP 标记位
@@ -162,7 +161,7 @@ if __name__ == '__main__':
                     request['cookies'][name.strip()] = unquote(value)
 
             # Data
-            content_type = None
+            content_type = ''
             if request['method'] == 'POST' and orig_request.get('data'):
                 data = base64.b64decode(orig_request.get('data')).decode('utf-8')
                 full_content_type = request['headers']['content-type']
@@ -195,8 +194,9 @@ if __name__ == '__main__':
                 continue
 
             # 构造全部 request 对象（每个标记点对应一个对象）
+            requests = []
             mark_request = copy.deepcopy(request)
-            mark_request['url_json_flag'] = False
+            mark_request['fastjson_detect_flag'] = False
             mark_request['dt_and_ssrf_detect_flag'] = False
 
             if is_dynamic_url:
@@ -206,7 +206,7 @@ if __name__ == '__main__':
                     if get_content_type(val) == 'json':
                         # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
                         val_dict = json.loads(val)
-                        mark_request['url_json_flag'] = True
+                        mark_request['fastjson_detect_flag'] = True
                         base_val_dict = copy.deepcopy(val_dict)
                         for k, v in val_dict.items():
                             # 1、忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
@@ -216,18 +216,18 @@ if __name__ == '__main__':
                             if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                                 mark_request['dt_and_ssrf_detect_flag'] = True
 
-                            base_val_dict[k] = MARK_POINT
+                            base_val_dict[k] = v + MARK_POINT
                             mark_request['params'][par] = json.dumps(base_val_dict)
                             requests.append(copy.deepcopy(mark_request))
                             base_val_dict[k] = v
                             mark_request['dt_and_ssrf_detect_flag'] = False
-                        mark_request['url_json_flag'] = False
+                        mark_request['fastjson_detect_flag'] = False
                     else:
                         if not is_base64(val):
                             if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
                                 mark_request['dt_and_ssrf_detect_flag'] = True
                             
-                            mark_request['params'][par] = MARK_POINT
+                            mark_request['params'][par] = val + MARK_POINT
                             requests.append(copy.deepcopy(mark_request))
                             mark_request['dt_and_ssrf_detect_flag'] = False
                     mark_request['params'][par] = request['params'][par]
@@ -256,19 +256,16 @@ if __name__ == '__main__':
                         if type(v) is str and (k not in ignore_params) and (not is_base64(v)):
                             if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
                                 mark_request['dt_and_ssrf_detect_flag'] = True
-                            mark_request[item][k] = MARK_POINT
+                            mark_request[item][k] = v + MARK_POINT
                             requests.append(copy.deepcopy(mark_request))
                             mark_request[item][k] = v
                             mark_request['dt_and_ssrf_detect_flag'] = False
             
             # 支持检测 referer 处的 log4shell
             if 'log4shell' in probes:
-                referer_request = copy.deepcopy(request)
-                referer_request['url_json_flag'] = False
-                referer_request['dt_and_ssrf_detect_flag'] = False
-
-                referer_request['headers']['referer'] = MARK_POINT
-                requests.append(referer_request)
+                mark_request['headers']['referer'] = MARK_POINT
+                requests.append(copy.deepcopy(mark_request))
+                mark_request['headers'] = request['headers']
 
             # request 对象列表
             if not requests:
@@ -306,7 +303,7 @@ if __name__ == '__main__':
                 print("[*] JSONP detection skipped")
 
             # 其它探针检测
-            fuzz_results.extend(Fuzzer(requests, content_type, base_http, probes, probes_payload, dnslog, browser).run())
+            fuzz_results.extend(Fuzzer(requests, base_http, probes, probes_payload, dnslog, browser).run())
 
             # 记录漏洞
             if fuzz_results:

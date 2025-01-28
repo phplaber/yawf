@@ -82,16 +82,25 @@ class Ceye:
         return req.json().get('data')
 
 class Probe:
-    def __init__(self, request, browser, content_type, base_http, probes_payload, dnslog, fuzz_results, flag, load_page):
+    def __init__(self, request, browser, base_http, probes_payload, dnslog, fuzz_results, flag, load_page):
         self.request = request
         self.browser = browser
-        self.content_type = content_type
         self.base_http = base_http
         self.probes_payload = probes_payload
         self.dnslog = dnslog
         self.fuzz_results = fuzz_results
         self.direct_use_payload_flag = flag
         self.load_page = load_page
+
+        content_type = base_http.get('request').get('headers').get('content-type', '')
+        if 'json' in content_type:
+            self.content_type = 'json'
+        elif 'xml' in content_type:
+            self.content_type = 'xml'
+        elif 'form' in content_type:
+            self.content_type = 'form'
+        else:
+            self.content_type = ''
 
     def gen_payload_request(self, payload, reserve_original_params=False, direct_use_payload=False):
         """
@@ -112,35 +121,37 @@ class Probe:
             else:
                 flag = False
                 for kk, vv in v.items():
-                    if type(vv) is str and MARK_POINT in vv:
-                        if not direct_use_payload:
-                            if not payload_request['url_json_flag']:
-                                if not reserve_original_params:
-                                    payload_request[k][kk] = payload
-                                else:
-                                    payload_request[k][kk] = self.base_http.get('request')[k][kk] + payload
-                            else:
-                                # 标记点在查询字符串 json 中
-                                val_dict = json.loads(payload_request[k][kk])
-                                base_val_dict = json.loads(self.base_http.get('request')[k][kk])
-                                for kkk, vvv in val_dict.items():
-                                    if type(vvv) is str and MARK_POINT in vvv:
-                                        if not reserve_original_params:
-                                            base_val_dict[kkk] = payload
-                                        else:
-                                            base_val_dict[kkk] += payload
-                                        payload_request[k][kk] = json.dumps(base_val_dict)
-                                        break
-                        else:
-                            # 直接使用 payload 替代查询字符串参数值或 post body
-                            if k == 'params':
+                    if (type(vv) is not str) or (MARK_POINT not in vv):
+                        continue
+                    if not direct_use_payload:
+                        if not payload_request['fastjson_detect_flag']:
+                            if not reserve_original_params:
                                 payload_request[k][kk] = payload
-                                self.direct_use_payload_flag[k][kk] = True
-                            elif k == 'data':
-                                payload_request[k] = payload
-                                self.direct_use_payload_flag[k] = True
-                        flag = True
-                        break
+                            else:
+                                payload_request[k][kk] = vv.replace(MARK_POINT, payload)
+                        else:
+                            # 标记点在查询字符串 json 中
+                            val_dict = json.loads(payload_request[k][kk])
+                            base_val_dict = json.loads(self.base_http.get('request')[k][kk])
+                            for kkk, vvv in val_dict.items():
+                                if (type(vvv) is not str) or (MARK_POINT not in vvv):
+                                    continue
+                                if not reserve_original_params:
+                                    base_val_dict[kkk] = payload
+                                else:
+                                    base_val_dict[kkk] += payload
+                                payload_request[k][kk] = json.dumps(base_val_dict)
+                                break
+                    else:
+                        # 直接使用 payload 替代查询字符串参数值或 post body
+                        if k == 'params':
+                            payload_request[k][kk] = payload
+                            self.direct_use_payload_flag[k][kk] = True
+                        elif k == 'data':
+                            payload_request[k] = payload
+                            self.direct_use_payload_flag[k] = True
+                    flag = True
+                    break
                 if flag:
                     break
         
@@ -335,7 +346,7 @@ class Probe:
 
         # 确保针对查询字符串和 POST Body 中 json 多值标记只执行一次 fastjson 探针
         is_run = False
-        if self.request['url_json_flag']:
+        if self.request['fastjson_detect_flag']:
             for k, v in self.request['params'].items():
                 if MARK_POINT in v and not self.direct_use_payload_flag['params'].get(k):
                     is_run = True
