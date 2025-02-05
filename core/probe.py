@@ -13,7 +13,7 @@ from selenium.common.exceptions import TimeoutException, NoAlertPresentException
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
 from bs4 import BeautifulSoup
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 class Browser:
     def __init__(self, proxies, user_agent):
@@ -82,7 +82,7 @@ class Ceye:
         return req.json().get('data')
 
 class Probe:
-    def __init__(self, request, browser, base_http, probes_payload, dnslog, fuzz_results, flag, load_page):
+    def __init__(self, request, browser, base_http, probes_payload, dnslog, fuzz_results, flag):
         self.request = request
         self.browser = browser
         self.base_http = base_http
@@ -90,7 +90,6 @@ class Probe:
         self.dnslog = dnslog
         self.fuzz_results = fuzz_results
         self.direct_use_payload_flag = flag
-        self.load_page = load_page
 
         content_type = base_http.get('request').get('headers').get('content-type', '')
         if 'json' in content_type:
@@ -171,6 +170,9 @@ class Probe:
         
         vulnerable = False
         try:
+            # headless chrome 着陆页
+            o = urlparse(self.base_http['request']['url'])
+            load_page = f'{o.scheme}://{o.netloc}/robots.txt'
             # 添加请求头（请求头不支持标记）
             self.browser.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': self.request['headers']})
             for payload in self.probes_payload['xss']:
@@ -185,7 +187,7 @@ class Probe:
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
                 
                 # 在添加 cookie 前，需导航到目标域名某个页面（不必存在），然后再加载目标页面
-                self.browser.get(self.load_page)
+                self.browser.get(load_page)
                 if payload_request['cookies']:
                     for n, v in payload_request['cookies'].items():
                         self.browser.add_cookie({'name': n, 'value': quote(v)})
