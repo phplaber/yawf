@@ -31,6 +31,21 @@ id :
 # API Token
 token :  
 
+# [[大模型]]
+[llm]
+
+# 使用状态 [disable|enable]
+status : disable
+
+# 模型
+model : 
+
+# 大模型基础 URL
+base_url : 
+
+# 大模型 API 调用凭证
+api_key : 
+
 # [[杂项]]
 [misc]
 

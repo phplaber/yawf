@@ -30,11 +30,9 @@ class Spinner:
 
     def spin(self):
         while self.running:
-            sys.stdout.write(self.msg + ' ' + next(self.spinner))
+            sys.stdout.write('\r' + self.msg + ' ' + next(self.spinner))
             sys.stdout.flush()
             time.sleep(0.1)
-            # 提示词为中文的情况。一个中文输出到终端等于三个字符长度
-            sys.stdout.write('\b'*(len(self.msg)*3+2))
 
     def start(self):
         self.running = True
@@ -45,6 +43,8 @@ class Spinner:
     def stop(self):
         self.running = False
         self.spinner_thread.join()
+        sys.stdout.write('\r')
+        sys.stdout.flush()
 
 def check_file(filename):
     """

@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from utils.constants import REQ_SCHEME
-from utils.utils import Spinner
+from utils.utils import Spinner, parse_conf
 
 # 忽略 SSL 告警信息
 try:
@@ -206,6 +206,7 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
 
     # SSL 证书信息
     print(f'\n{"-"*10} SSL 证书信息 {"-"*10}\n')
+    tls_versions_info = ''
     if scheme == 'https':
         # SSL/TLS 版本
         tls_versions = []
@@ -221,7 +222,8 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
                             tls_versions = [line.replace(' ', '').replace(':', '') for line in lines if 'TLSv' in line or 'SSLv' in line]
         except Exception as e:
             tls_versions.append(str(e).strip("'"))
-        print(f'SSL/TLS 版本：{", ".join(tls_versions)}')
+        tls_versions_info = f'SSL/TLS 版本：{", ".join(tls_versions)}'
+        print(tls_versions_info)
 
         # 证书信息
         ctx = ssl.create_default_context()
@@ -261,24 +263,26 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
 
     # DNS 记录
     print(f'\n{"-"*10} DNS 记录信息 {"-"*10}\n')
-    dns_records_info = []
+    dns_records = []
     my_resolver = dns.resolver.Resolver()
     my_resolver.nameservers = ['114.114.114.114', '8.8.8.8']
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(resolve_dns, domain, rtype) for rtype in ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SOA', 'SRV', 'PTR']]
         for future in futures:
-            dns_records_info.extend(future.result())
+            dns_records.extend(future.result())
     
-    print(tabulate(dns_records_info, headers=['类型', '记录值'], tablefmt='simple_grid'))
+    dns_records_info = tabulate(dns_records, headers=['类型', '记录值'], tablefmt='simple_grid')
+    print(dns_records_info)
 
     # 端口信息
     print(f'\n{"-"*10} 端口信息 {"-"*10}\n')
+    ports_info = ''
+    spinner = Spinner('正在扫描，请稍候...')
+    spinner.start()
     try:
-        spinner = Spinner('正在扫描，请稍候...')
-        spinner.start()
         nm = nmap.PortScanner()
         nm.scan(domain, timeout=options.timeout)
-        ports_info = []
+        ports = []
         for host in nm.all_hosts():
             for proto in nm[host].all_protocols():
                 if proto not in ["tcp", "udp"]:
@@ -287,11 +291,43 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
                 lport = list(nm[host][proto].keys())
                 lport.sort()
                 for pt in lport:
-                    ports_info.append([host, f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
-        spinner.stop()
-        print(tabulate(ports_info, headers=['主机', '端口', '状态', '服务', '版本'], tablefmt='simple_grid'))
+                    ports.append([host, f'{pt}/{proto}', nm[host][proto][pt]["state"], nm[host][proto][pt]["name"], f'{nm[host][proto][pt]["product"]} {nm[host][proto][pt]["version"]}'])
+        ports_info = tabulate(ports, headers=['主机', '端口', '状态', '服务', '版本'], tablefmt='simple_grid')
     except nmap.nmap.PortScannerTimeout:
-        spinner.stop()
-        print(f'{WARNING}端口扫描{options.timeout}秒超时，请适当延长超时时间{ENDC}')
+        ports_info = f'{WARNING}端口扫描{options.timeout}秒超时，请适当延长超时时间{ENDC}'
+    spinner.stop()
+    print(ports_info)
 
     print(f"\n[+] 信息收集完成，总耗时：{time.time() - start_time:.2f}秒")
+
+    # 大模型智能分析
+    # 脚本相对目录
+    script_rel_dir = os.path.dirname(sys.argv[0])
+
+    # 解析配置文件
+    conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
+    if not conf_dict:
+        sys.exit('[*] parse config file error')
+
+    if conf_dict['llm_status'] == 'enable':
+        from openai import OpenAI, OpenAIError
+
+        client = OpenAI(api_key = conf_dict['llm_api_key'], base_url = conf_dict['llm_base_url'])
+
+        info = f'<基本信息>{basic_info}</基本信息><SSL 证书信息>{tls_versions_info}{ssl_info}</SSL 证书信息><DNS 记录信息>{dns_records_info}</DNS 记录信息><端口信息>{ports_info}</端口信息>'
+        try:
+            response = client.chat.completions.create(
+                model = conf_dict['llm_model'],
+                messages = [
+                    {"role": "system", "content": "你是一位渗透测试专家，你将收到和测试对象相关的信息。请先分析这些信息，然后制定下一步的渗透测试计划。"},
+                    {"role": "user", "content": info},
+                ],
+                stream = True
+            )
+            print(f"[+] 使用大模型进行智能分析：\n\n")
+            for chunk in response:
+                print(chunk.choices[0].delta.content or "", end="", flush=True)
+        except OpenAIError as e:
+            print(f"[+] 智能分析失败，原因如下：\n\n{e}")
+    else:
+        print("[+] 未开启大模型，无法进行智能分析")

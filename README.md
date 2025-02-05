@@ -16,7 +16,8 @@
 8.  支持设置 HTTP 网络代理；
 9.  支持 ceye 和 dnslog 两种带外服务；
 10. 高度可配置化，简单配置实现定制需求；
-11. 支持批量检测。
+11. 支持批量检测；
+12. 支持使用大模型对收集的信息进行智能分析。
 
 ### 漏洞探针
 
@@ -31,7 +32,7 @@
 
 ### 安装
 
-需使用 Python 3.6+ 运行。首先，下载项目代码，然后安装依赖包。
+需使用 Python 3.8+ 运行。首先，下载项目代码，然后安装依赖包。
 
 ```console
 $ git clone https://github.com/phplaber/yawf.git
@@ -39,7 +40,7 @@ $ cd yawf
 $ pip3 install -r requirements.txt
 ```
 
-在正式使用前，建议先执行信息收集脚本，获取目标信息，如：服务状态、是否部署 Waf、Web Server、框架/脚本语言、端口信息、SSL 证书信息和 DNS 记录等，以制定扫描策略。
+在正式使用前，建议先执行信息收集脚本，获取目标信息，如：服务状态、是否部署 Waf、Web Server、框架/脚本语言、端口信息、SSL 证书信息和 DNS 记录等，以制定扫描策略。同时，也可以配置使用大模型对收集的信息进行智能分析，为下一步测试工作提供指导建议。
 
 ```console
 $ python3 getinfo.py -h
@@ -113,6 +114,8 @@ Options:
 - 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
 - 在 **id** 项中配置 ceye.io 平台分配的 Identifier；在 **token** 项中配置 ceye.io 平台分配的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容。默认使用 ceye 带外服务，获得更稳定的服务；
+
+- 在 **model** 项中配置大模型名称，如：deepseek-chat；在 **base_url** 和 **api_key** 项分别配置大模型基础 URL 和大模型 API 调用凭证。并将 **status** 项配置为 enable，即可使用大模型进行智能分析；
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
 
