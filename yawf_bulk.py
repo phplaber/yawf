@@ -291,7 +291,7 @@ if __name__ == '__main__':
                 jsonp_keys = get_jsonp_keys(jsonp)
                 if any(key.lower() in sens_info_keywords for key in jsonp_keys):
                     print("[+] Found JSONP information leakage!")
-                    fuzz_results.extend({
+                    fuzz_results.append({
                         'request': request,
                         'payload': '',
                         'poc': '',
