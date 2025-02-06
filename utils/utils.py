@@ -1,16 +1,17 @@
 import os
 import random
-import requests
 import json
 import re
 import sys
 import time
-import esprima
 import threading
 import itertools
 from configparser import ConfigParser
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
+
+import requests
+import esprima
 from requests.auth import HTTPDigestAuth
 from requests_ntlm2 import HttpNtlmAuth
 

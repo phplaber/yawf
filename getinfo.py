@@ -8,17 +8,19 @@ import sys
 import signal
 import socket
 import optparse
+from urllib.parse import urlparse, unquote
+
 import requests
 import nmap
 import dns.resolver
 from tabulate import tabulate
-from urllib.parse import urlparse, unquote
+from openai import OpenAI, OpenAIError
 from concurrent.futures import ThreadPoolExecutor
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+
 from utils.constants import REQ_SCHEME
 from utils.utils import Spinner, parse_conf
-from openai import OpenAI, OpenAIError
 
 # 忽略 SSL 告警信息
 try:

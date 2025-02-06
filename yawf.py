@@ -11,10 +11,11 @@ import email
 from io import StringIO
 from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
+
 from core.fuzzer import Fuzzer
+from core.probe import Dnslog, Ceye, Browser
 from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, get_default_headers, get_jsonp_keys, is_base64
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
-from core.probe import Dnslog, Ceye, Browser
 
 banner = fr"""
 _____.___.  _____  __      _____________

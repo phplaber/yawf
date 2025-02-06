@@ -5,15 +5,17 @@ import copy
 import json
 import random
 import time
+from urllib.parse import quote, urlparse
+
 import requests
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoAlertPresentException
+
 from utils.constants import MARK_POINT, DBMS_ERRORS, DIFF_THRESHOLD
 from utils.utils import get_random_str, send_request, similar
-from bs4 import BeautifulSoup
-from urllib.parse import quote, urlparse
 
 class Browser:
     def __init__(self, proxies, user_agent):

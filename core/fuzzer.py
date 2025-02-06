@@ -1,6 +1,7 @@
 import queue
-from core.probe import Probe
 from multiprocessing import Process, Queue, Manager, cpu_count
+
+from core.probe import Probe
 
 class Fuzzer:
     """
