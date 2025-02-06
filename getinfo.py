@@ -18,6 +18,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from utils.constants import REQ_SCHEME
 from utils.utils import Spinner, parse_conf
+from openai import OpenAI, OpenAIError
 
 # 忽略 SSL 告警信息
 try:
@@ -310,16 +311,14 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
         sys.exit('[*] parse config file error')
 
     if conf_dict['llm_status'] == 'enable':
-        from openai import OpenAI, OpenAIError
-
         client = OpenAI(api_key = conf_dict['llm_api_key'], base_url = conf_dict['llm_base_url'])
-
-        info = f'<基本信息>{basic_info}</基本信息><SSL 证书信息>{tls_versions_info}{ssl_info}</SSL 证书信息><DNS 记录信息>{dns_records_info}</DNS 记录信息><端口信息>{ports_info}</端口信息>'
         try:
+            info = f'<基本信息>{basic_info}</基本信息><SSL证书信息>{tls_versions_info}{ssl_info}</SSL证书信息><DNS记录信息>{dns_records_info}</DNS记录信息><端口信息>{ports_info}</端口信息>'
+
             response = client.chat.completions.create(
                 model = conf_dict['llm_model'],
                 messages = [
-                    {"role": "system", "content": "你是一位渗透测试专家，你将收到和测试对象相关的信息。请先分析这些信息，然后制定下一步的渗透测试计划。"},
+                    {"role": "system", "content": "你是一位安全测试专家，你将收到和测试对象相关的XML结构化信息。请先分析这些信息，然后制定下一步的安全测试计划。"},
                     {"role": "user", "content": info},
                 ],
                 stream = True
