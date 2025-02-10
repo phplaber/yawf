@@ -250,7 +250,10 @@ if __name__ == '__main__':
 
                     for elem_tag in tagList:
                         mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', request['data'])
+                        if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
+                            mark_request['dt_and_ssrf_detect_flag'] = True
                         requests.append(copy.deepcopy(mark_request))
+                        mark_request['dt_and_ssrf_detect_flag'] = False
                     mark_request['data'] = request['data']
                 else:
                     for k, v in request[item].items():

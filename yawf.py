@@ -308,7 +308,14 @@ if __name__ == '__main__':
                     # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
                     # f-string 表达式不能包含反斜线，故此处使用 format 函数格式化字符串
                     mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\\[')), f'>{MARK_POINT}<', mark_xml)
+                    xmlTree = ET.ElementTree(ET.fromstring(mark_xml))
+                    for elem in xmlTree.iter():
+                        if MARK_POINT in str(elem.text) and any(detect_param in elem.tag.lower() for detect_param in dt_and_ssrf_detect_params):
+                            mark_request['dt_and_ssrf_detect_flag'] = True
+                            break
                     requests.append(copy.deepcopy(mark_request))
+                    # 重置 dt_and_ssrf_detect_flag
+                    mark_request['dt_and_ssrf_detect_flag'] = False
                     cursor_idx += len(MARK_POINT)
             elif not is_mark:
                 # xml data
@@ -324,7 +331,11 @@ if __name__ == '__main__':
 
                 for elem_tag in tagList:
                     mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', base_request['data'])
+                    if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
                     requests.append(copy.deepcopy(mark_request))
+                    # 重置 dt_and_ssrf_detect_flag
+                    mark_request['dt_and_ssrf_detect_flag'] = False
             mark_request['data'] = base_request['data']
         else:
             for k, v in request[item].items():
@@ -335,7 +346,7 @@ if __name__ == '__main__':
                     requests.append(copy.deepcopy(mark_request))
                     mark_request[item][k] = v.replace(MARK_POINT, '')
                     mark_request['dt_and_ssrf_detect_flag'] = False
-    
+
     # 获取探针
     probes = []
     if conf_dict['probe_customize']:

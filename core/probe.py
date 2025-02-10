@@ -189,8 +189,8 @@ class Probe:
                 url = payload_request['url'] + '?' + '&'.join(query_list) if query_list else payload_request['url']
                 
                 # 在添加 cookie 前，需导航到目标域名某个页面（不必存在），然后再加载目标页面
-                self.browser.get(load_page)
                 if payload_request['cookies']:
+                    self.browser.get(load_page)
                     for n, v in payload_request['cookies'].items():
                         self.browser.add_cookie({'name': n, 'value': quote(v)})
                 self.browser.get(url)
@@ -250,8 +250,7 @@ class Probe:
             if similar(base_rsp_body, test_rsp_body) > DIFF_THRESHOLD:
                 invalid_mark_point = True
 
-        if invalid_mark_point \
-                or (self.content_type == 'xml' and MARK_POINT in self.request['data']):
+        if invalid_mark_point:
             print("[*] SQLI detection skipped")
             return 
 
@@ -306,8 +305,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/file-path-traversal
         """
 
-        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
-                or not self.request['dt_and_ssrf_detect_flag']:
+        if not self.request['dt_and_ssrf_detect_flag']:
             print("[*] DT detection skipped")
             return 
 
@@ -315,13 +313,11 @@ class Probe:
         try:
             for payload in self.probes_payload['dt']:
                 # 将 payload 中的占位符 filepath 替换为平台特定文件
-                payload = payload.replace('filepath', '/boot.ini') \
-                    if os.environ['platform'] == 'windows' \
-                    else payload.replace('filepath', '/etc/passwd')
+                payload = payload.replace('filepath', '/boot.ini' if os.environ['platform'] == 'windows' else '/etc/passwd')
                 
                 payload_request = self.gen_payload_request(payload)
                 poc_rsp = send_request(payload_request)
-                if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
+                if poc_rsp.get('response') and any(kw in poc_rsp.get('response', '') for kw in ['root:', 'boot loader']):
                     vulnerable = True
 
                 if vulnerable:
@@ -443,12 +439,9 @@ class Probe:
         try:
             dnslog_domain = f"{get_random_str(6)}.{self.dnslog.domain}"
             for payload in self.probes_payload['xxe']:
-                # 将 payload 中的占位符 filepath 替换为平台特定文件
-                payload = payload.replace('filepath', '/c:/boot.ini') \
-                    if os.environ['platform'] == 'windows' \
-                    else payload.replace('filepath', '/etc/passwd')
-                # 将 payload 中的占位符 dnslog 替换为 dnslog 子域名
-                payload = payload.replace('dnslog', dnslog_domain)
+                # 将 payload 中的占位符 filepath 和 dnslog 分别替换为平台特定文件和 dnslog 子域名
+                payload = payload.replace('dnslog', dnslog_domain) \
+                    .replace('filepath', '/c:/boot.ini' if os.environ['platform'] == 'windows' else '/etc/passwd')
 
                 payload_request = self.gen_payload_request('&xxe;')
                 if '?>' in payload_request['data']:
@@ -459,7 +452,7 @@ class Probe:
                     # 有回显
                     poc_rsp = send_request(payload_request)
 
-                    if poc_rsp.get('response') and ('root:' in poc_rsp.get('response') or 'boot loader' in poc_rsp.get('response')):
+                    if poc_rsp.get('response') and any(kw in poc_rsp.get('response', '') for kw in ['root:', 'boot loader']):
                         vulnerable = True
                 else:
                     # 无回显
@@ -492,8 +485,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/ssrf
         """
 
-        if (self.content_type == 'xml' and MARK_POINT in self.request['data']) \
-                or not self.request['dt_and_ssrf_detect_flag']:
+        if not self.request['dt_and_ssrf_detect_flag']:
             print("[*] SSRF detection skipped")
             return 
         
