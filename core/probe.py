@@ -430,8 +430,7 @@ class Probe:
         漏洞知识: https://portswigger.net/web-security/xxe
         """
 
-        if self.content_type != 'xml' \
-                or (self.content_type == 'xml' and MARK_POINT not in self.request['data']):
+        if self.content_type != 'xml' or MARK_POINT not in self.request['data']:
             print("[*] XXE detection skipped")
             return 
         
