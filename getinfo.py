@@ -230,21 +230,22 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
         print(tls_versions_info)
 
         # 证书信息
-        ctx = ssl.create_default_context()
-        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
-            s.connect((domain, port))
-            cert = s.getpeercert()
-            sign_algorithm = x509.load_der_x509_certificate(s.getpeercert(True), default_backend()).signature_algorithm_oid._name
+        try:
+            ctx = ssl.create_default_context()
+            with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+                s.connect((domain, port))
+                cert = s.getpeercert()
+                sign_algorithm = x509.load_der_x509_certificate(s.getpeercert(True), default_backend()).signature_algorithm_oid._name
 
-        subject = dict(x[0] for x in cert.get('subject'))
-        issuer = dict(x[0] for x in cert.get('issuer'))
-        valid_period = {
-            'start': cert.get('notBefore'),
-            'end': cert.get('notAfter')
-        }
-        subject_altname = ', '.join([x[1] for x in cert.get('subjectAltName')])
+            subject = dict(x[0] for x in cert.get('subject'))
+            issuer = dict(x[0] for x in cert.get('issuer'))
+            valid_period = {
+                'start': cert.get('notBefore'),
+                'end': cert.get('notAfter')
+            }
+            subject_altname = ', '.join([x[1] for x in cert.get('subjectAltName')])
 
-        ssl_info = f"""
+            ssl_info = f"""
 颁发对象：
     通用名称：{subject.get('commonName')}
     国家/地区：{subject.get('countryName', '未知')}
@@ -259,8 +260,13 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
 颁发对象替代名称：
     DNS：{subject_altname}
 证书签名算法：
-    {sign_algorithm}
-        """
+    {sign_algorithm}"""
+        except ssl.SSLError as e:
+            ssl_info = f'{WARNING}SSL 连接错误: {str(e)}{ENDC}'
+        except socket.error as e:
+            ssl_info = f'{WARNING}套接字连接错误: {str(e)}{ENDC}'
+        except Exception as e:
+            ssl_info = f'{WARNING}获取 SSL 证书时发生错误: {str(e)}{ENDC}'
     else:
         ssl_info = f'{WARNING}目标站点为 HTTP 协议，跳过证书检测{ENDC}'
     print(ssl_info)
