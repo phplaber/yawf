@@ -54,6 +54,8 @@ Options:
   -u URL, --url=URL     Target URL(e.g. "http://www.target.com")
   -t TIMEOUT, --timeout=TIMEOUT
                         Port scan timeout (s)
+  --req-timeout=REQ_TIMEOUT
+                        HTTP request timeout (s)
 ```
 
 由于 Yawf 在检测 XSS 漏洞时，使用了 headless Chrome，所以需预先安装 Chrome 环境。
