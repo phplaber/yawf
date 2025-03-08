@@ -155,6 +155,7 @@ if __name__ == '__main__':
     parser = optparse.OptionParser(description='+ Get infomation of target +')
     parser.add_option("-u", "--url", dest="url", help='Target URL(e.g. "http://www.target.com")')
     parser.add_option("-t", "--timeout", dest="timeout", type="float", default=60.0, help="Port scan timeout (s)")
+    parser.add_option("--req-timeout", dest="req_timeout", type="float", default=3.0, help="HTTP request timeout (s)")
     options, _ = parser.parse_args()
 
     if not options.url:
@@ -191,11 +192,11 @@ if __name__ == '__main__':
         # 判断是否部署了 Waf
         payload = "xss=<img/src=1 onerror=alert(1)>&sqli=' and 'a'='a"
         url = f"{options.url}&{payload}" if '?' in options.url else f"{options.url}?{payload}"
-        r = requests.get(url, timeout=3, verify=False)
+        r = requests.get(url, timeout=options.req_timeout, verify=False)
         waf = detect_waf({'status': r.status_code, 'headers': r.headers, 'response': r.text})
         
         # Web Server 和框架/脚本语言
-        r = requests.get(options.url, timeout=3, verify=False)
+        r = requests.get(options.url, timeout=options.req_timeout, verify=False)
         web_server = r.headers.get('Server', 'unknown')
         framework = r.headers.get('X-Powered-By', 'unknown')
 
