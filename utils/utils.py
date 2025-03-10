@@ -9,6 +9,7 @@ import itertools
 from configparser import ConfigParser
 from difflib import SequenceMatcher
 from xml.etree import ElementTree as ET
+from typing import Dict, Any
 
 import requests
 import esprima
@@ -70,26 +71,44 @@ def get_default_headers():
 
     return normal_plain_dict
 
-def send_request(request, require_response_header=False):
+def send_request(
+    request: Dict[str, Any], 
+    require_response_header: bool = False
+) -> Dict[str, Any]:
     """
     发送 HTTP 请求
+
+    参数:
+        request: 请求配置字典
+        require_response_header: 是否返回响应头
+        
+    返回:
+        包含请求、响应、状态码等信息的字典
     """
 
     response, headers, status, json_data, data_data, auth = (None,)*6
+    # 处理 POST 请求数据
     if request['method'] == 'POST':
-        if 'json' in request['headers']['content-type']:
-            json_data = json.loads(request['data']) if type(request['data']) is str else request['data']
+        content_type = request['headers'].get('content-type', '')
+        if 'json' in content_type:
+            json_data = request['data'] if not isinstance(request['data'], str) else json.loads(request['data'])
         else:
             data_data = request['data']
+    
+    # 处理认证信息
     if request['auth']:
-        cred = request['auth']['auth_cred'].split(':', 1)
-        if request['auth']['auth_type'] == 'Basic':
-            auth = (cred[0], cred[1])
-        elif request['auth']['auth_type'] == 'Digest':
-            auth = HTTPDigestAuth(cred[0], cred[1])
-        elif request['auth']['auth_type'] == 'NTLM':
-            auth = HttpNtlmAuth(cred[0], cred[1])
-    try:    
+        username, password = request['auth']['auth_cred'].split(':', 1)
+        auth_type = request['auth']['auth_type']
+        
+        auth_methods = {
+            'Basic': lambda: (username, password),
+            'Digest': lambda: HTTPDigestAuth(username, password),
+            'NTLM': lambda: HttpNtlmAuth(username, password)
+        }
+        
+        auth = auth_methods.get(auth_type, lambda: None)()
+    
+    try:
         rsp = requests.request(request['method'], request['url'], 
             params=request['params'],
             headers=request['headers'], 
@@ -100,13 +119,21 @@ def send_request(request, require_response_header=False):
             auth=auth,
             timeout=request['timeout'], 
             verify=False)
-
         response = rsp.text
         headers = rsp.headers if require_response_header else None
         status = rsp.status_code
-
+    except requests.exceptions.Timeout as e:
+        print(f'[*] WARN : request timeout : {str(e)}')
+    except requests.exceptions.ConnectionError as e:
+        print(f'[*] WARN : connection error : {str(e)}')
+    except requests.exceptions.TooManyRedirects as e:
+        print(f'[*] WARN : too many redirects : {str(e)}')
+    except requests.exceptions.HTTPError as e:
+        print(f'[*] WARN : HTTP error : {str(e)}')
     except requests.exceptions.RequestException as e:
         print(f'[*] WARN : request error : {str(e)}')
+    except Exception as e:
+        print(f'[*] ERROR : unexpected error : {str(e)}')
 
     return {
         'request': request,
