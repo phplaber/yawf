@@ -27,7 +27,7 @@
 5.  **log4shell** - Log4Shell 探针
 6.  **xxe** - XXE 探针
 7.  **ssrf** - SSRF 探针
-8.  **jsonp** - JSONP 探针（内置，无需配置）
+8.  **jsonp** - JSONP 探针
 
 ### 安装
 

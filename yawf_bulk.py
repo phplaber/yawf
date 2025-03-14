@@ -19,7 +19,6 @@ from utils.utils import (
     read_file,
     get_content_type,
     get_default_headers,
-    get_jsonp_keys,
     is_base64,
     Browser,
     OOBDetector
@@ -86,8 +85,6 @@ if __name__ == '__main__':
         payload_file = os.path.join(payload_path, f'{probe}.txt')
         if check_file(payload_file):
             probes_payload[probe] = read_file(payload_file)
-        elif probe not in ['jsonp']:
-            print(f'[*] invalid probe: {probe}')
 
     # 初始化 OOB 检测器实例
     oob_detector = None
@@ -137,8 +134,8 @@ if __name__ == '__main__':
 
             request = copy.deepcopy(init_request)
             
-            # 动态 url 状态位、JSONP 标记位
-            is_dynamic_url, is_jsonp = (False,)*2
+            # 动态 url 状态位
+            is_dynamic_url = False
 
             # 方法
             request['method'] = method
@@ -152,9 +149,6 @@ if __name__ == '__main__':
             if qs:
                 is_dynamic_url = True
                 for par, val in qs:
-                    # 初步判断是否是 JSONP
-                    if not is_jsonp and request['method'] == 'GET' and re.search(r'(?i)callback|jsonp|success|complete|done|function|^cb$|^fn$', par):
-                        is_jsonp = True
                     request['params'][par]=val
 
             # 请求头
@@ -286,35 +280,6 @@ if __name__ == '__main__':
 
             # 开始检测
             fuzz_results = []
-            # 内置 jsonp 探针检测
-            if is_jsonp and any(ct in base_http.get('headers').get('content-type') for ct in ['json', 'javascript']):
-                sens_info_keywords = read_file(os.path.join(script_rel_dir, 'data', 'sens_info_keywords.txt'))
-                
-                # 空 referer 测试
-                if not request.get('headers').get('referer'):
-                    jsonp = base_http.get('response')
-                else:
-                    empty_referer_request = copy.deepcopy(request)
-                    del empty_referer_request['headers']['referer']
-                    empty_referer_response = send_request(empty_referer_request)
-                    jsonp = empty_referer_response.get('response')
-                
-                # 语义分析，获取 jsonp 中所有的 Literal 和 Identifier key
-                jsonp_keys = get_jsonp_keys(jsonp)
-                if any(key.lower() in sens_info_keywords for key in jsonp_keys):
-                    print("[+] Found JSONP information leakage!")
-                    fuzz_results.append({
-                        'request': request,
-                        'payload': '',
-                        'poc': '',
-                        'type': 'JSONP'
-                    })
-                else:
-                    print("[-] Not Found JSONP information leakage.")
-            else:
-                print("[*] JSONP detection skipped")
-
-            # 其它探针检测
             fuzz_results.extend(Fuzzer(requests, base_http, probes, probes_payload, oob_detector, browser).run())
 
             # 记录漏洞
