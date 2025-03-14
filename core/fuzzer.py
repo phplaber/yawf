@@ -2,6 +2,7 @@ import queue
 from multiprocessing import Process, Queue, Manager, cpu_count
 
 from core.probe import Probe
+import core.probes as probes
 
 class Fuzzer:
     """
@@ -47,8 +48,14 @@ class Fuzzer:
                 )
                 
                 for probe in self.probes:
-                    if hasattr(Probe, probe) and callable(getattr(Probe, probe)):
-                        getattr(Probe, probe)(probe_ins)
+                    if hasattr(probes, probe):
+                        probe_module = getattr(probes, probe)
+                        if hasattr(probe_module, 'run'):
+                            getattr(probe_module, 'run')(probe_ins)
+                        else:
+                            print(f"[*] Function 'run' not found in '{probe}'")
+                    else:
+                        print(f"[*] Probe '{probe}' not found")
                 
         # 关闭 Chrome 浏览器
         if chrome:
