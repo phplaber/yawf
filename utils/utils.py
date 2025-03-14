@@ -80,40 +80,33 @@ class Browser:
     def run(self):
         return webdriver.Chrome(options=self.options)
 
-class Dnslog:
-    def __init__(self, proxies, timeout):
+class OOBDetector:
+    def __init__(self, provider, proxies, timeout, id=None, token=None):
+        self.provider = provider
         self.proxies = proxies
         self.timeout = timeout
-        self.req_session = requests.Session()
-        req = self.req_session.get("http://www.dnslog.cn/getdomain.php", 
-            proxies=self.proxies, 
-            timeout=self.timeout
-        )
-        self.domain = req.text
 
-    def pull_logs(self, _):
-        req = self.req_session.get("http://www.dnslog.cn/getrecords.php", 
-            proxies=self.proxies, 
-            timeout=self.timeout
-        )
+        if provider == 'dnslog':
+            self.req_session = requests.Session()
+            url = "http://www.dnslog.cn/getdomain.php"
+            req = self.req_session.get(url, proxies=self.proxies, timeout=self.timeout)
+            self.domain = req.text
+        elif provider == 'ceye':
+            self.domain = id
+            self.token = token
 
-        return req.json()
+    def pull_logs(self, filter=None):
+        if self.provider == 'dnslog':
+            url = "http://www.dnslog.cn/getrecords.php"
+            req = self.req_session.get(url, proxies=self.proxies, timeout=self.timeout)
 
-class Ceye:
-    def __init__(self, proxies, timeout, id, token):
-        self.proxies = proxies
-        self.timeout = timeout
-        
-        self.domain = id
-        self.token  = token
+            return req.json()
+        elif self.provider == 'ceye':
+            # 字符串 filter 最大长度为 20 个字符
+            url = f"http://api.ceye.io/v1/records?token={self.token}&type=dns&filter={filter}"
+            req = requests.get(url, proxies=self.proxies, timeout=self.timeout)
 
-    def pull_logs(self, filter):
-        req = requests.get(f"http://api.ceye.io/v1/records?token={self.token}&type=dns&filter={filter}", 
-            proxies=self.proxies, 
-            timeout=self.timeout
-        )
-
-        return req.json().get('data')
+            return req.json().get('data')
 
 def check_file(filename):
     """

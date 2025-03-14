@@ -9,13 +9,13 @@ class Fuzzer:
     模糊测试器
     """
 
-    def __init__(self, requests, base_http, probes, probes_payload, dnslog, browser):
+    def __init__(self, requests, base_http, probes, probes_payload, oob_detector, browser):
 
         self.requests = requests
         self.base_http = base_http
         self.probes = probes
         self.probes_payload = probes_payload
-        self.dnslog = dnslog
+        self.oob_detector = oob_detector
         self.browser = browser
         
     def do_fuzz(self, requests, fuzz_results, flag):
@@ -42,7 +42,7 @@ class Fuzzer:
                     chrome, 
                     self.base_http, 
                     self.probes_payload, 
-                    self.dnslog,
+                    self.oob_detector,
                     fuzz_results,
                     flag
                 )

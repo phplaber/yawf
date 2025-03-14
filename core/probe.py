@@ -4,12 +4,12 @@ import json
 from utils.constants import MARK_POINT
 
 class Probe:
-    def __init__(self, request, browser, base_http, probes_payload, dnslog, fuzz_results, flag):
+    def __init__(self, request, browser, base_http, probes_payload, oob_detector, fuzz_results, flag):
         self.request = request
         self.browser = browser
         self.base_http = base_http
         self.probes_payload = probes_payload
-        self.dnslog = dnslog
+        self.oob_detector = oob_detector
         self.fuzz_results = fuzz_results
         self.direct_use_payload_flag = flag
 

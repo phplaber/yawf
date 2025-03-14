@@ -13,15 +13,15 @@ from core.probe import Probe
 def run(probe_ins: Probe) -> None:
     vulnerable = False
     try:
-        dnslog_domain = f"{get_random_str(6)}.{probe_ins.dnslog.domain}"
+        domain = f"{get_random_str(6)}.{probe_ins.oob_detector.domain}"
         for payload in probe_ins.probes_payload['log4shell']:
-            payload = payload.replace('dnslog', dnslog_domain)
+            payload = payload.replace('domain', domain)
             payload_request = probe_ins.gen_payload_request(payload)
             _ = send_request(payload_request)
             time.sleep(random.random())
 
-            dnslog_records = probe_ins.dnslog.pull_logs(dnslog_domain[:-3])
-            if dnslog_records and dnslog_domain in str(dnslog_records):
+            records = probe_ins.oob_detector.pull_logs(domain[:6])
+            if records and domain in str(records):
                 vulnerable = True
 
             if vulnerable:

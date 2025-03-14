@@ -22,9 +22,8 @@ from utils.utils import (
     get_default_headers,
     get_jsonp_keys,
     is_base64,
-    Dnslog,
-    Ceye,
-    Browser
+    Browser,
+    OOBDetector
 )
 from utils.constants import VERSION, REQ_TIMEOUT, REQ_SCHEME, MARK_POINT, UA, PROBE, PLATFORM
 
@@ -61,7 +60,7 @@ if __name__ == '__main__':
     parser.add_option("-f", dest="requestfile", help="Load HTTP request from a file")
     parser.add_option("--output-dir", dest="output_dir", help="Custom output directory path")
     parser.add_option("--probe-list", action="store_true", dest="probe_list", help="List of available probes")
-    parser.add_option("--dnslog-provider", dest="dnslog_provider", default="ceye", help="Dnslog service provider, default: ceye (e.g. dnslog)")
+    parser.add_option("--oob-provider", dest="oob_provider", default="ceye", help="Out-of-Band service provider, default: ceye (e.g. dnslog)")
     options, _ = parser.parse_args()
 
     # 脚本相对目录
@@ -82,9 +81,9 @@ if __name__ == '__main__':
     if not options.url and not options.requestfile:
         parser.error('option -u or -f must be set')
 
-    # 校验 dnslog 服务
-    dnslog_provider = options.dnslog_provider.lower()
-    if dnslog_provider not in ['dnslog', 'ceye']:
+    # 校验带外（Out-of-Band）服务
+    oob_provider = options.oob_provider.lower()
+    if oob_provider not in ['dnslog', 'ceye']:
         sys.exit('[*] Only support dnslog and ceye provider')
 
     # 解析配置文件
@@ -387,15 +386,13 @@ if __name__ == '__main__':
         elif probe not in ['jsonp']:
             print(f'[*] invalid probe: {probe}')
 
-    # 初始化 dnslog 实例
-    dnslog = None
+    # 初始化 OOB 检测器实例
+    oob_detector = None
     if any(p in 'xxe:fastjson:log4shell:ssrf' for p in probes):
-        if dnslog_provider == 'ceye':
-            if not conf_dict['ceye_id'] or not conf_dict['ceye_token']:
-                sys.exit("[*] When using the ceye out-of-band service, you must configure the id and token")
-            dnslog = Ceye(proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
-        else:
-            dnslog = Dnslog(proxies, timeout)
+        if oob_provider == 'ceye' and not (conf_dict['ceye_id'] and conf_dict['ceye_token']):
+            print("[*] When using the ceye out-of-band service, you must configure the id and token. Now use dnslog as a backup.")
+            oob_provider = 'dnslog'
+        oob_detector = OOBDetector(oob_provider, proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
 
     # 设置 Chrome 参数
     browser = Browser(proxies, user_agent) if 'xss' in probes else None
@@ -431,7 +428,7 @@ if __name__ == '__main__':
         print("[*] JSONP detection skipped")
     
     # 其它探针检测
-    fuzz_results.extend(Fuzzer(requests, base_http, probes, probes_payload, dnslog, browser).run())
+    fuzz_results.extend(Fuzzer(requests, base_http, probes, probes_payload, oob_detector, browser).run())
 
     # 记录漏洞
     if fuzz_results:
