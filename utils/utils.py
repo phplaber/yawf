@@ -15,6 +15,7 @@ import requests
 import esprima
 from requests.auth import HTTPDigestAuth
 from requests_ntlm2 import HttpNtlmAuth
+from selenium import webdriver
 
 # 忽略 SSL 告警信息
 try:
@@ -47,6 +48,72 @@ class Spinner:
         self.spinner_thread.join()
         sys.stdout.write('\r')
         sys.stdout.flush()
+
+class Browser:
+    def __init__(self, proxies, user_agent):
+        options = webdriver.ChromeOptions()
+        # 以 headless 模式运行 Chrome
+        options.add_argument('--headless')
+        # 仅 Windows 上运行有效
+        options.add_argument('--disable-gpu')
+        # 仅 Docker 上运行有效
+        options.add_argument('--no-sandbox')
+        # 在内存资源有限的环境中运行需要
+        options.add_argument('--disable-dev-shm-usage')
+        # 禁用扩展程序
+        options.add_argument('--disable-extensions')
+        # 设置 user-agent
+        options.add_argument(f'user-agent={user_agent}')
+        # 设置网络代理
+        if proxies:
+            options.add_argument(f"--proxy-server={proxies['http']}")
+        # 忽略证书错误
+        options.add_argument('--ignore-ssl-errors=yes')
+        options.add_argument('--ignore-certificate-errors')
+        # 禁用 xss auditor
+        options.add_argument('--disable-xss-auditor')
+        # 忽略 DevTools 监听 ws 信息
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+
+        self.options = options
+
+    def run(self):
+        return webdriver.Chrome(options=self.options)
+
+class Dnslog:
+    def __init__(self, proxies, timeout):
+        self.proxies = proxies
+        self.timeout = timeout
+        self.req_session = requests.Session()
+        req = self.req_session.get("http://www.dnslog.cn/getdomain.php", 
+            proxies=self.proxies, 
+            timeout=self.timeout
+        )
+        self.domain = req.text
+
+    def pull_logs(self, _):
+        req = self.req_session.get("http://www.dnslog.cn/getrecords.php", 
+            proxies=self.proxies, 
+            timeout=self.timeout
+        )
+
+        return req.json()
+
+class Ceye:
+    def __init__(self, proxies, timeout, id, token):
+        self.proxies = proxies
+        self.timeout = timeout
+        
+        self.domain = id
+        self.token  = token
+
+    def pull_logs(self, filter):
+        req = requests.get(f"http://api.ceye.io/v1/records?token={self.token}&type=dns&filter={filter}", 
+            proxies=self.proxies, 
+            timeout=self.timeout
+        )
+
+        return req.json().get('data')
 
 def check_file(filename):
     """

@@ -12,8 +12,19 @@ from urllib.parse import urlparse, parse_qsl, unquote
 from xml.etree import ElementTree as ET
 
 from core.fuzzer import Fuzzer
-from core.probe import Dnslog, Ceye, Browser
-from utils.utils import check_file, send_request, parse_conf, read_file, get_content_type, get_default_headers, get_jsonp_keys, is_base64
+from utils.utils import (
+    check_file,
+    send_request,
+    parse_conf,
+    read_file,
+    get_content_type,
+    get_default_headers,
+    get_jsonp_keys,
+    is_base64,
+    Dnslog,
+    Ceye,
+    Browser
+)
 from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, PLATFORM
 
 if __name__ == '__main__':
