@@ -12,12 +12,11 @@
 4.  支持 HTTP Basic/Digest/NTLM 认证；
 5.  支持对测试目标进行并行（多进程）检测；
 6.  容易扩展，探针和 Payload 文件分离；
-7.  支持信息收集功能；
+7.  支持信息收集功能以及使用大模型对收集的信息进行智能分析；
 8.  支持设置 HTTP 网络代理；
-9.  支持 ceye 和 dnslog 两种带外服务；
+9.  支持 ceye 和 dnslog 两种带外（Out-of-Band）检测服务；
 10. 高度可配置化，简单配置实现定制需求；
-11. 支持批量检测；
-12. 支持使用大模型对收集的信息进行智能分析。
+11. 支持批量检测。
 
 ### 漏洞探针
 
@@ -95,8 +94,9 @@ Options:
   --output-dir=OUTPUT_DIR
                         Custom output directory path
   --probe-list          List of available probes
-  --dnslog-provider=DNSLOG_PROVIDER
-                        Dnslog service provider, default: ceye (e.g. dnslog)
+  --oob-provider=OOB_PROVIDER
+                        Out-of-Band service provider, default: ceye (e.g.
+                        dnslog)
 ```
 
 ### 使用
