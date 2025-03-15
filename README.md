@@ -1,6 +1,6 @@
 ## Yawf - Yet Another Web Fuzzer
 
-**Yawf** 是一个开源的 Web 漏洞自动化检测工具，能够帮助发现一些常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal、Log4Shell、RCE 和 JSONP 敏感信息泄露等。
+**Yawf** 是一个开源的 Web 漏洞自动化检测工具，先通过自动发现或手动标记的方式圈出全部测试点，然后逐一使用漏洞探针检测每个测试点，全面和高效地发现常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal、Log4Shell、RCE 和 JSONP 敏感信息泄露等。
 
 ⭐ 入选 KCon 2024 [兵器谱](https://kcon.knownsec.com/index.php?s=bqp&c=category&id=3)
 
