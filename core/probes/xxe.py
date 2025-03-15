@@ -30,17 +30,16 @@ def run(probe_ins: Probe) -> None:
                 payload_request['data'] = payload_request['data'].replace('?>', f'?>{payload}')
             else:
                 payload_request['data'] = payload + payload_request['data']
+            
+            poc_rsp = send_request(payload_request)
             if 'http' not in payload:
                 # 有回显
-                poc_rsp = send_request(payload_request)
-
                 if poc_rsp.get('response') and any(kw in poc_rsp.get('response', '') for kw in ['root:', 'boot loader']):
                     vulnerable = True
             else:
                 # 无回显
-                _ = send_request(payload_request)
                 time.sleep(random.random())
-
+                
                 records = probe_ins.oob_detector.pull_logs(domain[:6])
                 if records and domain in str(records):
                     vulnerable = True
