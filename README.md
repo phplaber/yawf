@@ -11,12 +11,12 @@
 3.  支持 GET 和 POST 请求，以及 form、json 和 xml 数据类型；
 4.  支持 HTTP Basic/Digest/NTLM 认证；
 5.  支持对测试目标进行并行（多进程）检测；
-6.  容易扩展，探针和 Payload 文件分离；
+6.  容易扩展，探针模块化且和 Payload 文件分离，提供统一运行接口；
 7.  支持信息收集功能以及使用大模型对收集的信息进行智能分析；
 8.  支持设置 HTTP 网络代理；
 9.  支持 ceye 和 dnslog 两种带外（Out-of-Band）检测服务；
 10. 高度可配置化，简单配置实现定制需求；
-11. 支持批量检测。
+11. 支持对批量 URL 进行检测，结果输出到指定目录。
 
 ### 漏洞探针
 
@@ -277,6 +277,50 @@ Upgrade-Insecure-Requests: 1
 使用 -f 选项传入 json 文件路径，就可以批量检测漏洞了。批量检测不支持手动标记。
 
 ![bulk](./data/bulk_poc.jpeg "bulk scanning")
+
+#### 新增探针
+
+由于 Yawf 的探针模块化且和 Payload 文件分离，所以新增探针非常容易。
+
+1. 如果探针检测漏洞需要使用 payload，则在 **payload** 目录下新增同名文件，如：**demo.txt**，文件中每行一个 payload；
+2. 在 **probes** 目录下新增同名探针文件，如：**demo.py**，并实现 **run** 函数，函数参数为 **Probe** 类实例；
+3. 当需要使用新增探针时，在配置文件的 **customize** 项中配置新增的探针，如：**demo**。
+
+以下是新增探针的简要说明，具体可参考 **probes** 目录下的探针：
+
+```python
+# demo.py
+from utils.utils import send_request
+from core.probe import Probe
+
+def run(probe_ins: Probe) -> None:
+    # 实现跳过检测逻辑
+    if need_skip_detect:
+      print("[*] DEMO detection skipped")
+      return
+
+    # 逐一使用 payload 进行检测
+    for payload in probe_ins.probes_payload['demo']:
+      # 生成 payload 请求对象
+      payload_request = probe_ins.gen_payload_request(payload)
+
+      # 发送请求
+      response = send_request(payload_request)
+
+      # 分析结果
+      # 有回显，分析响应内容判断漏洞是否存在
+      # 无回显，使用带外检测判断漏洞是否存在
+
+      # 如果检测到漏洞，则将漏洞信息写入结果队列，并退出循环
+      if vulnerable:
+        probe_ins.fuzz_results.put({
+          'request': probe_ins.request,
+          'payload': payload,
+          'poc': payload_request,
+          'type': 'DEMO'
+        })
+        break
+```
 
 ### Docker 安装和运行
 
