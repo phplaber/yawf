@@ -379,12 +379,10 @@ if __name__ == '__main__':
             probes_payload[probe] = read_file(payload_file)
 
     # 初始化 OOB 检测器实例
-    oob_detector = None
-    if any(p in 'xxe:fastjson:log4shell:ssrf' for p in probes):
-        if oob_provider == 'ceye' and not (conf_dict['ceye_id'] and conf_dict['ceye_token']):
-            print("[*] When using the ceye out-of-band service, you must configure the id and token. Now use dnslog as a backup.")
-            oob_provider = 'dnslog'
-        oob_detector = OOBDetector(oob_provider, proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
+    if oob_provider == 'ceye' and not (conf_dict['ceye_id'] and conf_dict['ceye_token']):
+        print("[*] When using the ceye out-of-band service, you must configure the id and token. Now use dnslog as a backup.")
+        oob_provider = 'dnslog'
+    oob_detector = OOBDetector(oob_provider, proxies, timeout, conf_dict['ceye_id'], conf_dict['ceye_token'])
 
     # 设置 Chrome 参数
     browser = Browser(proxies, user_agent) if 'xss' in probes else None

