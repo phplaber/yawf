@@ -138,11 +138,8 @@ if __name__ == '__main__':
 
         if options.headers:
             for item in options.headers.split("\\n"):
-                try:
-                    name, value = item.split(":", 1)
-                    request['headers'][name.strip().lower()] = value.strip()
-                except ValueError:
-                    pass
+                name, value = item.split(":", 1)
+                request['headers'][name.strip().lower()] = value.strip()
     else:
         # HTTP 请求文件
         if not check_file(options.requestfile):
@@ -151,25 +148,24 @@ if __name__ == '__main__':
         with open(options.requestfile, 'r', encoding='utf-8') as f:
             contents = f.read()
         misc, str_headers = contents.split('\n', 1)
-        misc_list = misc.split(' ')
+        method, uri, _ = misc.split(' ', 2)
         message = email.message_from_file(StringIO(str_headers))
-        host_and_cookie = {}
         for k, v in dict(message.items()).items():
-            kl = k.lower()
-            if kl not in ['host', 'cookie', 'authorization']:
-                request['headers'][kl] = v
-            else:
-                host_and_cookie[kl] = v
+            request['headers'][k.lower()] = v
 
         scheme_conf = conf_dict['request_scheme']
         scheme = scheme_conf.lower() if scheme_conf else REQ_SCHEME
         
-        o = urlparse(unquote(misc_list[1]))
-        request['url'] = f"{scheme}://{host_and_cookie['host']}{o._replace(fragment='')._replace(query='').geturl()}"
-        request['method'] = misc_list[0].upper()
+        o = urlparse(unquote(uri))
+        request['url'] = f"{scheme}://{request['headers']['host']}{o._replace(fragment='')._replace(query='').geturl()}"
+        request['method'] = method.upper()
         if request['method'] == 'POST':
             data = contents.split('\n\n')[1]
-        cookies = host_and_cookie.get('cookie')
+        cookies = request['headers'].get('cookie', '')
+
+    # 删除请求头中的 Host、Cookie 和 Authorization 字段
+    for header in ['host', 'cookie', 'authorization']:
+        request['headers'].pop(header, None)
 
     # 只支持检测 HTTP 服务
     if scheme not in ['http', 'https']:
