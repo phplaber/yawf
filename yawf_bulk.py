@@ -131,9 +131,6 @@ if __name__ == '__main__':
             print(f'[+] Start scanning url: {method} {url}')
 
             request = copy.deepcopy(init_request)
-            
-            # 动态 url 状态位
-            is_dynamic_url = False
 
             # 方法
             request['method'] = method
@@ -144,10 +141,8 @@ if __name__ == '__main__':
 
             # 查询字符串
             qs = parse_qsl(o.query)
-            if qs:
-                is_dynamic_url = True
-                for par, val in qs:
-                    request['params'][par]=val
+            for par, val in qs:
+                request['params'][par]=val
 
             # 请求头
             if orig_request.get('headers'):
@@ -200,38 +195,37 @@ if __name__ == '__main__':
             mark_request['fastjson_detect_flag'] = False
             mark_request['dt_and_ssrf_detect_flag'] = False
 
-            if is_dynamic_url:
-                for par, val in request['params'].items():
-                    if par in ignore_params:
-                        continue
-                    if get_content_type(val) == 'json':
-                        # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
-                        val_dict = json.loads(val)
-                        mark_request['fastjson_detect_flag'] = True
-                        base_val_dict = copy.deepcopy(val_dict)
-                        for k, v in val_dict.items():
-                            # 1、忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
-                            if type(v) is not str or k in ignore_params or is_base64(v):
-                                continue
+            for par, val in request['params'].items():
+                if par in ignore_params:
+                    continue
+                if get_content_type(val) == 'json':
+                    # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
+                    val_dict = json.loads(val)
+                    mark_request['fastjson_detect_flag'] = True
+                    base_val_dict = copy.deepcopy(val_dict)
+                    for k, v in val_dict.items():
+                        # 1、忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
+                        if type(v) is not str or k in ignore_params or is_base64(v):
+                            continue
 
-                            if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
-                                mark_request['dt_and_ssrf_detect_flag'] = True
+                        if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
+                            mark_request['dt_and_ssrf_detect_flag'] = True
 
-                            base_val_dict[k] = v + MARK_POINT
-                            mark_request['params'][par] = json.dumps(base_val_dict)
-                            requests.append(copy.deepcopy(mark_request))
-                            base_val_dict[k] = v
-                            mark_request['dt_and_ssrf_detect_flag'] = False
-                        mark_request['fastjson_detect_flag'] = False
-                    else:
-                        if not is_base64(val):
-                            if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
-                                mark_request['dt_and_ssrf_detect_flag'] = True
+                        base_val_dict[k] = v + MARK_POINT
+                        mark_request['params'][par] = json.dumps(base_val_dict)
+                        requests.append(copy.deepcopy(mark_request))
+                        base_val_dict[k] = v
+                        mark_request['dt_and_ssrf_detect_flag'] = False
+                    mark_request['fastjson_detect_flag'] = False
+                else:
+                    if not is_base64(val):
+                        if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                            mark_request['dt_and_ssrf_detect_flag'] = True
                             
-                            mark_request['params'][par] = val + MARK_POINT
-                            requests.append(copy.deepcopy(mark_request))
-                            mark_request['dt_and_ssrf_detect_flag'] = False
-                    mark_request['params'][par] = request['params'][par]
+                        mark_request['params'][par] = val + MARK_POINT
+                        requests.append(copy.deepcopy(mark_request))
+                        mark_request['dt_and_ssrf_detect_flag'] = False
+                mark_request['params'][par] = request['params'][par]
 
             for item in ['data', 'cookies']:
                 if not request[item]:
