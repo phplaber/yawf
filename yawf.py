@@ -247,7 +247,6 @@ if __name__ == '__main__':
     # 构造全部 request 对象（每个标记点对应一个对象）
     requests = []
     mark_request = copy.deepcopy(base_request)
-    mark_request['fastjson_detect_flag'] = False
     mark_request['dt_and_ssrf_detect_flag'] = False
 
     """
@@ -264,7 +263,6 @@ if __name__ == '__main__':
         if get_content_type(val) == 'json':
             # xxx.php?foo={"a":"b","c":"d[fuzz]"}&bar={"aa":"bb"}
             val_dict = json.loads(val)
-            mark_request['fastjson_detect_flag'] = True
             base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
             for k, v in val_dict.items():
                 # 非字符串标记后变为字符串，改变了数据类型，故暂不处理
@@ -282,8 +280,6 @@ if __name__ == '__main__':
                 base_val_dict[k] = v.replace(MARK_POINT, '')
                 # 重置 dt_and_ssrf_detect_flag
                 mark_request['dt_and_ssrf_detect_flag'] = False
-            # 重置 fastjson_detect_flag
-            mark_request['fastjson_detect_flag'] = False
         else:
             if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
                 mark_request['dt_and_ssrf_detect_flag'] = True

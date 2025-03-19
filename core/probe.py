@@ -2,6 +2,7 @@ import copy
 import json
 
 from utils.constants import MARK_POINT
+from utils.utils import get_content_type
 
 class Probe:
     def __init__(self, request, browser, base_http, probes_payload, oob_detector, fuzz_results, flag):
@@ -32,7 +33,7 @@ class Probe:
 
         payload_request = copy.deepcopy(self.request)
         for k, v in payload_request.items():
-            if k not in ['params', 'data', 'cookies', 'headers']:
+            if k not in ('params', 'data', 'cookies', 'headers') or not v:
                 continue
             if type(v) is str:
                 # data 为 xml 编码数据
@@ -40,40 +41,34 @@ class Probe:
                     payload_request[k] = v.replace(MARK_POINT, payload)
                     break
             else:
-                flag = False
+                break_status = False
                 for kk, vv in v.items():
                     if (type(vv) is not str) or (MARK_POINT not in vv):
                         continue
-                    if not direct_use_payload:
-                        if not payload_request['fastjson_detect_flag']:
-                            if not reserve_original_params:
-                                payload_request[k][kk] = payload
-                            else:
-                                payload_request[k][kk] = vv.replace(MARK_POINT, payload)
-                        else:
-                            # 标记点在查询字符串 json 中
+                    if direct_use_payload:
+                        # 直接使用 payload
+                        if k == 'params':
+                            payload_request[k][kk] = payload
+                            self.direct_use_payload_flag[k][kk] = True
+                        if k == 'data':
+                            payload_request[k] = payload
+                            self.direct_use_payload_flag[k] = True
+                    else:
+                        if k == 'params' and get_content_type(vv) == 'json':
+                            # GET xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
                             val_dict = json.loads(payload_request[k][kk])
                             base_val_dict = json.loads(self.base_http.get('request')[k][kk])
                             for kkk, vvv in val_dict.items():
                                 if (type(vvv) is not str) or (MARK_POINT not in vvv):
                                     continue
-                                if not reserve_original_params:
-                                    base_val_dict[kkk] = payload
-                                else:
-                                    base_val_dict[kkk] += payload
+                                base_val_dict[kkk] = payload if not reserve_original_params else (base_val_dict[kkk] + payload)
                                 payload_request[k][kk] = json.dumps(base_val_dict)
                                 break
-                    else:
-                        # 直接使用 payload 替代查询字符串参数值或 post body
-                        if k == 'params':
-                            payload_request[k][kk] = payload
-                            self.direct_use_payload_flag[k][kk] = True
-                        elif k == 'data':
-                            payload_request[k] = payload
-                            self.direct_use_payload_flag[k] = True
-                    flag = True
+                        else:
+                            payload_request[k][kk] = payload if not reserve_original_params else vv.replace(MARK_POINT, payload)  
+                    break_status = True
                     break
-                if flag:
+                if break_status:
                     break
         
         return payload_request

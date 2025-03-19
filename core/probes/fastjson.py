@@ -9,17 +9,22 @@ import time
 import random
 
 from utils.constants import MARK_POINT
-from utils.utils import get_random_str, send_request
+from utils.utils import get_random_str, send_request, get_content_type
 from core.probe import Probe
 
 def run(probe_ins: Probe) -> None:
-    # 确保针对查询字符串和 POST Body 中 json 多值标记只执行一次 fastjson 探针
+    """
+    场景1: GET xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
+    参数 foo 和 bar 各自执行一次 fastjson 探针
+
+    场景2: POST {"a":"b","c":"d"}
+    只执行一次 fastjson 探针
+    """
     is_run = False
-    if probe_ins.request['fastjson_detect_flag']:
-        for k, v in probe_ins.request['params'].items():
-            if MARK_POINT in v and not probe_ins.direct_use_payload_flag['params'].get(k):
-                is_run = True
-                break
+    for k, v in probe_ins.request['params'].items():
+        if get_content_type(v) == 'json' and MARK_POINT in v and not probe_ins.direct_use_payload_flag['params'].get(k):
+            is_run = True
+            break
 
     if probe_ins.content_type == 'json':
         if MARK_POINT in str(probe_ins.request['data']) and not probe_ins.direct_use_payload_flag['data']:
