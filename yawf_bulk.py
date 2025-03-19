@@ -195,8 +195,15 @@ if __name__ == '__main__':
             mark_request['fastjson_detect_flag'] = False
             mark_request['dt_and_ssrf_detect_flag'] = False
 
+            """
+            以下情况不处理：
+            1. 值为 Base64 字符串
+            2. 名称被忽略
+            """
+
+            # 处理查询字符串
             for par, val in request['params'].items():
-                if par in ignore_params:
+                if is_base64(val) or (par in ignore_params):
                     continue
                 if get_content_type(val) == 'json':
                     # xxx.php?foo={"a":"b","c":"d"}&bar={"aa":"bb"}
@@ -204,8 +211,7 @@ if __name__ == '__main__':
                     mark_request['fastjson_detect_flag'] = True
                     base_val_dict = copy.deepcopy(val_dict)
                     for k, v in val_dict.items():
-                        # 1、忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
-                        if type(v) is not str or k in ignore_params or is_base64(v):
+                        if type(v) is not str or is_base64(v) or (k in ignore_params):
                             continue
 
                         if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
@@ -218,46 +224,55 @@ if __name__ == '__main__':
                         mark_request['dt_and_ssrf_detect_flag'] = False
                     mark_request['fastjson_detect_flag'] = False
                 else:
-                    if not is_base64(val):
-                        if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
-                            mark_request['dt_and_ssrf_detect_flag'] = True
+                    if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
                             
-                        mark_request['params'][par] = val + MARK_POINT
-                        requests.append(copy.deepcopy(mark_request))
-                        mark_request['dt_and_ssrf_detect_flag'] = False
+                    mark_request['params'][par] = val + MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request['dt_and_ssrf_detect_flag'] = False
                 mark_request['params'][par] = request['params'][par]
 
-            for item in ['data', 'cookies']:
-                if not request[item]:
+            # 处理 Cookie
+            for name, value in request['cookies'].items():
+                if is_base64(value) or (name in ignore_params):
                     continue
-                if item == 'data' and content_type == 'xml':
-                    # xml data
-                    xmlTree = ET.ElementTree(ET.fromstring(request['data']))
+                if any(detect_param in name.lower() for detect_param in dt_and_ssrf_detect_params):
+                    mark_request['dt_and_ssrf_detect_flag'] = True
+                mark_request['cookies'][name] = value + MARK_POINT
+                requests.append(copy.deepcopy(mark_request))
+                mark_request['cookies'][name] = value
+                mark_request['dt_and_ssrf_detect_flag'] = False
 
-                    tagList = [elem.tag \
-                        if re.search(fr'<{elem.tag}>[^<>]*</{elem.tag}>', request['data']) \
-                        else None \
-                        for elem in xmlTree.iter()]
-                    # 移除重复元素 tag 和 None 值
-                    tagList = list(set(list(filter(None, tagList))))
-                    tagList.sort()
+            # 处理 POST Body
+            if content_type == 'xml':
+                # xml data
+                xmlTree = ET.ElementTree(ET.fromstring(request['data']))
 
-                    for elem_tag in tagList:
-                        mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', request['data'])
-                        if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
-                            mark_request['dt_and_ssrf_detect_flag'] = True
-                        requests.append(copy.deepcopy(mark_request))
-                        mark_request['dt_and_ssrf_detect_flag'] = False
-                    mark_request['data'] = request['data']
-                else:
-                    for k, v in request[item].items():
-                        if type(v) is str and (k not in ignore_params) and (not is_base64(v)):
-                            if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
-                                mark_request['dt_and_ssrf_detect_flag'] = True
-                            mark_request[item][k] = v + MARK_POINT
-                            requests.append(copy.deepcopy(mark_request))
-                            mark_request[item][k] = v
-                            mark_request['dt_and_ssrf_detect_flag'] = False
+                tagList = [elem.tag \
+                    if re.search(fr'<{elem.tag}>[^<>]*</{elem.tag}>', request['data']) \
+                    else None \
+                    for elem in xmlTree.iter()]
+                # 移除重复元素 tag 和 None 值
+                tagList = list(set(list(filter(None, tagList))))
+                tagList.sort()
+
+                for elem_tag in tagList:
+                    mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', request['data'])
+                    if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request['dt_and_ssrf_detect_flag'] = False
+                mark_request['data'] = request['data']
+            else:
+                for field, value in request['data'].items():
+                    if type(value) is not str or is_base64(value) or (field in ignore_params):
+                        continue
+                    if any(detect_param in field.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
+                    mark_request['data'][field] = value + MARK_POINT
+                    requests.append(copy.deepcopy(mark_request))
+                    mark_request['data'][field] = value
+                    mark_request['dt_and_ssrf_detect_flag'] = False
             
             # 支持检测 referer 处的 log4shell
             if 'log4shell' in probes:

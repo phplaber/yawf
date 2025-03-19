@@ -250,8 +250,16 @@ if __name__ == '__main__':
     mark_request['fastjson_detect_flag'] = False
     mark_request['dt_and_ssrf_detect_flag'] = False
 
+    """
+    以下情况不处理：
+    1. 值为 Base64 字符串
+    2. 手动标记场景，值未被标记
+    3. 自动标记场景，名称被忽略
+    """
+
+    # 处理查询字符串
     for par, val in request['params'].items():
-        if (is_mark and MARK_POINT not in val) or (not is_mark and par in ignore_params):
+        if is_base64(val) or (MARK_POINT not in val if is_mark else par in ignore_params):
             continue
         if get_content_type(val) == 'json':
             # xxx.php?foo={"a":"b","c":"d[fuzz]"}&bar={"aa":"bb"}
@@ -259,11 +267,10 @@ if __name__ == '__main__':
             mark_request['fastjson_detect_flag'] = True
             base_val_dict = json.loads(val.replace(MARK_POINT, '')) if is_mark else copy.deepcopy(val_dict)
             for k, v in val_dict.items():
-                # 1、自动标记忽略白名单参数；2、忽略 json 里的非字符串数据结构；3、忽略 Base64 编码字符串
+                # 非字符串标记后变为字符串，改变了数据类型，故暂不处理
                 if type(v) is not str \
-                    or (is_mark and MARK_POINT not in v) \
-                    or (not is_mark and k in ignore_params) \
-                    or is_base64(v):
+                    or is_base64(v) \
+                    or (MARK_POINT not in v if is_mark else k in ignore_params):
                     continue
 
                 if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
@@ -278,71 +285,86 @@ if __name__ == '__main__':
             # 重置 fastjson_detect_flag
             mark_request['fastjson_detect_flag'] = False
         else:
-            if not is_base64(val):
-                if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
-                    mark_request['dt_and_ssrf_detect_flag'] = True
+            if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
+                mark_request['dt_and_ssrf_detect_flag'] = True
                     
-                mark_request['params'][par] = val if MARK_POINT in val else (val + MARK_POINT)
-                requests.append(copy.deepcopy(mark_request))
-                # 重置 dt_and_ssrf_detect_flag
-                mark_request['dt_and_ssrf_detect_flag'] = False
+            mark_request['params'][par] = val if MARK_POINT in val else (val + MARK_POINT)
+            requests.append(copy.deepcopy(mark_request))
+            # 重置 dt_and_ssrf_detect_flag
+            mark_request['dt_and_ssrf_detect_flag'] = False
         # 重置查询参数
         mark_request['params'][par] = base_request['params'][par]
 
-    for item in ['data', 'cookies']:
-        if not base_request[item]:
+    # 处理 Cookie
+    for name, value in request['cookies'].items():
+        if is_base64(value) or (MARK_POINT not in value if is_mark else name in ignore_params):
             continue
-        if item == 'data' and content_type == 'xml':
-            if is_mark and MARK_POINT in request['data']:
-                # 全部标记点的位置
-                all_mark_point_index = [mp.start() \
-                    for mp in re.finditer(MARK_POINT.replace('[', '\\['), request['data'])]
-                cursor_idx = 0
-                for idx in all_mark_point_index:
-                    mark_xml = base_request['data'][:(idx-cursor_idx)] \
-                        + MARK_POINT \
-                        + base_request['data'][(idx-cursor_idx):]
-                    # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
-                    # f-string 表达式不能包含反斜线，故此处使用 format 函数格式化字符串
-                    mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\\[')), f'>{MARK_POINT}<', mark_xml)
-                    xmlTree = ET.ElementTree(ET.fromstring(mark_xml))
-                    for elem in xmlTree.iter():
-                        if MARK_POINT in str(elem.text) and any(detect_param in elem.tag.lower() for detect_param in dt_and_ssrf_detect_params):
-                            mark_request['dt_and_ssrf_detect_flag'] = True
-                            break
-                    requests.append(copy.deepcopy(mark_request))
-                    # 重置 dt_and_ssrf_detect_flag
-                    mark_request['dt_and_ssrf_detect_flag'] = False
-                    cursor_idx += len(MARK_POINT)
-            elif not is_mark:
-                # xml data
-                xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
+        if any(detect_param in name.lower() for detect_param in dt_and_ssrf_detect_params):
+            mark_request['dt_and_ssrf_detect_flag'] = True
+        mark_request['cookies'][name] = value if MARK_POINT in value else (value + MARK_POINT)
+        requests.append(copy.deepcopy(mark_request))
+        mark_request['cookies'][name] = value.replace(MARK_POINT, '')
+        mark_request['dt_and_ssrf_detect_flag'] = False
 
-                tagList = [elem.tag \
-                    if re.search(fr'<{elem.tag}>[^<>]*</{elem.tag}>', base_request['data']) \
-                    else None \
-                    for elem in xmlTree.iter()]
-                # 移除重复元素 tag 和 None 值
-                tagList = list(set(list(filter(None, tagList))))
-                tagList.sort()
+    # 处理 POST Body
+    if content_type == 'xml':
+        # 数据格式为 xml
+        if is_mark and MARK_POINT in request['data']:
+            # 全部标记点的位置
+            all_mark_point_index = [mp.start() \
+                for mp in re.finditer(MARK_POINT.replace('[', '\\['), request['data'])]
+            cursor_idx = 0
+            for idx in all_mark_point_index:
+                mark_xml = base_request['data'][:(idx-cursor_idx)] \
+                    + MARK_POINT \
+                    + base_request['data'][(idx-cursor_idx):]
+                # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
+                # f-string 表达式不能包含反斜线，故此处使用 format 函数格式化字符串
+                mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\\[')), f'>{MARK_POINT}<', mark_xml)
+                xmlTree = ET.ElementTree(ET.fromstring(mark_xml))
+                for elem in xmlTree.iter():
+                    if MARK_POINT in str(elem.text) and any(detect_param in elem.tag.lower() for detect_param in dt_and_ssrf_detect_params):
+                        mark_request['dt_and_ssrf_detect_flag'] = True
+                        break
+                requests.append(copy.deepcopy(mark_request))
+                # 重置 dt_and_ssrf_detect_flag
+                mark_request['dt_and_ssrf_detect_flag'] = False
+                cursor_idx += len(MARK_POINT)
+        elif not is_mark:
+            # xml data
+            xmlTree = ET.ElementTree(ET.fromstring(base_request['data']))
 
-                for elem_tag in tagList:
-                    mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', base_request['data'])
-                    if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
-                        mark_request['dt_and_ssrf_detect_flag'] = True
-                    requests.append(copy.deepcopy(mark_request))
-                    # 重置 dt_and_ssrf_detect_flag
-                    mark_request['dt_and_ssrf_detect_flag'] = False
-            mark_request['data'] = base_request['data']
-        else:
-            for k, v in request[item].items():
-                if type(v) is str and (not is_base64(v)) and (MARK_POINT in v if is_mark else k not in ignore_params):
-                    if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
-                        mark_request['dt_and_ssrf_detect_flag'] = True
-                    mark_request[item][k] = v if MARK_POINT in v else (v + MARK_POINT)
-                    requests.append(copy.deepcopy(mark_request))
-                    mark_request[item][k] = v.replace(MARK_POINT, '')
-                    mark_request['dt_and_ssrf_detect_flag'] = False
+            tagList = [elem.tag \
+                if re.search(fr'<{elem.tag}>[^<>]*</{elem.tag}>', base_request['data']) \
+                else None \
+                for elem in xmlTree.iter()]
+            # 移除重复元素 tag 和 None 值
+            tagList = list(set(list(filter(None, tagList))))
+            tagList.sort()
+
+            for elem_tag in tagList:
+                mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', base_request['data'])
+                if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
+                    mark_request['dt_and_ssrf_detect_flag'] = True
+                requests.append(copy.deepcopy(mark_request))
+                # 重置 dt_and_ssrf_detect_flag
+                mark_request['dt_and_ssrf_detect_flag'] = False
+        mark_request['data'] = base_request['data']
+    else:
+        # 数据格式为 form 或 json
+        for field, value in request['data'].items():
+            # 非字符串标记后变为字符串，改变了数据类型，故暂不处理
+            if type(value) is not str \
+                or is_base64(value) \
+                or (MARK_POINT not in value if is_mark else field in ignore_params):
+                continue
+
+            if any(detect_param in field.lower() for detect_param in dt_and_ssrf_detect_params):
+                mark_request['dt_and_ssrf_detect_flag'] = True
+            mark_request['data'][field] = value if MARK_POINT in value else (value + MARK_POINT)
+            requests.append(copy.deepcopy(mark_request))
+            mark_request['data'][field] = value.replace(MARK_POINT, '')
+            mark_request['dt_and_ssrf_detect_flag'] = False
 
     # 获取探针
     probes = []
