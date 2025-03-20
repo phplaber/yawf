@@ -3,7 +3,6 @@ JSONP 探针
 漏洞知识: https://blog.knownsec.com/2015/03/jsonp_security_technic/
 """
 
-import os
 import re
 import sys
 import copy
