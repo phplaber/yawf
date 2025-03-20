@@ -163,7 +163,7 @@ Supported marking positions are as follows:
     -  `{"par1":"val1","par2":"val2[fuzz]"}`, JSON encoded data format, supporting marking of string values in JSON
     -  `<par1>val1[fuzz]</par1>`, XML encoded data format
 
-It should also be noted that in automatic marking mode, whether a parameter is marked is also affected by **ignore_params.txt**.
+It should also be noted that in automatic marking mode, whether a parameter is marked is also affected by **ignore_params**.
 
 #### Running the Script
 

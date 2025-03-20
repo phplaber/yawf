@@ -1,0 +1,36 @@
+[
+    {
+       "method":"POST",
+       "url":"http://testphp.vulnweb.com/search.php",
+       "headers":{
+          "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+          "Content-Type":"application/x-www-form-urlencoded",
+          "Cookie":"login=test%2Ftest",
+          "Origin":"http://testphp.vulnweb.com",
+          "Referer":"http://testphp.vulnweb.com/",
+          "Upgrade-Insecure-Requests":"1",
+          "User-Agent":"Rad v0.4 crawler"
+       },
+       "data":"Z29CdXR0b249Z28mc2VhcmNoRm9yPTE="
+    },
+    {
+       "method":"GET",
+       "url":"http://testphp.vulnweb.com/artists.php?artist=1",
+       "headers":{
+          "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+          "Upgrade-Insecure-Requests":"1",
+          "User-Agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+       },
+       "data":""
+    },
+    {
+       "method":"GET",
+       "url":"http://testphp.vulnweb.com/listproducts.php?artist=1",
+       "headers":{
+          "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+          "Upgrade-Insecure-Requests":"1",
+          "User-Agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+       },
+       "data":""
+    }
+ ]

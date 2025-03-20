@@ -163,7 +163,7 @@ Upgrade-Insecure-Requests: 1
     -  `{"par1":"val1","par2":"val2[fuzz]"}`，json 编码数据格式，支持对 json 中的字符串值标记
     -  `<par1>val1[fuzz]</par1>`，xml 编码数据格式
 
-同时需注意，在自动标记模式下，参数是否被标记还受 **ignore_params.txt** 影响。
+同时需注意，在自动标记模式下，参数是否被标记还受 **ignore_params** 影响。
 
 #### 运行脚本
 
