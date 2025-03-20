@@ -124,7 +124,7 @@ Copy the configuration sample file **yawf.conf.sample** and rename it to **yawf.
 
 - Configure the operating system platform of the test target in the **platform** item, the default is Linux. When encountering platform-specific payloads, Yawf will conduct targeted tests based on this configuration, reducing ineffective network requests;
 
-In addition, the **ignore_params.txt**, **dt_and_ssrf_detect_params.txt**, and **sens_info_keywords.txt** files in the **data** directory are pre-configured with parameters to be ignored by automatic marking, dt and ssrf probe detection parameters, and sensitive information keywords for detecting JSONP sensitive information disclosure vulnerabilities. The contents of the above three files can be modified as needed. Through this processing method, many ineffective requests can be reduced, greatly improving detection efficiency.
+In addition, the constants **EFFICIENCY_CONF** with **ignore_params**, **dt_and_ssrf_detect_params**, and **sens_info_keywords** are pre-configured with parameters to be ignored by automatic marking, parameters for dt and ssrf probe detection, and sensitive information keywords for detecting JSONP sensitive information disclosure vulnerabilities, respectively. The contents of these three fields can be modified as needed. Through this processing approach, many ineffective requests can be reduced, greatly improving detection efficiency.
 
 #### Marking
 
@@ -197,9 +197,7 @@ Vulnerability details include the marked request object, payload, the request ob
     "auth": {
       
     },
-    "timeout": 30.0,
-    "fastjson_detect_flag": false,
-    "dt_and_ssrf_detect_flag": false
+    "timeout": 30.0
   },
   "payload": "<script>alert(1)</script>",
   "poc": {
@@ -226,9 +224,7 @@ Vulnerability details include the marked request object, payload, the request ob
     "auth": {
       
     },
-    "timeout": 30.0,
-    "fastjson_detect_flag": false,
-    "dt_and_ssrf_detect_flag": false
+    "timeout": 30.0
   },
   "type": "XSS"
 }

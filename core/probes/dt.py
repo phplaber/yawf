@@ -10,9 +10,9 @@ from utils.utils import send_request
 from core.probe import Probe
 
 def run(probe_ins: Probe) -> None:
-    if not probe_ins.request['dt_and_ssrf_detect_flag']:
+    if not probe_ins.should_run_dt_ssrf_probe():
         print("[*] DT detection skipped")
-        return 
+        return
 
     vulnerable = False
     try:

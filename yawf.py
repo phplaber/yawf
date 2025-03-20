@@ -86,9 +86,6 @@ if __name__ == '__main__':
     # 自动标记忽略的参数集合
     ignore_params = EFFICIENCY_CONF.get('ignore_params')
 
-    # dt 和 ssrf 探针自动标记检测的参数集合（包含匹配）
-    dt_and_ssrf_detect_params = EFFICIENCY_CONF.get('dt_and_ssrf_detect_params')
-
     # 解析配置文件
     conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if not conf_dict:
@@ -247,7 +244,6 @@ if __name__ == '__main__':
     # 构造全部 request 对象（每个标记点对应一个对象）
     requests = []
     mark_request = copy.deepcopy(base_request)
-    mark_request['dt_and_ssrf_detect_flag'] = False
 
     """
     以下情况不处理：
@@ -271,23 +267,13 @@ if __name__ == '__main__':
                     or (MARK_POINT not in v if is_mark else k in ignore_params):
                     continue
 
-                if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
-                    mark_request['dt_and_ssrf_detect_flag'] = True
-                        
                 base_val_dict[k] = v if MARK_POINT in v else (v + MARK_POINT)
                 mark_request['params'][par] = json.dumps(base_val_dict)
                 requests.append(copy.deepcopy(mark_request))
                 base_val_dict[k] = v.replace(MARK_POINT, '')
-                # 重置 dt_and_ssrf_detect_flag
-                mark_request['dt_and_ssrf_detect_flag'] = False
         else:
-            if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
-                mark_request['dt_and_ssrf_detect_flag'] = True
-                    
             mark_request['params'][par] = val if MARK_POINT in val else (val + MARK_POINT)
             requests.append(copy.deepcopy(mark_request))
-            # 重置 dt_and_ssrf_detect_flag
-            mark_request['dt_and_ssrf_detect_flag'] = False
         # 重置查询参数
         mark_request['params'][par] = base_request['params'][par]
 
@@ -295,12 +281,9 @@ if __name__ == '__main__':
     for name, value in request['cookies'].items():
         if is_base64(value) or (MARK_POINT not in value if is_mark else name in ignore_params):
             continue
-        if any(detect_param in name.lower() for detect_param in dt_and_ssrf_detect_params):
-            mark_request['dt_and_ssrf_detect_flag'] = True
         mark_request['cookies'][name] = value if MARK_POINT in value else (value + MARK_POINT)
         requests.append(copy.deepcopy(mark_request))
         mark_request['cookies'][name] = value.replace(MARK_POINT, '')
-        mark_request['dt_and_ssrf_detect_flag'] = False
 
     # 处理 POST Body
     if content_type == 'xml':
@@ -317,14 +300,7 @@ if __name__ == '__main__':
                 # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
                 # f-string 表达式不能包含反斜线，故此处使用 format 函数格式化字符串
                 mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\\[')), f'>{MARK_POINT}<', mark_xml)
-                xmlTree = ET.ElementTree(ET.fromstring(mark_xml))
-                for elem in xmlTree.iter():
-                    if MARK_POINT in str(elem.text) and any(detect_param in elem.tag.lower() for detect_param in dt_and_ssrf_detect_params):
-                        mark_request['dt_and_ssrf_detect_flag'] = True
-                        break
                 requests.append(copy.deepcopy(mark_request))
-                # 重置 dt_and_ssrf_detect_flag
-                mark_request['dt_and_ssrf_detect_flag'] = False
                 cursor_idx += len(MARK_POINT)
         elif not is_mark:
             # xml data
@@ -340,11 +316,7 @@ if __name__ == '__main__':
 
             for elem_tag in tagList:
                 mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', base_request['data'])
-                if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
-                    mark_request['dt_and_ssrf_detect_flag'] = True
                 requests.append(copy.deepcopy(mark_request))
-                # 重置 dt_and_ssrf_detect_flag
-                mark_request['dt_and_ssrf_detect_flag'] = False
         mark_request['data'] = base_request['data']
     else:
         # 数据格式为 form 或 json
@@ -355,12 +327,9 @@ if __name__ == '__main__':
                 or (MARK_POINT not in value if is_mark else field in ignore_params):
                 continue
 
-            if any(detect_param in field.lower() for detect_param in dt_and_ssrf_detect_params):
-                mark_request['dt_and_ssrf_detect_flag'] = True
             mark_request['data'][field] = value if MARK_POINT in value else (value + MARK_POINT)
             requests.append(copy.deepcopy(mark_request))
             mark_request['data'][field] = value.replace(MARK_POINT, '')
-            mark_request['dt_and_ssrf_detect_flag'] = False
 
     # 获取探针
     probes = []

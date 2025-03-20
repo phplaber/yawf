@@ -11,9 +11,9 @@ from utils.utils import get_random_str, send_request
 from core.probe import Probe
 
 def run(probe_ins: Probe) -> None:
-    if not probe_ins.request['dt_and_ssrf_detect_flag']:
+    if not probe_ins.should_run_dt_ssrf_probe():
         print("[*] SSRF detection skipped")
-        return 
+        return
         
     vulnerable = False
     try:

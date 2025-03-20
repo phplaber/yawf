@@ -124,7 +124,7 @@ Options:
 
 - 在 **platform** 项中配置测试目标运行平台操作系统，默认是 Linux。在遇到特定平台的 payload 时，Yawf 会依据该配置进行针对性的测试，减少无效网络请求；
 
-此外，**data** 目录下的 **ignore_params.txt**、**dt_and_ssrf_detect_params.txt** 和 **sens_info_keywords.txt** 文件中分别预置了自动标记忽略的参数、 dt 和 ssrf 探针检测参数以及敏感信息关键词，用于检测 JSONP 敏感信息泄露漏洞。上述三个文件中的内容都可以按需修改。通过这种处理方式，可以减少很多无效请求，大大提高检测效率。
+此外，常量 **EFFICIENCY_CONF** 中的 **ignore_params**、**dt_and_ssrf_detect_params** 和 **sens_info_keywords** 分别预置了自动标记忽略的参数、 dt 和 ssrf 探针检测参数以及敏感信息关键词，用于检测 JSONP 敏感信息泄露漏洞。上述三个字段中的内容都可以按需修改。通过这种处理方式，可以减少很多无效请求，大大提高检测效率。
 
 #### 标记
 
@@ -197,9 +197,7 @@ Upgrade-Insecure-Requests: 1
     "auth": {
       
     },
-    "timeout": 30.0,
-    "fastjson_detect_flag": false,
-    "dt_and_ssrf_detect_flag": false
+    "timeout": 30.0
   },
   "payload": "<script>alert(1)</script>",
   "poc": {
@@ -226,9 +224,7 @@ Upgrade-Insecure-Requests: 1
     "auth": {
       
     },
-    "timeout": 30.0,
-    "fastjson_detect_flag": false,
-    "dt_and_ssrf_detect_flag": false
+    "timeout": 30.0
   },
   "type": "XSS"
 }

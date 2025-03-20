@@ -1,7 +1,8 @@
 import copy
 import json
+from xml.etree import ElementTree as ET
 
-from utils.constants import MARK_POINT
+from utils.constants import MARK_POINT, EFFICIENCY_CONF
 from utils.utils import get_content_type
 
 class Probe:
@@ -72,3 +73,60 @@ class Probe:
                     break
         
         return payload_request
+    
+    def should_run_dt_ssrf_probe(self):
+        """
+        检查标记的字段名称是否在 dt_and_ssrf_detect_params 列表中，用于决定是否执行 dt 和 ssrf 探针检测。
+        """
+
+        # dt 和 ssrf 探针自动标记检测的参数集合（包含匹配）
+        dt_and_ssrf_detect_params = EFFICIENCY_CONF.get('dt_and_ssrf_detect_params')
+
+        if any(detect_param in self._get_mark_field_name().lower() for detect_param in dt_and_ssrf_detect_params):
+            return True
+        return False
+
+    def _get_mark_field_name(self):
+        """
+        获取标记位置对应的字段名称，供 dt 和 ssrf 探针判断是否实施检测。
+        分别从查询字符串、Cookie、POST Body和请求头处查找。
+        """
+
+        # 查询字符串
+        for par, val in self.request.get('params').items():
+            if type(val) is not str or MARK_POINT not in val:
+                continue
+
+            if get_content_type(val) == 'json':
+                val_dict = json.loads(val)
+                for d_par, d_val in val_dict.items():
+                    if type(d_val) is str and MARK_POINT in d_val:
+                        return d_par
+            else:
+                return par
+
+        # Cookie
+        for name, value in self.request.get('cookies').items():
+            if type(value) is str and MARK_POINT in value:
+                return name
+
+        # POST Body
+        if type(self.request.get('data')) is str:
+            # xml
+            if MARK_POINT in self.request.get('data'):
+                xmlTree = ET.fromstring(self.request.get('data'))
+                for elem in xmlTree.iter():
+                    if elem.text and MARK_POINT in elem.text:
+                        return elem.tag
+        else:
+            # form、json
+            for field, value in self.request.get('data').items():
+                if type(value) is str and MARK_POINT in value:
+                    return field
+
+        # 请求头
+        for header, value in self.request.get('headers').items():
+            if type(value) is str and MARK_POINT in value:
+                return header
+
+        return ''

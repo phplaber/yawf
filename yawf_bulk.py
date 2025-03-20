@@ -48,9 +48,6 @@ if __name__ == '__main__':
     # 自动标记忽略的参数集合
     ignore_params = EFFICIENCY_CONF.get('ignore_params')
 
-    # dt 和 ssrf 探针自动标记检测的参数集合（包含匹配）
-    dt_and_ssrf_detect_params = EFFICIENCY_CONF.get('dt_and_ssrf_detect_params')
-
     # 脚本相对目录
     script_rel_dir = os.path.dirname(sys.argv[0])
 
@@ -192,7 +189,6 @@ if __name__ == '__main__':
             # 构造全部 request 对象（每个标记点对应一个对象）
             requests = []
             mark_request = copy.deepcopy(request)
-            mark_request['dt_and_ssrf_detect_flag'] = False
 
             """
             以下情况不处理：
@@ -212,33 +208,22 @@ if __name__ == '__main__':
                         if type(v) is not str or is_base64(v) or (k in ignore_params):
                             continue
 
-                        if any(detect_param in k.lower() for detect_param in dt_and_ssrf_detect_params):
-                            mark_request['dt_and_ssrf_detect_flag'] = True
-
                         base_val_dict[k] = v + MARK_POINT
                         mark_request['params'][par] = json.dumps(base_val_dict)
                         requests.append(copy.deepcopy(mark_request))
                         base_val_dict[k] = v
-                        mark_request['dt_and_ssrf_detect_flag'] = False
                 else:
-                    if any(detect_param in par.lower() for detect_param in dt_and_ssrf_detect_params):
-                        mark_request['dt_and_ssrf_detect_flag'] = True
-                            
                     mark_request['params'][par] = val + MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request['dt_and_ssrf_detect_flag'] = False
                 mark_request['params'][par] = request['params'][par]
 
             # 处理 Cookie
             for name, value in request['cookies'].items():
                 if is_base64(value) or (name in ignore_params):
                     continue
-                if any(detect_param in name.lower() for detect_param in dt_and_ssrf_detect_params):
-                    mark_request['dt_and_ssrf_detect_flag'] = True
                 mark_request['cookies'][name] = value + MARK_POINT
                 requests.append(copy.deepcopy(mark_request))
                 mark_request['cookies'][name] = value
-                mark_request['dt_and_ssrf_detect_flag'] = False
 
             # 处理 POST Body
             if content_type == 'xml':
@@ -255,21 +240,15 @@ if __name__ == '__main__':
 
                 for elem_tag in tagList:
                     mark_request['data'] = re.sub(fr'<{elem_tag}>[^<>]*</{elem_tag}>', f'<{elem_tag}>{MARK_POINT}</{elem_tag}>', request['data'])
-                    if any(detect_param in elem_tag.lower() for detect_param in dt_and_ssrf_detect_params):
-                        mark_request['dt_and_ssrf_detect_flag'] = True
                     requests.append(copy.deepcopy(mark_request))
-                    mark_request['dt_and_ssrf_detect_flag'] = False
                 mark_request['data'] = request['data']
             else:
                 for field, value in request['data'].items():
                     if type(value) is not str or is_base64(value) or (field in ignore_params):
                         continue
-                    if any(detect_param in field.lower() for detect_param in dt_and_ssrf_detect_params):
-                        mark_request['dt_and_ssrf_detect_flag'] = True
                     mark_request['data'][field] = value + MARK_POINT
                     requests.append(copy.deepcopy(mark_request))
                     mark_request['data'][field] = value
-                    mark_request['dt_and_ssrf_detect_flag'] = False
             
             # 支持检测 referer 处的 log4shell
             if 'log4shell' in probes:
