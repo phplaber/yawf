@@ -23,7 +23,7 @@ from utils.utils import (
     Browser,
     OOBDetector
 )
-from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, PLATFORM
+from utils.constants import REQ_TIMEOUT, MARK_POINT, UA, PROBE, PLATFORM, EFFICIENCY_CONF
 
 if __name__ == '__main__':
 
@@ -45,6 +45,12 @@ if __name__ == '__main__':
     if oob_provider not in ['dnslog', 'ceye']:
         sys.exit('[*] Only support dnslog and ceye provider')
 
+    # 自动标记忽略的参数集合
+    ignore_params = EFFICIENCY_CONF.get('ignore_params')
+
+    # dt 和 ssrf 探针自动标记检测的参数集合（包含匹配）
+    dt_and_ssrf_detect_params = EFFICIENCY_CONF.get('dt_and_ssrf_detect_params')
+
     # 脚本相对目录
     script_rel_dir = os.path.dirname(sys.argv[0])
 
@@ -52,12 +58,6 @@ if __name__ == '__main__':
     conf_dict = parse_conf(os.path.join(script_rel_dir, 'yawf.conf'))
     if not conf_dict:
         sys.exit('[*] parse config file error')
-
-    # 自动标记忽略的参数列表
-    ignore_params = read_file(os.path.join(script_rel_dir, 'data', 'ignore_params.txt'))
-
-    # dt 和 ssrf 探针自动标记检测的参数列表（包含匹配）
-    dt_and_ssrf_detect_params = read_file(os.path.join(script_rel_dir, 'data', 'dt_and_ssrf_detect_params.txt'))
     
     # 网络代理
     proxy_conf = conf_dict['request_proxy']

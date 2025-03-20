@@ -8,7 +8,8 @@ import re
 import sys
 import copy
 
-from utils.utils import read_file, send_request, get_jsonp_keys
+from utils.utils import send_request, get_jsonp_keys
+from utils.constants import EFFICIENCY_CONF
 from core.probe import Probe
 
 def run(probe_ins: Probe) -> None:
@@ -25,7 +26,7 @@ def run(probe_ins: Probe) -> None:
         return
     
     try:
-        sens_info_keywords = read_file(os.path.join(os.path.dirname(sys.argv[0]), 'data', 'sens_info_keywords.txt'))
+        sens_info_keywords = EFFICIENCY_CONF.get('sens_info_keywords')
 
         # 空 referer 测试
         if not base_request.get('headers').get('referer'):
