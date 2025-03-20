@@ -53,15 +53,14 @@ def run(probe_ins: Probe) -> None:
             else:
                 # 基于内容相似度判断
                 poc_rsp_body = BeautifulSoup(poc_rsp.get('response'), "html.parser").get_text() if is_html else poc_rsp.get('response')
-                    
                 if similar(base_rsp_body, poc_rsp_body) > DIFF_THRESHOLD:
                     # 参数可能被消杀（如整数化）处理，使用反向 payload 再确认一遍
                     reverse_payload_request = probe_ins.gen_payload_request(payload.replace('1','0') if '=' not in payload else payload.replace('1','0',1), True)
                     reverse_poc_rsp = send_request(reverse_payload_request)
                     if reverse_poc_rsp.get('response'):
                         reverse_rsp_body = BeautifulSoup(reverse_poc_rsp.get('response'), "html.parser").get_text() if is_html else reverse_poc_rsp.get('response')
-                            
-                        if similar(base_rsp_body, reverse_rsp_body) < DIFF_THRESHOLD:
+                        # 一般来说，如果漏洞存在，取反后内容差异更大
+                        if similar(base_rsp_body, reverse_rsp_body) < DIFF_THRESHOLD * 0.8:
                             vulnerable = True
 
             if vulnerable:
