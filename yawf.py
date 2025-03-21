@@ -331,6 +331,15 @@ if __name__ == '__main__':
             requests.append(copy.deepcopy(mark_request))
             mark_request['data'][field] = value.replace(MARK_POINT, '')
 
+    # 处理请求头
+    for name, value in request['headers'].items():
+        # 目前只处理 Referer 和 User-Agent
+        if name not in {'referer', 'user-agent'} or (is_mark and MARK_POINT not in value):
+            continue
+        mark_request['headers'][name] = value if MARK_POINT in value else (value + MARK_POINT)
+        requests.append(copy.deepcopy(mark_request))
+        mark_request['headers'][name] = value.replace(MARK_POINT, '')
+
     # 获取探针
     probes = []
     if conf_dict['probe_customize']:
@@ -339,12 +348,6 @@ if __name__ == '__main__':
         probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
     else:
         probes.append(PROBE)
-
-    # 支持检测 referer 处的 log4shell
-    if 'log4shell' in probes:
-        mark_request['headers']['referer'] = MARK_POINT
-        requests.append(copy.deepcopy(mark_request))
-        mark_request['headers'] = base_request['headers']
 
     # request 对象列表
     if not requests:

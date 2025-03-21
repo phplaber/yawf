@@ -9,7 +9,7 @@
 ### 特性
 
 1.  支持检测动态 URL 和 HTTP Request 文件目标对象；
-2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie 和 POST Body；
+2.  支持手动和自动标记测试点，标记范围覆盖查询字符串、Cookie、POST Body和请求头；
 3.  支持 GET 和 POST 请求，以及 form、json 和 xml 数据类型；
 4.  支持 HTTP Basic/Digest/NTLM 认证；
 5.  支持对测试目标进行并行（多进程）检测；
@@ -76,7 +76,7 @@ _____.___.  _____  __      _____________
  \/              \/      \/       \/    
 
 Automated Web Vulnerability Fuzzer      
-v2.7                               
+v3.0.0                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
@@ -128,7 +128,7 @@ Options:
 
 #### 标记
 
-Yawf 支持手动和自动标记测试点，支持查询字符串、Cookie 和 POST Body 处标记。
+Yawf 支持手动和自动标记测试点，支持查询字符串、Cookie、POST Body和请求头处标记。
 
 当需要测试某个单独的输入点时，仅需在参数值后手动标记 **[fuzz]**，Yawf 就只会对该位置进行检测。注意，手动标记需保留原始参数值。在真正进行 PoC 测试时，Yawf 会根据探针类型灵活的选择是否保留原始参数值。
 
@@ -162,6 +162,9 @@ Upgrade-Insecure-Requests: 1
     -  `par1=val1&par2=val2[fuzz]`，常规 form 编码数据格式
     -  `{"par1":"val1","par2":"val2[fuzz]"}`，json 编码数据格式，支持对 json 中的字符串值标记
     -  `<par1>val1[fuzz]</par1>`，xml 编码数据格式
+4.  **请求头**（目前只支持 Referer 和 User-Agent）
+    -  `Referer: url[fuzz]`，字符串数据格式
+    -  `User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36[fuzz]`，字符串数据格式
 
 同时需注意，在自动标记模式下，参数是否被标记还受 **ignore_params** 影响。
 
