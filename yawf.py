@@ -65,12 +65,15 @@ if __name__ == '__main__':
     # 脚本相对目录
     script_rel_dir = os.path.dirname(sys.argv[0])
 
+    # 全部探针
+    files = next(os.walk(os.path.join(script_rel_dir, 'core', 'probes')), (None, None, []))[2]
+    all_probes = [os.path.splitext(f)[0] for f in files if not f.startswith('__init__')]
+
     # 显示可用的探针列表
     if options.probe_list:
-        files = next(os.walk(os.path.join(script_rel_dir, 'core', 'probes')), (None, None, []))[2]
         s = 'List of available probes: \n'
-        for f in files:
-            s += f' - {os.path.splitext(f)[0]}\n' if not f.startswith('__init__') else ''
+        for probe in all_probes:
+            s += f' - {probe}\n'
         print(s)
         sys.exit()
 
@@ -343,7 +346,10 @@ if __name__ == '__main__':
     # 获取探针
     probes = []
     if conf_dict['probe_customize']:
-        probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
+        if 'all' in conf_dict['probe_customize']:
+            probes = all_probes
+        else:
+            probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
     elif conf_dict['probe_default']:
         probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
     else:

@@ -69,7 +69,12 @@ if __name__ == '__main__':
     # 获取探针
     probes = []
     if conf_dict['probe_customize']:
-        probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
+        if 'all' in conf_dict['probe_customize']:
+            # 全部探针
+            files = next(os.walk(os.path.join(script_rel_dir, 'core', 'probes')), (None, None, []))[2]
+            probes = [os.path.splitext(f)[0] for f in files if not f.startswith('__init__')]
+        else:
+            probes = [probe.strip() for probe in conf_dict['probe_customize'].split(',')]
     elif conf_dict['probe_default']:
         probes = [probe.strip() for probe in conf_dict['probe_default'].split(',')]
     else:

@@ -20,6 +20,7 @@ user_agent :
 default : sqli, xss
 
 # 自定义探针
+# 配置 all 关键字开启全部探针
 customize : xss
 
 # [[CEYE.IO]]

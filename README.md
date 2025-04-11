@@ -117,7 +117,7 @@ Options:
 
 - 在 **user_agent** 项中配置自定义 UA，若留空，则使用默认 UA；
 
-- 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
+- 在 **customize** 项中配置自定义探针，多个探针需使用英文逗号分隔，探针名称见上述列表。为方便起见，可配置 all 关键字开启全部探针。如果 **customize** 项为空，则使用 **default** 项中配置的探针。如果 **default** 项也为空，最终兜底的为 xss 探针；
 
 - 在 **id** 项中配置 ceye.io 平台分配的 Identifier；在 **token** 项中配置 ceye.io 平台分配的 API Token。在登录 ceye.io 平台后，在 Profile 页面可以看到这两项的内容。默认使用 ceye 带外服务，获得更稳定的服务；
 
