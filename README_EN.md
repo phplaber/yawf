@@ -2,14 +2,14 @@
 
 [中文](README.md)
 
-**Yawf** is an open-source web vulnerability automated detection tool that first identifies all test points through automatic discovery or manual marking, then uses vulnerability probes to detect each test point one by one, comprehensively and efficiently discovering common web vulnerabilities, including: XSS, SQL injection, XXE, SSRF, Directory traversal, Log4Shell, RCE, and JSONP sensitive information disclosure.
+**Yawf** is an open-source web vulnerability automated detection tool that first identifies all test points through automatic discovery or manual marking, then uses vulnerability probes to detect each test point one by one, comprehensively and efficiently discovering common web vulnerabilities, including: XSS, SQL injection, XXE, SSRF, Directory traversal, Log4Shell, RCE, Open Redirect and JSONP sensitive information disclosure.
 
 ⭐ Selected for KCon 2024 [Arsenal](https://kcon.knownsec.com/index.php?s=bqp&c=category&id=3)
 
 ### Features
 
 1.  Supports detection of dynamic URLs and HTTP Request file targets;
-2.  Supports manual and automatic marking of test points, covering query strings, cookies, and POST body;
+2.  Supports manual and automatic marking of test points, covering query strings, cookies, POST body and request headers;
 3.  Supports GET and POST requests, as well as form, JSON, and XML data types;
 4.  Supports HTTP Basic/Digest/NTLM authentication;
 5.  Supports parallel (multi-process) detection of test targets;
@@ -31,6 +31,7 @@
 7.  **ssrf** - SSRF probe
 8.  **jsonp** - JSONP probe
 9.  **rce** - RCE probe
+10. **redirect** - Open Redirect probe
 
 ### Installation
 
@@ -76,7 +77,7 @@ _____.___.  _____  __      _____________
  \/              \/      \/       \/    
 
 Automated Web Vulnerability Fuzzer      
-v2.7                               
+v3.0.0                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
@@ -124,7 +125,7 @@ Copy the configuration sample file **yawf.conf.sample** and rename it to **yawf.
 
 - Configure the operating system platform of the test target in the **platform** item, the default is Linux. When encountering platform-specific payloads, Yawf will conduct targeted tests based on this configuration, reducing ineffective network requests;
 
-In addition, the constants **EFFICIENCY_CONF** with **ignore_params**, **dt_and_ssrf_detect_params**, and **sens_info_keywords** are pre-configured with parameters to be ignored by automatic marking, parameters for dt and ssrf probe detection, and sensitive information keywords for detecting JSONP sensitive information disclosure vulnerabilities, respectively. The contents of these three fields can be modified as needed. Through this processing approach, many ineffective requests can be reduced, greatly improving detection efficiency.
+In addition, the constants **EFFICIENCY_CONF** with **ignore_params**, **local_and_remote_resource_params**, and **sens_info_keywords** are pre-configured with parameters to be ignored by automatic marking, local and remote resource parameters, and sensitive information keywords for detecting JSONP sensitive information disclosure vulnerabilities, respectively. The contents of these three fields can be modified as needed. Through this processing approach, many ineffective requests can be reduced, greatly improving detection efficiency.
 
 #### Marking
 
@@ -162,6 +163,9 @@ Supported marking positions are as follows:
     -  `par1=val1&par2=val2[fuzz]`, regular form encoded data format
     -  `{"par1":"val1","par2":"val2[fuzz]"}`, JSON encoded data format, supporting marking of string values in JSON
     -  `<par1>val1[fuzz]</par1>`, XML encoded data format
+4.  **Request Headers** (currently only supports Referer and User-Agent)
+    -  `Referer: url[fuzz]`, string data format
+    -  `User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36[fuzz]`, string data format
 
 It should also be noted that in automatic marking mode, whether a parameter is marked is also affected by **ignore_params**.
 
