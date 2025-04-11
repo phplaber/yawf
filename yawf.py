@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
     # 基准请求
     base_http = send_request(base_request, True)
-    if base_http.get('status') != 200:
+    if base_http.get('status') not in [200, 301, 302, 307, 308]:
         sys.exit(f"[*] base request failed, status code is: {base_http.get('status')}")
 
     # 构造全部 request 对象（每个标记点对应一个对象）

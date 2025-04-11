@@ -178,7 +178,8 @@ def send_request(
             json=json_data, 
             auth=auth,
             timeout=request['timeout'], 
-            verify=False)
+            verify=False,
+            allow_redirects=False)
         response = rsp.text
         headers = rsp.headers if require_response_header else None
         status = rsp.status_code

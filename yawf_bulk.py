@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
             # 基准请求
             base_http = send_request(request, True)
-            if base_http.get('status') != 200:
+            if base_http.get('status') not in [200, 301, 302, 307, 308]:
                 print(f"[*] base request failed, status code is: {base_http.get('status')}")
                 continue
 
