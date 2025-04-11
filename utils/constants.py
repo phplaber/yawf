@@ -57,8 +57,8 @@ EFFICIENCY_CONF = {
         'PHPSESSID', 
         'ASPSESSIONID'
     },
-    # dt 和 ssrf 探针检测参数（包含匹配）
-    'dt_and_ssrf_detect_params' : {
+    # 本地和远程资源参数（包含匹配）
+    'local_and_remote_resource_params' : {
         'file', 
         'path', 
         'dir', 

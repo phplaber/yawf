@@ -74,21 +74,20 @@ class Probe:
         
         return payload_request
     
-    def should_run_dt_ssrf_probe(self):
+    def is_resource_param(self):
         """
-        检查标记的字段名称是否在 dt_and_ssrf_detect_params 列表中，用于决定是否执行 dt 和 ssrf 探针检测。
+        检查标记的字段名称是否为资源相关参数，用于判断是否执行某些特定探针（如：dt、ssrf等）。
         """
 
-        # dt 和 ssrf 探针自动标记检测的参数集合（包含匹配）
-        dt_and_ssrf_detect_params = EFFICIENCY_CONF.get('dt_and_ssrf_detect_params')
-
-        if any(detect_param in self._get_mark_field_name().lower() for detect_param in dt_and_ssrf_detect_params):
+        # 本地和远程资源参数集合（包含匹配）
+        local_and_remote_resource_params = EFFICIENCY_CONF.get('local_and_remote_resource_params')
+        if any(param in self._get_mark_field_name().lower() for param in local_and_remote_resource_params):
             return True
         return False
 
     def _get_mark_field_name(self):
         """
-        获取标记位置对应的字段名称，供 dt 和 ssrf 探针判断是否实施检测。
+        获取标记位置对应的字段名称。
         分别从查询字符串、Cookie、POST Body和请求头处查找。
         """
 
