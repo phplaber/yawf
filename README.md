@@ -2,7 +2,7 @@
 
 [English](README_EN.md)
 
-**Yawf** 是一个开源的 Web 漏洞自动化检测工具，先通过自动发现或手动标记的方式圈出全部测试点，然后逐一对每个测试点使用漏洞探针进行检测，全面和高效地发现常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal、Log4Shell、RCE 和 JSONP 敏感信息泄露等。
+**Yawf** 是一个开源的 Web 漏洞自动化检测工具，先通过自动发现或手动标记的方式圈出全部测试点，然后逐一对每个测试点使用漏洞探针进行检测，全面和高效地发现常见 Web 漏洞，包括：XSS、SQL injection、XXE、SSRF、Directory traversal、Log4Shell、RCE、Open Redirect 和 JSONP 敏感信息泄露等。
 
 ⭐ 入选 KCon 2024 [兵器谱](https://kcon.knownsec.com/index.php?s=bqp&c=category&id=3)
 
@@ -31,6 +31,7 @@
 7.  **ssrf** - SSRF 探针
 8.  **jsonp** - JSONP 探针
 9.  **rce** - RCE 探针
+10. **redirect** - Open Redirect 探针
 
 ### 安装
 
