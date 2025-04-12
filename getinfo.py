@@ -308,6 +308,19 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
     spinner.stop()
     print(ports_info)
 
+    # 杂项
+    print(f'\n{"-"*10} robots.txt {"-"*10}\n')
+    robots_info = ''
+    try:
+        robots_response = requests.get(f"{options.url}/robots.txt", timeout=options.req_timeout, verify=False)
+        if robots_response.status_code == 200:
+            robots_info = robots_response.text
+        else:
+            robots_info = "robots.txt 文件不存在"
+    except requests.exceptions.RequestException as e:
+        robots_info = f"获取 robots.txt 失败：{str(e)}"
+    print(robots_info)
+
     print(f"\n[+] 信息收集完成，总耗时：{time.time() - start_time:.2f}秒")
 
     # 大模型智能分析
@@ -322,7 +335,7 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
     if conf_dict['llm_status'] == 'enable':
         client = OpenAI(api_key = conf_dict['llm_api_key'], base_url = conf_dict['llm_base_url'])
         try:
-            info = f'<基本信息>{basic_info}</基本信息><SSL证书信息>{tls_versions_info}{ssl_info}</SSL证书信息><DNS记录信息>{dns_records_info}</DNS记录信息><端口信息>{ports_info}</端口信息>'
+            info = f'<基本信息>{basic_info}</基本信息><SSL证书信息>{tls_versions_info}{ssl_info}</SSL证书信息><DNS记录信息>{dns_records_info}</DNS记录信息><端口信息>{ports_info}</端口信息><杂项><robots文件内容>{robots_info}</robots文件内容></杂项>'
 
             response = client.chat.completions.create(
                 model = conf_dict['llm_model'],
