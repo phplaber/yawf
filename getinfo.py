@@ -312,7 +312,7 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
     print(f'\n{"-"*10} robots.txt {"-"*10}\n')
     robots_info = ''
     try:
-        robots_response = requests.get(f"{options.url}/robots.txt", timeout=options.req_timeout, verify=False)
+        robots_response = requests.get(f"{scheme}://{domain}/robots.txt", timeout=options.req_timeout, verify=False)
         if robots_response.status_code == 200:
             robots_info = robots_response.text
         else:
