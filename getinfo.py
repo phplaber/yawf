@@ -202,6 +202,8 @@ if __name__ == '__main__':
         framework = r.headers.get('X-Powered-By', 'unknown')
 
         # 获取页面标题、关键词和描述
+        # 解决中文乱码问题
+        r.encoding = r.apparent_encoding
         html = BeautifulSoup(r.text, 'html.parser')
         title = html.title.string if html.title else 'unknown'
         keywords = html.find('meta', attrs={'name': 'keywords'})
