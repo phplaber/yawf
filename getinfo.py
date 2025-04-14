@@ -347,8 +347,8 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
         sys.exit('[*] parse config file error')
 
     if conf_dict['llm_status'] == 'enable':
-        client = OpenAI(api_key = conf_dict['llm_api_key'], base_url = conf_dict['llm_base_url'])
         try:
+            client = OpenAI(api_key = conf_dict['llm_api_key'], base_url = conf_dict['llm_base_url'])
             info = f'<基本信息>{basic_info}</基本信息><SSL证书信息>{tls_versions_info}{ssl_info}</SSL证书信息><DNS记录信息>{dns_records_info}</DNS记录信息><端口信息>{ports_info}</端口信息><杂项><robots文件内容>{robots_info}</robots文件内容></杂项>'
 
             response = client.chat.completions.create(
