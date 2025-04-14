@@ -18,6 +18,7 @@ from openai import OpenAI, OpenAIError
 from concurrent.futures import ThreadPoolExecutor
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from bs4 import BeautifulSoup
 
 from utils.constants import REQ_SCHEME
 from utils.utils import Spinner, parse_conf
@@ -200,11 +201,22 @@ if __name__ == '__main__':
         web_server = r.headers.get('Server', 'unknown')
         framework = r.headers.get('X-Powered-By', 'unknown')
 
+        # 获取页面标题、关键词和描述
+        html = BeautifulSoup(r.text, 'html.parser')
+        title = html.title.string if html.title else 'unknown'
+        keywords = html.find('meta', attrs={'name': 'keywords'})
+        keywords = keywords['content'] if keywords else 'unknown'
+        description = html.find('meta', attrs={'name': 'description'})
+        description = description['content'] if description else 'unknown'
+
     basic_info = f"""
 服务状态：{OKGREEN + "running" if is_server_up else FAIL + "down"}{ENDC}
 WAF：{OKGREEN + waf + ENDC}
 Web 服务软件：{OKGREEN + web_server + ENDC}
 框架/脚本语言：{OKGREEN + framework + ENDC}
+标题：{OKGREEN + title + ENDC}
+关键词：{OKGREEN + keywords + ENDC}
+描述：{OKGREEN + description + ENDC}
     """
     print(basic_info)
 
