@@ -71,10 +71,7 @@ if __name__ == '__main__':
 
     # 显示可用的探针列表
     if options.probe_list:
-        s = 'List of available probes: \n'
-        for probe in all_probes:
-            s += f' - {probe}\n'
-        print(s)
+        print('List of available probes: \n' + '\n'.join(f' - {probe}' for probe in all_probes))
         sys.exit()
 
     # -u 和 -f 选项二选一
