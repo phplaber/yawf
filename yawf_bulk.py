@@ -138,11 +138,11 @@ if __name__ == '__main__':
             request['method'] = method
             
             # URL
-            o = urlparse(unquote(url))
-            request['url'] = o._replace(fragment="")._replace(query="").geturl()
+            parsed_url = urlparse(unquote(url))
+            request['url'] = parsed_url._replace(fragment="")._replace(query="").geturl()
 
             # 查询字符串
-            qs = parse_qsl(o.query)
+            qs = parse_qsl(parsed_url.query)
             for par, val in qs:
                 request['params'][par]=val
 

@@ -120,11 +120,11 @@ if __name__ == '__main__':
     content_type, data, cookies = ('',)*3
     if options.url:
         # URL
-        o = urlparse(unquote(options.url))
-        scheme = o.scheme.lower()
+        parsed_url = urlparse(unquote(options.url))
+        scheme = parsed_url.scheme.lower()
         if not scheme:
             sys.exit('[*] The full target URL is required')
-        request['url'] = o._replace(fragment="")._replace(query="").geturl()
+        request['url'] = parsed_url._replace(fragment="")._replace(query="").geturl()
         request['method'] = options.method.upper()
 
         if options.data:
@@ -153,8 +153,8 @@ if __name__ == '__main__':
 
         scheme = conf_dict['request_scheme'].lower() if conf_dict['request_scheme'] else REQ_SCHEME
         
-        o = urlparse(unquote(uri))
-        request['url'] = f"{scheme}://{request['headers']['host']}{o._replace(fragment='')._replace(query='').geturl()}"
+        parsed_url = urlparse(unquote(uri))
+        request['url'] = f"{scheme}://{request['headers']['host']}{parsed_url._replace(fragment='')._replace(query='').geturl()}"
         request['method'] = method.upper()
         if request['method'] == 'POST':
             data = contents.split('\n\n')[1]
@@ -177,7 +177,7 @@ if __name__ == '__main__':
         sys.exit('[*] HTTP post data is empty')
     
     # 查询字符串
-    qs = parse_qsl(o.query)
+    qs = parse_qsl(parsed_url.query)
     for par, val in qs:
         request['params'][par]=val
 
