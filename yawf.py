@@ -292,17 +292,17 @@ if __name__ == '__main__':
     if content_type == 'xml':
         # 数据格式为 xml
         if is_mark and MARK_POINT in request['data']:
+            escaped_mark = MARK_POINT.replace('[', '\\[')
             # 全部标记点的位置
             all_mark_point_index = [mp.start() \
-                for mp in re.finditer(MARK_POINT.replace('[', '\\['), request['data'])]
+                for mp in re.finditer(escaped_mark, request['data'])]
             cursor_idx = 0
             for idx in all_mark_point_index:
                 mark_xml = base_request['data'][:(idx-cursor_idx)] \
                     + MARK_POINT \
                     + base_request['data'][(idx-cursor_idx):]
                 # 删除原始元素值 ">foo[fuzz]<" ---> ">[fuzz]<"
-                # f-string 表达式不能包含反斜线，故此处使用 format 函数格式化字符串
-                mark_request['data'] = re.sub(r">[^<>]*{}<".format(MARK_POINT.replace('[', '\\[')), f'>{MARK_POINT}<', mark_xml)
+                mark_request['data'] = re.sub(f">[^<>]*{escaped_mark}<", f'>{MARK_POINT}<', mark_xml)
                 requests.append(copy.deepcopy(mark_request))
                 cursor_idx += len(MARK_POINT)
         elif not is_mark:
