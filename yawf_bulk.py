@@ -57,12 +57,13 @@ if __name__ == '__main__':
         sys.exit('[*] parse config file error')
     
     # 网络代理
-    proxy_conf = conf_dict['request_proxy']
-    proxies = {'http': proxy_conf, 'https': proxy_conf} if proxy_conf else {}
+    proxies = {
+        'http': conf_dict['request_proxy'], 
+        'https': conf_dict['request_proxy']
+    } if conf_dict['request_proxy'] else {}
     
     # 请求超时时间（秒）
-    timeout_conf = conf_dict['request_timeout']
-    timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
+    timeout = float(conf_dict['request_timeout']) if conf_dict['request_timeout'] else REQ_TIMEOUT
 
     user_agent = conf_dict['request_user_agent'] if conf_dict['request_user_agent'] else UA
 
@@ -99,8 +100,7 @@ if __name__ == '__main__':
 
     # 创建存储漏洞文件目录
     outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
-    if not os.path.exists(outputdir):
-        os.makedirs(outputdir)
+    os.makedirs(outputdir, exist_ok=True)
 
     # 将测试目标平台存储在环境变量
     os.environ['platform'] = conf_dict['misc_platform'].lower() if conf_dict['misc_platform'] else PLATFORM

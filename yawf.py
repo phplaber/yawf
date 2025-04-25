@@ -92,12 +92,13 @@ if __name__ == '__main__':
         sys.exit('[*] parse config file error')
     
     # 网络代理
-    proxy_conf = conf_dict['request_proxy']
-    proxies = {'http': proxy_conf, 'https': proxy_conf} if proxy_conf else {}
+    proxies = {
+        'http': conf_dict['request_proxy'], 
+        'https': conf_dict['request_proxy']
+    } if conf_dict['request_proxy'] else {}
     
     # 请求超时时间（秒）
-    timeout_conf = conf_dict['request_timeout']
-    timeout = float(timeout_conf) if timeout_conf else REQ_TIMEOUT
+    timeout = float(conf_dict['request_timeout']) if conf_dict['request_timeout'] else REQ_TIMEOUT
 
     # 获取 requests 默认请求头
     default_headers = get_default_headers()
@@ -150,8 +151,7 @@ if __name__ == '__main__':
         for k, v in dict(message.items()).items():
             request['headers'][k.lower()] = v
 
-        scheme_conf = conf_dict['request_scheme']
-        scheme = scheme_conf.lower() if scheme_conf else REQ_SCHEME
+        scheme = conf_dict['request_scheme'].lower() if conf_dict['request_scheme'] else REQ_SCHEME
         
         o = urlparse(unquote(uri))
         request['url'] = f"{scheme}://{request['headers']['host']}{o._replace(fragment='')._replace(query='').geturl()}"
@@ -380,8 +380,7 @@ if __name__ == '__main__':
     # 记录漏洞
     if fuzz_results:
         outputdir = options.output_dir if options.output_dir else os.path.join(script_rel_dir, 'output')
-        if not os.path.exists(outputdir):
-            os.makedirs(outputdir)
+        os.makedirs(outputdir, exist_ok=True)
         outputfile = os.path.join(outputdir, f'vuls_{time.strftime("%Y%m%d%H%M%S")}.txt')
         with open(outputfile, 'w') as f:
             for result in fuzz_results:
