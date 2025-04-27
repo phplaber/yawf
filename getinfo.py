@@ -75,38 +75,7 @@ def detect_waf(req_rsp):
         detection = re.compile(r"[0-9a-z]{32}-[0-9a-z]{32}", re.I)
         if 'waf' in headers.get('Set-Cookie', '') or detection.search(response):
             return 'T-Sec-Waf'
-
-    # 云加速
-    detection_schemas = (
-        re.compile(r"fh(l)?", re.I),
-        re.compile(r"yunjiasu.nginx", re.I)
-    )
-    for detection in detection_schemas:
-        if detection.search(headers.get('x-server', '')) or detection.search(headers.get('server', '')):
-            return 'Yunjiasu'
-
-    # 安全狗
-    detection_schemas = (
-        re.compile(r"(http(s)?)?(://)?(www|404|bbs|\w+)?.safedog.\w", re.I),
-        re.compile(r"waf(.?\d+.?\d+)", re.I),
-    )
-    for detection in detection_schemas:
-        if detection.search(response) or detection.search(headers.get('x-powered-by', '')):
-            return 'SafeDog'
-
-    # 加速乐
-    detection_schemas = (
-        re.compile(r"^jsl(_)?tracking", re.I),
-        re.compile(r"(__)?jsluid(=)?", re.I),
-        re.compile(r"notice.jiasule", re.I),
-        re.compile(r"(static|www|dynamic).jiasule.(com|net)", re.I)
-    )
-    for detection in detection_schemas:
-        set_cookie = headers.get('set-cookie', '')
-        server = headers.get('server', '')
-        if any(detection.search(item) for item in [set_cookie, server]) or detection.search(response):
-            return 'Jiasule'
-            
+    
     # CloudFlare
     detection_schemas = (
         re.compile(r"cloudflare.ray.id.|var.cloudflare.", re.I),
