@@ -354,7 +354,7 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
             response = client.chat.completions.create(
                 model = conf_dict['llm_model'],
                 messages = [
-                    {"role": "system", "content": "你是一位安全测试专家，你将收到和测试对象相关的XML结构化信息。请先分析这些信息，然后制定下一步的安全测试计划。"},
+                    {"role": "system", "content": "你是一位安全测试专家，你将收到和测试对象相关的XML结构化信息。请先分析这些信息，运用透过现象（此处的现象就是收集到的信息）看本质的思维和方法，然后制定下一步的安全测试计划。"},
                     {"role": "user", "content": info},
                 ],
                 stream = True
