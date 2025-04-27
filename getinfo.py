@@ -174,11 +174,11 @@ if __name__ == '__main__':
         # 解决中文乱码问题
         r.encoding = r.apparent_encoding
         html = BeautifulSoup(r.text, 'html.parser')
-        title = html.title.string if html.title else 'unknown'
+        title = html.title.string if html.title else ''
         keywords = html.find('meta', attrs={'name': 'keywords'})
-        keywords = keywords['content'] if keywords else 'unknown'
+        keywords = keywords['content'] if keywords else ''
         description = html.find('meta', attrs={'name': 'description'})
-        description = description['content'] if description else 'unknown'
+        description = description['content'] if description else ''
 
     basic_info = f"""
 服务状态：{OKGREEN + "running" if is_server_up else FAIL + "down"}{ENDC}
