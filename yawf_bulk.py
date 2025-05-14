@@ -240,7 +240,7 @@ if __name__ == '__main__':
                     else None \
                     for elem in xmlTree.iter()]
                 # 移除重复元素 tag 和 None 值
-                tagList = list(set(list(filter(None, tagList))))
+                tagList = list(set(filter(None, tagList)))
                 tagList.sort()
 
                 for elem_tag in tagList:
