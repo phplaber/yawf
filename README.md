@@ -33,18 +33,19 @@
 
 ### 安装
 
-需使用 Python 3.8+ 运行。首先，下载项目代码，然后安装依赖包。
+推荐使用 `uv` 进行依赖管理和运行。
 
 ```console
 $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
-$ pip3 install -r requirements.txt
+$ uv sync
+$ uv version
 ```
 
 在正式使用前，建议先执行信息收集脚本，获取目标信息，如：服务状态、是否部署 Waf、Web Server、框架/脚本语言、端口信息、SSL 证书信息和 DNS 记录等，以制定扫描策略。同时，也可以配置使用大模型对收集的信息进行智能分析，为下一步测试工作提供指导建议。
 
 ```console
-$ python3 getinfo.py -h
+$ uv run getinfo.py -h
 
 Usage: getinfo.py [options]
 
@@ -65,7 +66,7 @@ Options:
 
 ```console
 $ cp yawf.conf.sample yawf.conf
-$ python3 yawf.py -h
+$ uv run yawf.py -h
 
 _____.___.  _____  __      _____________
 \__  |   | /  _  \/  \    /  \_   _____/
@@ -74,8 +75,8 @@ _____.___.  _____  __      _____________
  / ______\____|__  /\__/\  /  \___  /   
  \/              \/      \/       \/    
 
+(3.0.0)
 Automated Web Vulnerability Fuzzer      
-v3.0.0                               
 Created by yns0ng (@phplaber)           
 
 Usage: yawf.py [options]
