@@ -1,0 +1,19 @@
+[project]
+name = "yawf"
+version = "3.0.0"
+description = "Web 漏洞检测工具"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "beautifulsoup4==4.11.2",
+    "cryptography==44.0.2",
+    "dnspython==2.6.1",
+    "esprima==4.0.1",
+    "openai==1.60.0",
+    "python-nmap==0.7.1",
+    "requests==2.32.4",
+    "requests-ntlm2==6.5.2",
+    "selenium==4.8.2",
+    "tabulate==0.9.0",
+    "httpx[socks]",
+]

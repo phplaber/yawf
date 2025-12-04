@@ -215,31 +215,42 @@ Web 服务软件：{OKGREEN + web_server + ENDC}
         # 证书信息
         try:
             ctx = ssl.create_default_context()
+            # 禁用主机名检查和证书验证，以便支持自签名证书
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            
             with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
                 s.connect((domain, port))
-                cert = s.getpeercert()
-                sign_algorithm = x509.load_der_x509_certificate(s.getpeercert(True), default_backend()).signature_algorithm_oid._name
+                # 获取二进制格式的证书
+                der_cert = s.getpeercert(True)
+                # 使用 cryptography 加载证书
+                cert = x509.load_der_x509_certificate(der_cert, default_backend())
+                sign_algorithm = cert.signature_algorithm_oid._name
 
-            subject = dict(x[0] for x in cert.get('subject'))
-            issuer = dict(x[0] for x in cert.get('issuer'))
-            valid_period = {
-                'start': cert.get('notBefore'),
-                'end': cert.get('notAfter')
-            }
-            subject_altname = ', '.join([x[1] for x in cert.get('subjectAltName')])
+            # 辅助函数：获取证书属性值
+            def get_val(name, oid):
+                attrs = name.get_attributes_for_oid(oid)
+                return attrs[0].value if attrs else None
+
+            # 获取 Subject Alternative Name (SAN)
+            try:
+                san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+                subject_altname = ', '.join(san.value.get_values_for_type(x509.DNSName))
+            except x509.ExtensionNotFound:
+                subject_altname = ''
 
             ssl_info = f"""
 颁发对象：
-    通用名称：{subject.get('commonName')}
-    国家/地区：{subject.get('countryName', '未知')}
-    组织：{subject.get('organizationName', '未知')}
+    通用名称：{get_val(cert.subject, x509.NameOID.COMMON_NAME)}
+    国家/地区：{get_val(cert.subject, x509.NameOID.COUNTRY_NAME) or '未知'}
+    组织：{get_val(cert.subject, x509.NameOID.ORGANIZATION_NAME) or '未知'}
 颁发者：
-    通用名称：{issuer.get('commonName')}
-    国家/地区：{issuer.get('countryName')}
-    组织：{issuer.get('organizationName')}
+    通用名称：{get_val(cert.issuer, x509.NameOID.COMMON_NAME)}
+    国家/地区：{get_val(cert.issuer, x509.NameOID.COUNTRY_NAME)}
+    组织：{get_val(cert.issuer, x509.NameOID.ORGANIZATION_NAME)}
 有效期：
-    颁发日期：{valid_period.get('start')}
-    截止日期：{valid_period.get('end')}
+    颁发日期：{cert.not_valid_before_utc.strftime('%b %d %H:%M:%S %Y GMT')}
+    截止日期：{cert.not_valid_after_utc.strftime('%b %d %H:%M:%S %Y GMT')}
 颁发对象替代名称：
     DNS：{subject_altname}
 证书签名算法：

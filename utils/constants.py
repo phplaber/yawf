@@ -1,4 +1,22 @@
-VERSION = 'v3.0.0'
+import os
+
+def get_version():
+    version = ''
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        pyproject_path = os.path.join(base_dir, 'pyproject.toml')
+        
+        if os.path.exists(pyproject_path):
+            with open(pyproject_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip().startswith('version'):
+                        version = line.split('=', 1)[1].strip().strip('"\' ')
+                        break
+    except Exception:
+        pass
+    return version
+
+VERSION = get_version()
 
 UA = 'Yawf ' + VERSION
 

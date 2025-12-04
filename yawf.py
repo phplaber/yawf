@@ -34,8 +34,8 @@ _____.___.  _____  __      _____________
  / ______\____|__  /\__/\  /  \___  /   
  \/              \/      \/       \/    
                                         
-Automated Web Vulnerability Fuzzer      
-{VERSION}                               
+({VERSION})
+Automated Web Vulnerability Fuzzer                                     
 Created by yns0ng (@phplaber)           
 """
 

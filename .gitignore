@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .DS_Store
 *.code-workspace
+.python-version
 .venv/
 /output
 yawf.conf
