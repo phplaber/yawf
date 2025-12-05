@@ -62,9 +62,7 @@ Options:
 
 由于 Yawf 在检测 XSS 漏洞时，使用了 headless Chrome，所以需预先安装浏览器环境。
 
-Yawf 使用 [Playwright](https://playwright.dev/python/) 驱动浏览器，相比传统的 Selenium + WebDriver 方式，Playwright 更加稳定且无需手动管理驱动版本。
-
-只需运行以下命令安装 Chromium 浏览器即可：
+Yawf 使用 [Playwright](https://playwright.dev/python/) 驱动浏览器，相比传统的 Selenium + WebDriver 方式，Playwright 更加稳定且无需手动管理驱动版本。运行命令安装 Chromium 浏览器：
 
 ```console
 $ uv run playwright install chromium
@@ -334,14 +332,14 @@ def run(probe_ins: Probe) -> None:
 
 ### Docker 安装和运行
 
-除了以上安装和运行方式，也支持 Docker 方式安装和运行 Yawf。使用 Docker 的方式，更加便捷，可快速搭建起运行 Yawf 的环境，包括：ChromeDriver, google-chrome, Python3 以及依赖模块。
+除了以上安装和运行方式，也支持 Docker 方式安装和运行 Yawf。使用 Docker 的方式，更加便捷，可快速搭建起运行 Yawf 的环境，包括：Playwright, Chromium, Python3 以及依赖模块。
 
 ```console
 $ git clone https://github.com/phplaber/yawf.git
 $ cd yawf
 $ cp yawf.conf.sample yawf.conf
-$ docker build --no-cache -t yawf_env .
-$ docker run -it --rm --ulimit nofile=256:256 -v ~/Sec/scan/:/data --user $(id -u):$(id -g) yawf_env yawf.py -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --output-dir=/data
+$ docker build -t yawf_env .
+$ docker run -it --rm -v ~/Sec/scan/:/data yawf_env yawf.py -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --output-dir=/data
 ```
 
 至此，Yawf 的使用就结束了。后续就是人工介入，确认漏洞是否存在、等级，然后进入漏洞处置流程。
