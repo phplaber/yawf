@@ -1,6 +1,6 @@
 [project]
 name = "yawf"
-version = "3.0.0"
+version = "3.0.1"
 description = "Web 漏洞检测工具"
 readme = "README.md"
 requires-python = ">=3.8"
