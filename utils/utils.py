@@ -15,7 +15,7 @@ import requests
 import esprima
 from requests.auth import HTTPDigestAuth
 from requests_ntlm2 import HttpNtlmAuth
-from selenium import webdriver
+from playwright.sync_api import sync_playwright
 
 # 忽略 SSL 告警信息
 try:
@@ -49,36 +49,45 @@ class Spinner:
         sys.stdout.write('\r')
         sys.stdout.flush()
 
+class PlaywrightDriver:
+    def __init__(self, proxies, user_agent):
+        self.playwright = sync_playwright().start()
+        
+        launch_args = [
+            '--no-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-extensions',
+            '--disable-xss-auditor',
+            '--disable-gpu'
+        ]
+        
+        proxy_config = {"server": proxies['http']} if proxies else None
+        
+        self.browser = self.playwright.chromium.launch(
+            headless=True,
+            args=launch_args,
+            proxy=proxy_config
+        )
+        
+        self.context = self.browser.new_context(
+            user_agent=user_agent,
+            ignore_https_errors=True
+        )
+        
+        self.page = self.context.new_page()
+
+    def quit(self):
+        self.context.close()
+        self.browser.close()
+        self.playwright.stop()
+
 class Browser:
     def __init__(self, proxies, user_agent):
-        options = webdriver.ChromeOptions()
-        # 以 headless 模式运行 Chrome
-        options.add_argument('--headless')
-        # 仅 Windows 上运行有效
-        options.add_argument('--disable-gpu')
-        # 仅 Docker 上运行有效
-        options.add_argument('--no-sandbox')
-        # 在内存资源有限的环境中运行需要
-        options.add_argument('--disable-dev-shm-usage')
-        # 禁用扩展程序
-        options.add_argument('--disable-extensions')
-        # 设置 user-agent
-        options.add_argument(f'user-agent={user_agent}')
-        # 设置网络代理
-        if proxies:
-            options.add_argument(f"--proxy-server={proxies['http']}")
-        # 忽略证书错误
-        options.add_argument('--ignore-ssl-errors=yes')
-        options.add_argument('--ignore-certificate-errors')
-        # 禁用 xss auditor
-        options.add_argument('--disable-xss-auditor')
-        # 忽略 DevTools 监听 ws 信息
-        options.add_experimental_option('excludeSwitches', ['enable-logging'])
-
-        self.options = options
+        self.proxies = proxies
+        self.user_agent = user_agent
 
     def run(self):
-        return webdriver.Chrome(options=self.options)
+        return PlaywrightDriver(self.proxies, self.user_agent)
 
 class OOBDetector:
     def __init__(self, provider, proxies, timeout, id=None, token=None):

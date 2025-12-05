@@ -6,10 +6,6 @@ XSS 探针
 import sys
 from urllib.parse import quote, urlparse
 
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoAlertPresentException
-
 from core.probe import Probe
 
 def run(probe_ins: Probe) -> None:
@@ -25,10 +21,12 @@ def run(probe_ins: Probe) -> None:
         o = urlparse(probe_ins.base_http['request']['url'])
         load_page = f'{o.scheme}://{o.netloc}/robots.txt'
         # 添加请求头（请求头不支持标记）
-        probe_ins.browser.execute_cdp_cmd('Network.setExtraHTTPHeaders', {'headers': probe_ins.request['headers']})
+        probe_ins.browser.page.set_extra_http_headers(probe_ins.request['headers'])
+        
         for payload in probe_ins.probes_payload['xss']:
-            no_alert = False
             alert_text = ''
+            alert_triggered = False
+
             # 使用 AngularJS payload，页面需使用 AngularJS 指令
             if '{{' in payload and 'ng-app' not in probe_ins.base_http.get('response'):
                 continue
@@ -39,25 +37,39 @@ def run(probe_ins: Probe) -> None:
             
             # 在添加 cookie 前，需导航到目标域名某个页面（不必存在），然后再加载目标页面
             if payload_request['cookies']:
-                probe_ins.browser.get(load_page)
+                try:
+                    probe_ins.browser.page.goto(load_page, timeout=10000)
+                except Exception:
+                    pass
+                
+                cookies = []
                 for n, v in payload_request['cookies'].items():
-                    probe_ins.browser.add_cookie({'name': n, 'value': quote(v)})
-            probe_ins.browser.get(url)
+                    cookies.append({'name': n, 'value': quote(v), 'url': load_page})
+                probe_ins.browser.context.add_cookies(cookies)
+            
+            # 监听 dialog 事件
+            def handle_dialog(dialog):
+                nonlocal alert_triggered, alert_text
+                alert_text = dialog.message
+                alert_triggered = True
+                try:
+                    dialog.accept()
+                except Exception:
+                    pass
+
+            probe_ins.browser.page.on("dialog", handle_dialog)
 
             try:
-                # 在切换执行 alert 前，等待 3 秒
-                WebDriverWait(probe_ins.browser, 3).until(EC.alert_is_present())
-                try:
-                    alert = probe_ins.browser.switch_to.alert
-                    alert_text = alert.text
-                    alert.accept()
-                except NoAlertPresentException:
-                    no_alert = True
-                    
-                if not no_alert and alert_text == '1':
-                    vulnerable = True
-            except TimeoutException:
+                probe_ins.browser.page.goto(url, timeout=10000)
+                # 等待 3 秒，给 JS 执行留出时间
+                probe_ins.browser.page.wait_for_timeout(3000)
+            except Exception:
                 pass
+            
+            probe_ins.browser.page.remove_listener("dialog", handle_dialog)
+
+            if alert_triggered and alert_text == '1':
+                vulnerable = True
 
             if vulnerable:
                 print("[+] Found XSS!")
