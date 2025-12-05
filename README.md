@@ -330,18 +330,6 @@ def run(probe_ins: Probe) -> None:
         break
 ```
 
-### Docker 安装和运行
-
-除了以上安装和运行方式，也支持 Docker 方式安装和运行 Yawf。使用 Docker 的方式，更加便捷，可快速搭建起运行 Yawf 的环境，包括：Playwright, Chromium, Python3 以及依赖模块。
-
-```console
-$ git clone https://github.com/phplaber/yawf.git
-$ cd yawf
-$ cp yawf.conf.sample yawf.conf
-$ docker build -t yawf_env .
-$ docker run -it --rm -v ~/Sec/scan/:/data yawf_env yawf.py -u "http://testphp.vulnweb.com/listproducts.php?cat=1" --output-dir=/data
-```
-
 至此，Yawf 的使用就结束了。后续就是人工介入，确认漏洞是否存在、等级，然后进入漏洞处置流程。
 
 ### 声明
