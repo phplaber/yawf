@@ -77,11 +77,11 @@ class PlaywrightDriver:
         self.page = self.context.new_page()
         
         # 拦截不必要的资源请求
-        self.page.route("**/*", self._handle_route)
+        self.page.route("**/*", lambda route, request: self._handle_route(route, request))
 
-    def _handle_route(self, route):
+    def _handle_route(self, route, request):
         excluded_resource_types = ["image", "media", "font", "stylesheet"]
-        if route.request.resource_type in excluded_resource_types:
+        if request.resource_type in excluded_resource_types:
             route.abort()
         else:
             route.continue_()
